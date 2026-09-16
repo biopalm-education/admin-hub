@@ -387,7 +387,8 @@ const OWNFIX={'เรา':'แก้ได้ด้วยกระบวนก�
 const WHO={A:'ทีม “ครับ”',B:'ทีม “ค่ะ”',AB:'ทั้งสองทีมปนกัน','-':'ไม่มีคนพิมพ์เอง','':'ไม่มีคนพิมพ์เอง'};
 const STAGEN={S0:'ไม่มีข้อความลูกค้า',S1:'ทักแต่ไม่ถามคอร์ส',G:'มารับของแถม',
  S2:'ถามเรื่องคอร์ส',S3:'ได้รับราคาเป็นตัวเลข',S4:'ขอสมัคร / ได้วิธีจ่าย',S5:'ยืนยันปิดการขาย'};
-const SPEEDN=['≤ 5 นาที','5–60 นาที','ช้ากว่า 60 นาที','ไม่เคยมีคนตอบ'];
+const SPEEDN=['น้อยกว่า 15 นาที','15–30 นาที','30–60 นาที','มากกว่า 60 นาที','ไม่เคยมีคนตอบ'];const NS=SPEEDN.length;
+const SHIFTN=['09.00–21.00','21.00–00.00','00.00–09.00'];const SHIFTD=['เวลาทำงานหลัก','ช่วงค่ำ','กลางคืน–เช้า'];
 const BANDN={hi:'คุณภาพสูง 70–100',mid:'คุณภาพกลาง 40–69',lo:'คุณภาพต่ำ 0–39'};
 const isV2=()=>!!(AGG&&AGG.v2);
 const FORDER=['all','t1','t2','t3','t4','t5','hot','nohuman','risk','dup','price','won'];
@@ -945,6 +946,27 @@ function renderWhy(){
      <span class="nsm">${nf(v)} ดีล · ${esc(nm[1])}</span></span></span></div>`;}).join('')}</div>`;
 }
 
+/* ---------- shifts: when leads arrive vs how fast they get a human ---------- */
+function shiftAgg(list){
+ const o=[0,1,2].map(()=>({n:0,won:0,sp:SPEEDN.map(()=>[0,0]),ftW:0,ftN:0,m:0})); let has=false;
+ for(const a of list){if(!a||!a.shifts)continue;has=true;
+  a.shifts.forEach((x,i)=>{const t=o[i];t.n+=x.n;t.won+=x.won;x.sp.forEach((c,j)=>{t.sp[j][0]+=c[0];t.sp[j][1]+=c[1];});
+   if(x.ftMed!=null&&x.ftN){t.ftW+=x.ftMed*x.ftN;t.ftN+=x.ftN;}t.m++;});}
+ return has?o:null;}
+function shiftTable(list){
+ const o=shiftAgg(list); if(!o)return '';
+ const one=list.length===1, slow=o.reduce((t,x)=>t+x.sp[3][0],0), never=o.reduce((t,x)=>t+x.sp[4][0],0);
+ const cell=(v,n,hot)=>`<td class="n"${hot?' style="font-weight:600"':''}>${nf(v)} <span class="nsm">${n?Math.round(v*1000/n)/10:0}%</span></td>`;
+ const rows=o.map((x,i)=>`<tr><td><b>${SHIFTN[i]}</b><br><span class="nsm">${SHIFTD[i]}</span></td><td class="n">${nf(x.n)}</td>
+  ${x.sp.slice(0,3).map(c=>cell(c[0],x.n)).join('')}${cell(x.sp[3][0],x.n,true)}${cell(x.sp[4][0],x.n)}
+  <td class="n">${x.ftN?dur(Math.round(x.ftW/x.ftN)):'—'}</td><td class="n">${pcn(x.won,x.n)}</td>
+  <td class="n">${slow?Math.round(x.sp[3][0]*1000/slow)/10+'%':'—'}</td></tr>`).join('');
+ const worst=o.map((x,i)=>[i,x.n?x.sp[3][0]/x.n:0]).sort((a,b)=>b[1]-a[1])[0];
+ return `<div class="tw" style="margin-top:16px"><p class="ftitle" style="font-size:14px;font-weight:600;margin:12px 14px 8px">ตอบช้ากว่า 60 นาที เกิดขึ้นช่วงไหน — แยกตามเวลาที่ลีดทักเข้ามา</p><table>
+  <thead><tr><th>ช่วงเวลาที่ทัก</th><th class="n">ลีด</th>${SPEEDN.map((n,j)=>`<th class="n"${j===3?' style="color:var(--risk)"':''}>${n}</th>`).join('')}<th class="n">ตอบครั้งแรก${one?' (ค่ากลาง)':' (เฉลี่ยค่ากลาง)'}</th><th class="n">ปิด/ลีด</th><th class="n">ส่วนแบ่งของ “มากกว่า 60 นาที”</th></tr></thead>
+  <tbody>${rows}</tbody></table>
+  <p class="note" style="margin:10px 14px 12px">% ในแต่ละช่อง = สัดส่วนของลีดในช่วงเวลานั้น · ช่วงที่ตอบช้ากว่า 60 นาทีมากที่สุดคือ <b>${SHIFTN[worst[0]]}</b> (${Math.round(worst[1]*1000)/10}% ของลีดช่วงนั้น) · ตอบช้ากว่า 60 นาทีทั้งหมด ${nf(slow)} ลีด · ไม่เคยมีแอดมินพิมพ์ตอบ ${nf(never)} ลีด · เวลาตอบวัดจากข้อความลูกค้าแรกถึงข้อความที่แอดมิน<b>พิมพ์เอง</b>ครั้งแรก (ไม่นับข้อความอัตโนมัติ) และยังไม่หักเวลานอกทำการ</p></div>`;}
+
 /* ---------- when leads arrive, and how long they wait ---------- */
 function renderHours(){
  const p=pool(); const el=$('#hrs'); if(!el)return;
@@ -969,8 +991,14 @@ function renderHours(){
  for(const a of p)if(a.dow)for(let i=0;i<7;i++)dow[i]+=(a.dow[i]||0);
  const dmx=Math.max(1,...dow);
  const dcells=dow.map((v,i)=>`<div class="dowc"><div class="t">${DOWN[i]}</div><div class="b" style="width:${Math.max(8,Math.round(v*100/dmx))}%"></div><div class="n">${nf(v)}</div></div>`).join('');
- el.innerHTML=`<div class="hstrip">${bars}</div><div class="hax">${ax}</div>
-  <p class="note" style="margin-top:11px">สูงของแท่ง = จำนวนลีดที่ทักเข้ามาในชั่วโมงนั้น · สีเหลือง/แดง = ช่วงที่รอนานกว่า 15 / 60 นาที
+ const SO=shiftAgg(p);
+ const tot=SO?SO.reduce((t,x)=>t+x.n,0):0;
+ const cards=SO?`<div class="kpis" style="margin-bottom:14px">${SO.map((x,i)=>`<div class="k ${x.n&&x.sp[3][0]/x.n>=0.2?'warn':''}"><span class="lab">${SHIFTN[i]} · ${SHIFTD[i]}</span>
+   <div class="v">${nf(x.n)} <span style="font-size:13px;font-weight:500;color:var(--ink-3)">ลีด</span></div>
+   <div class="s">${pc(x.n,tot)} ของลีดทั้งหมด · ตอบครั้งแรก ${x.ftN?dur(Math.round(x.ftW/x.ftN)):'—'} · ตอบช้ากว่า 60 นาที ${pc(x.sp[3][0],x.n)} · ไม่เคยตอบ ${pc(x.sp[4][0],x.n)} · ปิดได้ ${pc(x.won,x.n)}</div></div>`).join('')}</div>`:'';
+ const shade=h=>h>=9&&h<21?'':(h>=21?'background:color-mix(in srgb,var(--warn) 10%,transparent)':'background:color-mix(in srgb,var(--ink-3) 12%,transparent)');
+ el.innerHTML=cards+`<div class="hstrip">${bars}</div><div class="hax">${ax}</div>
+  <p class="note" style="margin-top:11px">แบ่งช่วงทำงาน: <b>09.00–21.00</b> · <b>21.00–00.00</b> · <b>00.00–09.00</b> · สูงของแท่ง = จำนวนลีดที่ทักเข้ามาในชั่วโมงนั้น · สีเหลือง/แดง = ช่วงที่รอนานกว่า 15 / 60 นาที
   · ชั่วโมงที่คนทักมากที่สุด <b>${peak.join(' · ')}</b>${worst.length?` · ช่วงที่รอนานที่สุด <b>${worst.join(' · ')}</b>`:''}
   ${p.length>1?'<br><b>หมายเหตุ</b> เวลารอที่แสดงคือค่าเฉลี่ยของค่ากลางรายเดือน (ค่ากลางบวกกันไม่ได้) เลือกเดือนเดียวถ้าต้องการค่ากลางจริง':''}</p>
   <div class="dowrow">${dcells}</div>
@@ -1356,29 +1384,29 @@ function renderDeep(){
  /* ---- 2. quality x speed, precomputed per month so nothing has to load ---- */
  const ks=(w==='ig'?igMonths():fbMonths()).filter(k=>AG[k]);
  const BND=['hi','mid','lo'];
- const mt={hi:[[0,0],[0,0],[0,0],[0,0]],mid:[[0,0],[0,0],[0,0],[0,0]],lo:[[0,0],[0,0],[0,0],[0,0]]};
+ const z5=()=>SPEEDN.map(()=>[0,0]); const mt={hi:z5(),mid:z5(),lo:z5()};
  let hasM=false, lqsN=0, lqsSum=0, gT=0, gS=0, gL=0;
  for(const k of ks){const x=AG[k];
-  if(x.matrix){hasM=true;BND.forEach(b=>{for(let i=0;i<4;i++){mt[b][i][0]+=x.matrix[b][i][0];mt[b][i][1]+=x.matrix[b][i][1];}});}
+  if(x.matrix5){hasM=true;BND.forEach(b=>{for(let i=0;i<NS;i++){mt[b][i][0]+=x.matrix5[b][i][0];mt[b][i][1]+=x.matrix5[b][i][1];}});}
   if(x.lqsMean!=null&&x.leads){lqsSum+=x.lqsMean*x.leads;lqsN+=x.leads;}
   if(x.gradeTarget!=null){gT+=x.gradeTarget;gS+=(x.gradeStated||0);gL+=(x.leads||0);}
  }
  if(!hasM){legacyDeep(el,scat,chn);return;}
- const colN=[0,0,0,0], colW=[0,0,0,0];
- BND.forEach(b=>{for(let i=0;i<4;i++){colN[i]+=mt[b][i][0];colW[i]+=mt[b][i][1];}});
+ const colN=SPEEDN.map(()=>0), colW=SPEEDN.map(()=>0);
+ BND.forEach(b=>{for(let i=0;i<NS;i++){colN[i]+=mt[b][i][0];colW[i]+=mt[b][i][1];}});
  const totN=colN.reduce((x,y)=>x+y,0), totW=colW.reduce((x,y)=>x+y,0);
  const rate=(n,won)=>n?won*100/n:null;
  const mxr=Math.max.apply(null,[0].concat(colN.map((n,i)=>rate(n,colW[i])||0)));
  const bars=SPEEDN.map(function(nm,i){
   const r=rate(colN[i],colW[i]);
   return `<div class="bk"><span class="lab2">${nm}</span>
-   <span class="tr"><i class="${i===3?'bad':''}" style="width:${mxr?Math.max(2,Math.round((r||0)*100/mxr)):0}%"></i>
+   <span class="tr"><i class="${i>=3?'bad':''}" style="width:${mxr?Math.max(2,Math.round((r||0)*100/mxr)):0}%"></i>
    <span class="vv"><b>${r==null?'—':Math.round(r*10)/10+'%'}</b>
    <span class="nsm">${colN[i]?'ลีด '+nf(colN[i])+' · ปิด '+nf(colW[i])+(colN[i]<MINN?' · n น้อย':''):'ไม่มีข้อมูล'}</span></span></span></div>`;
  }).join('');
  /* highlight only cells with a real sample */
  let best=0, worst=null;
- BND.forEach(b=>{for(let i=0;i<4;i++){const c=mt[b][i];if(c[0]>=MINN){const r=rate(c[0],c[1]);
+ BND.forEach(b=>{for(let i=0;i<NS;i++){const c=mt[b][i];if(c[0]>=MINN){const r=rate(c[0],c[1]);
   best=Math.max(best,r); worst=(worst==null?r:Math.min(worst,r));}}});
  const overall=rate(totN,totW)||0;
  /* ถ้าทุกช่องใกล้เคียงกัน การไฮไลต์ช่องหนึ่งคือการชี้นำที่ข้อมูลไม่รองรับ */
@@ -1386,12 +1414,12 @@ function renderDeep(){
  const td=function(c){ if(!c||!c[0])return '<td><span class="p">—</span></td>';
   const r=rate(c[0],c[1]), on=best&&r>=best*0.75;
   return `<td class="${on?'on':''}"><span class="p">${Math.round(r*10)/10}%</span><span class="q">n=${nf(c[0])}${c[0]<MINN?' น้อย':''}</span></td>`;};
- const rowTot=b=>{let n=0,x=0;for(let i=0;i<4;i++){n+=mt[b][i][0];x+=mt[b][i][1];}return [n,x];};
+ const rowTot=b=>{let n=0,x=0;for(let i=0;i<NS;i++){n+=mt[b][i][0];x+=mt[b][i][1];}return [n,x];};
  const mtx=`<div class="tw" style="padding:14px;margin-top:16px"><table class="mtx">
   <thead><tr><th class="rh">คุณภาพลีด \\ ความเร็วตอบ</th>${SPEEDN.map(n=>'<th>'+n+'</th>').join('')}<th>รวมทั้งแถว</th></tr></thead><tbody>
   ${BND.map(b=>`<tr><th class="rh">${BANDN[b]}<br><span class="nsm">${pc(rowTot(b)[0],totN)} ของลีด</span></th>
-    ${[0,1,2,3].map(i=>td(mt[b][i])).join('')}${td(rowTot(b))}</tr>`).join('')}
-  <tr><th class="rh">รวมทั้งคอลัมน์</th>${[0,1,2,3].map(i=>td([colN[i],colW[i]])).join('')}${td([totN,totW])}</tr>
+    ${SPEEDN.map((_,i)=>td(mt[b][i])).join('')}${td(rowTot(b))}</tr>`).join('')}
+  <tr><th class="rh">รวมทั้งคอลัมน์</th>${SPEEDN.map((_,i)=>td([colN[i],colW[i]])).join('')}${td([totN,totW])}</tr>
   </tbody></table>
   <p class="note" style="margin:10px 0 0"><b>อ่านตามแถว</b> — ถ้าแถว “คุณภาพสูง” ไล่ลงจากซ้ายไปขวา แปลว่าความเร็วตอบมีผลกับลีดที่ดีจริง <b>→ แก้ที่การตอบแชท</b> ·
   <b>อ่านตามขนาด n</b> — ถ้าแถวคุณภาพต่ำกินสัดส่วนมากที่สุด แปลว่าโฆษณาส่งคนผิดกลุ่มเข้ามาเยอะ <b>→ แก้ที่กลุ่มเป้าหมายของโฆษณา</b><br>
@@ -1428,7 +1456,7 @@ function renderDeep(){
   <p class="note" style="margin-top:10px">คิดจากลีด ${nf(totN)} รายการใน${esc(moLabel())} (${chn}) · ยังไม่หักเวลานอกทำการ
   ${lqsN?' · คะแนนคุณภาพลีดเฉลี่ย <b>'+(Math.round(lqsSum/lqsN*10)/10)+'</b> / 100':''}
   ${gL?' · ระดับชั้นตรงกลุ่มเป้าหมาย <b>'+pc(gT,gL)+'</b> ของลีด (บอกระดับชั้น '+pc(gS,gL)+')':''}${nrTxt}</p>
- </div>${mtx}${coh}`;
+ </div>${shiftTable(ks.map(k=>AG[k]))}${mtx}${coh}`;
 }
 /* ข้อมูลรุ่นเก่าที่ยังไม่มีเมทริกซ์ใน agg — คำนวณจากแถวแชทแบบโหลดตามต้องการ */
 function legacyDeep(el,scat,chn){
