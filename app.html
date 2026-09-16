@@ -331,7 +331,7 @@ footer{border-top:1px solid var(--line);padding:20px 0 42px;color:var(--ink-3);f
 <div class="wrap">
  <section id="s-key"><div class="shead"><h2>สรุปสำคัญ</h2><span class="lab" id="keyscope"></span></div><div id="key"></div></section>
  <section id="s-kpi"><div class="shead"><h2>ตัวเลขสำคัญ</h2><span class="lab" id="kpiscope">เฉพาะลีดจริง (L4+L5)</span></div><div class="kpis" id="kpi"></div></section>
- <section id="s-trend"><div class="shead"><h2>แนวโน้มรายเดือน</h2><span class="lab">แต่ละกรอบใช้สเกลของตัวเอง</span></div><div id="trend"></div></section>
+ <section id="s-trend"><div class="shead"><h2>แนวโน้มรายเดือน</h2><span class="lab">กราฟแท่งรายเดือน · แต่ละกรอบใช้สเกลของตัวเอง เริ่มที่ 0</span></div><div id="trend"></div></section>
  <section id="s-fun"><div class="shead"><h2>คัดกรองลีด: กดปุ่มผ่าน vs สนใจจริง</h2><span class="lab" id="funscope">L1 → L5</span></div>
   <p class="note">จัดระดับจาก<b>สิ่งที่ลูกค้าทำเองเท่านั้น</b> — แยกข้อความที่มาจากปุ่ม (ปุ่มโฆษณา / ปุ่มคำถามของเพจ / ปุ่มเมนูบอท) ออกจากข้อความที่ลูกค้าพิมพ์เอง ไม่ใช้ข้อความฝั่งแอดมินหรือบอทมาตัดสิน · <b>ลีด = L4 + L5</b></p><div class="fun" id="fun"></div><div id="funsrc"></div></section>
  <section id="s-deep"><div class="shead"><h2>ความเร็วตอบมีผลกับยอดปิดแค่ไหน</h2><span class="lab" id="deepscope"></span></div><div id="deep"></div></section>
@@ -532,18 +532,55 @@ function delta(now,prev,upIsGood){
  const up=d>0, good=up===!!upIsGood;
  return `<span class="${good?'dup':'ddn'}">${up?'▲':'▼'} ${r}% จากเดือนก่อน</span>`;}
 /* one small multiple: its own scale, endpoint marked, no shared axis */
-function spark(vals,color){
+function spark(vals,color,labels){
  const v=vals.filter(x=>x!=null);
  if(v.length<2)return '';
- const mn=Math.min.apply(null,v), mx=Math.max.apply(null,v), sp=(mx-mn)||1;
- const n=vals.length, W=220, H=44, x=i=>6+i*(W-12)/(n-1), y=t=>6+(1-(t-mn)/sp)*(H-14);
- const pts=vals.map((t,i)=>x(i).toFixed(1)+','+y(t).toFixed(1)).join(' ');
- const area=`M${pts.split(' ').join(' L')} L${x(n-1).toFixed(1)},${H-2} L${x(0).toFixed(1)},${H-2} Z`;
- return `<svg class="spark" viewBox="0 0 ${W} ${H}" preserveAspectRatio="none" aria-hidden="true">
-  <path d="${area}" fill="${color}" fill-opacity=".10"></path>
-  <polyline points="${pts}" fill="none" stroke="${color}" stroke-width="2" stroke-linejoin="round" stroke-linecap="round"></polyline>
-  <circle cx="${x(n-1).toFixed(1)}" cy="${y(vals[n-1]).toFixed(1)}" r="4.5" fill="var(--card)"></circle>
-  <circle cx="${x(n-1).toFixed(1)}" cy="${y(vals[n-1]).toFixed(1)}" r="2.8" fill="${color}"></circle></svg>`;}
+ const mx=Math.max.apply(null,v.concat([0]))||1, n=vals.length, W=220, H=58, top=4, base=H-14, gap=n>6?3:5;
+ const bw=(W-gap*(n-1))/n;
+ let s='';
+ vals.forEach((t,i)=>{const x=i*(bw+gap);const last=i===n-1;
+  const lab=labels&&labels[i]?labels[i]:'';
+  if(t==null){s+=`<text x="${(x+bw/2).toFixed(1)}" y="${base-2}" text-anchor="middle" font-size="9" fill="var(--ink-3)">–</text>`;}
+  else{const h=Math.max(t>0?1.5:0,(t/mx)*(base-top));
+   s+=`<rect x="${x.toFixed(1)}" y="${(base-h).toFixed(1)}" width="${bw.toFixed(1)}" height="${h.toFixed(1)}" rx="1.5" fill="${color}" fill-opacity="${last?1:.42}"><title>${lab}: ${nf(t)}</title></rect>`;}
+  if(lab)s+=`<text x="${(x+bw/2).toFixed(1)}" y="${H-3}" text-anchor="middle" font-size="8.5" fill="var(--ink-3)"${last?' font-weight="600"':''}>${lab}</text>`;});
+ return `<svg class="spark" viewBox="0 0 ${W} ${H}" style="width:100%;height:auto;display:block;overflow:visible" role="img" aria-label="กราฟแท่งรายเดือน"><line x1="0" x2="${W}" y1="${base+.5}" y2="${base+.5}" stroke="var(--line)"/>${s}</svg>`;}
+function qualityChart(name,keys,agg,col){
+ const ks=keys.filter(k=>agg[k]); if(!ks.length)return '';
+ const rows=ks.map(k=>{const x=agg[k],t=x.tiers||{};
+  const junk=(t.L1h||0)+(t.L1n||0)+(t.L2h||0)+(t.L2n||0), warm=t.L3||0, real=x.leads||0;
+  const other=Math.max(0,(x.threads||0)-junk-warm-real);
+  return {k,th:x.threads||0,other,junk,warm,real,won:x.closed||0};});
+ const mx=Math.max(1,...rows.map(r=>r.th)), W=Math.max(360,rows.length*78), H=230, top=26, base=H-38, n=rows.length;
+ const slot=W/n, bw=Math.min(46,slot*.62);
+ const SEG=[['real','ลีดจริง (L4+L5)',col,1],['warm','ตอบคัดกรอง (L3)','var(--warn)',.75],['junk','กดปุ่ม / พิมพ์สั้นแล้วหาย (L1+L2)','var(--ink-3)',.55],['other','ไม่มีข้อความลูกค้า / ของแถม','var(--line-2)',1]];
+ let s='';
+ for(let g=0;g<=4;g++){const y=base-(base-top)*g/4;s+=`<line x1="0" x2="${W}" y1="${y.toFixed(1)}" y2="${y.toFixed(1)}" stroke="var(--line)" stroke-dasharray="${g?'2 3':''}"/>`;
+  if(g)s+=`<text x="2" y="${(y-3).toFixed(1)}" font-size="9.5" fill="var(--ink-3)">${nf(Math.round(mx*g/4))}</text>`;}
+ rows.forEach((r,i)=>{const cx=slot*i+slot/2, x=cx-bw/2; let y=base;
+  for(const [f,lab,c,op] of SEG){const v=r[f]; if(!v)continue; const h=v/mx*(base-top); y-=h;
+   s+=`<rect x="${x.toFixed(1)}" y="${y.toFixed(1)}" width="${bw.toFixed(1)}" height="${h.toFixed(1)}" fill="${c}" fill-opacity="${op}"><title>${MLABEL[r.k]||r.k} · ${lab}: ${nf(v)} (${r.th?Math.round(v*1000/r.th)/10:0}% ของแชท)</title></rect>`;}
+  const pct=r.th?Math.round(r.real*1000/r.th)/10:0;
+  s+=`<text x="${cx.toFixed(1)}" y="${(y-6).toFixed(1)}" text-anchor="middle" font-size="11" font-weight="600" fill="var(--ink)">${pct}%</text>`;
+  s+=`<text x="${cx.toFixed(1)}" y="${base+15}" text-anchor="middle" font-size="10.5" fill="var(--ink-2)">${MSHORT[r.k]||r.k}</text>`;
+  s+=`<text x="${cx.toFixed(1)}" y="${base+29}" text-anchor="middle" font-size="9.5" fill="var(--ink-3)">${nf(r.th)} แชท</text>`;});
+ const lg=SEG.map(([f,lab,c,op])=>`<span style="display:inline-flex;align-items:center;gap:5px;margin-right:12px"><i style="width:10px;height:10px;border-radius:2px;background:${c};opacity:${op};display:inline-block"></i>${lab}</span>`).join('');
+ const L=rows[rows.length-1], P=rows.length>1?rows[rows.length-2]:null;
+ const rp=r=>r&&r.th?r.real*100/r.th:null, jp=r=>r&&r.th?r.junk*100/r.th:null, cp=r=>r&&r.real?r.won*100/r.real:null;
+ const f1=v=>v==null?'—':(Math.round(v*10)/10)+'%';
+ const dd=(a,b,up)=>a==null||b==null?'':`<span class="${(a>=b)===up?'dup':'ddn'}">${a>=b?'▲':'▼'} ${Math.abs(Math.round((a-b)*10)/10)} จุด</span>`;
+ const tile=(lab,val,d,note)=>`<div style="flex:1 1 180px;min-width:0"><div style="font-size:12px;color:var(--ink-2)">${lab}</div><div style="font-family:'IBM Plex Mono',monospace;font-size:20px;font-weight:600">${val}</div><div style="font-size:11.5px">${d}</div><div style="font-size:11.5px;color:var(--ink-3)">${note}</div></div>`;
+ return `<div class="tp" style="margin:0 0 12px;padding:14px 16px 12px">
+  <div class="h" style="font-size:14px;font-weight:600;color:var(--ink)">${name} · แชททั้งหมด เทียบกับ คนสนใจคอร์สจริง</div>
+  <div style="display:flex;flex-wrap:wrap;gap:10px 18px;margin:8px 0 6px">
+   ${tile('คุณภาพทราฟฟิก = ลีดจริง ÷ แชททั้งหมด',f1(rp(L)),dd(rp(L),rp(P),true),nf(L.real)+' จาก '+nf(L.th)+' แชท · '+(MLABEL[L.k]||L.k))}
+   ${tile('ทราฟฟิกขยะ = กดปุ่ม/พิมพ์สั้นแล้วหาย ÷ แชท',f1(jp(L)),dd(jp(L),jp(P),false),nf(L.junk)+' แชท · ยิ่งต่ำยิ่งดี')}
+   ${tile('ฝีมือปิด = ปิดได้ ÷ ลีดจริง',f1(cp(L)),dd(cp(L),cp(P),true),nf(L.won)+' จาก '+nf(L.real)+' ลีด')}
+  </div>
+  <div style="overflow-x:auto"><svg viewBox="0 0 ${W} ${H}" width="100%" style="min-width:${Math.min(W,520)}px;max-height:260px;display:block" role="img" aria-label="กราฟแท่งซ้อน แชททั้งหมดแยกตามระดับลีดรายเดือน">${s}</svg></div>
+  <div style="font-size:11.5px;color:var(--ink-2);margin-top:6px">${lg}</div>
+  <p class="note" style="margin:8px 0 0">ความสูงแท่ง = แชททั้งหมดของเดือน · ตัวเลขบนแท่ง = <b>% ลีดจริงต่อแชท</b> · อ่านคู่กัน: ถ้า<b>แชทเพิ่มแต่ % ลีดจริงลด</b> แปลว่าโฆษณาพาคนไม่สนใจมาเพิ่ม (แก้ที่ทราฟฟิก) · ถ้า <b>% ลีดจริงคงที่แต่ฝีมือปิดลด</b> แปลว่าปัญหาอยู่ที่การตอบ/ติดตาม (แก้ที่ทีม) · ทั้งสองตัววัดจากพฤติกรรมลูกค้าเท่านั้น แอดมินจึงดันตัวเลขคุณภาพทราฟฟิกเองไม่ได้</p></div>`;
+}
 
 /* ---------- controls ---------- */
 function chKeys(){return (CH==='fb')?FBKEYS:(CH==='ig'?MKEYS:(CH==='line'?LINEKEYS:ALLKEYS));}
@@ -779,17 +816,19 @@ function trendRow(name,dot,keys,agg,cols){
  if(ks.length<2)return '';
  const use=(CH==='all')?cols.slice(0,4):cols;
  const N=use.length%4===0?4:(use.length%3===0?3:Math.min(use.length,4));
+ const labs=ks.map(k=>{const s=String(MSHORT[k]||k);return s.replace(/\s*\d{2,4}$/,'');});
  const cells=use.map(function(c){
   const vals=ks.map(k=>{const x=agg[k];return c.f(x);});
   const last=vals[vals.length-1], prev=vals[vals.length-2];
   return `<div class="tp"><div class="h">${c.lab}</div>
    <div class="v">${c.fmt?c.fmt(last):nf(last)}</div>
    <div class="d">${delta(last,prev,c.up)}</div>
-   ${spark(vals,c.col)}
-   <div class="s" style="font-size:11px;color:var(--ink-3)">${MSHORT[ks[0]]||ks[0]} → ${MSHORT[ks[ks.length-1]]||ks[ks.length-1]} · ${ks.length} เดือน</div></div>`;
+   ${spark(vals,c.col,labs)}
+   <div class="s" style="font-size:11px;color:var(--ink-3)">${MSHORT[ks[0]]||ks[0]} → ${MSHORT[ks[ks.length-1]]||ks[ks.length-1]} · ${ks.length} เดือน · แท่งเข้ม = เดือนล่าสุด</div></div>`;
  }).join('');
- return `<div class="trow"><p class="ch"><span class="dot ${dot}"></span>${name}</p><div class="tgrid" style="grid-template-columns:repeat(${N},minmax(0,1fr))">${cells}</div></div>`;
+ return `<div class="trow"><p class="ch"><span class="dot ${dot}"></span>${name}</p>${dot==='fb'||dot==='ig'?qualityChart(name,ks,agg,dot==='fb'?'var(--fb)':'var(--ig)'):''}<div class="tgrid" style="grid-template-columns:repeat(${N},minmax(0,1fr))">${cells}</div></div>`;
 }
+
 function renderTrend(){
  const el=$('#trend'); if(!el)return;
  const pctf=v=>v==null?'—':(Math.round(v*10)/10+'%');
