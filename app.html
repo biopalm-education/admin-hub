@@ -1,0 +1,1507 @@
+<!doctype html>
+<html lang="th">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<meta name="robots" content="noindex,nofollow">
+<title>Admin Performance · BioPalm</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=IBM+Plex+Mono:wght@400;500;600&family=IBM+Plex+Sans+Thai:wght@400;500;600&family=Noto+Serif+Thai:wght@600;700&display=swap">
+<style>
+
+:root{
+ --paper:#FAF9F6; --card:#FFFFFF; --sunk:#F2F1EC;
+ --ink:#17211C; --ink-2:#4C5A53; --ink-3:#84918A;
+ --line:#E3E1DA; --line-2:#CFCEC5;
+ --leaf:#2E6B4E; --leaf-soft:#E4EFE8;
+ --ig:#A83E7C; --ig-soft:#F7E7F1;
+ --fb:#2B5CA6; --fb-soft:#E4EDF9; --ln:#06813B; --ln-soft:#E3F5EA;
+ --warn:#A96B14; --warn-soft:#F8EEDC;
+ --risk:#AB3524; --risk-soft:#F9E5E1;
+ --shadow:0 1px 2px rgba(23,33,28,.06),0 6px 18px rgba(23,33,28,.05);
+}
+@media (prefers-color-scheme:dark){:root:not([data-theme="light"]){
+ --paper:#111613; --card:#181F1B; --sunk:#141A17;
+ --ink:#E6EBE7; --ink-2:#A8B5AD; --ink-3:#76837B;
+ --line:#242D28; --line-2:#33403A;
+ --leaf:#7CC79C; --leaf-soft:#17291F;
+ --ig:#E39BC6; --ig-soft:#2A1826;
+ --fb:#8FB6EC; --fb-soft:#13203A; --ln:#5FD99A; --ln-soft:#0E2A1B;
+ --warn:#E0AC5C; --warn-soft:#2A2013;
+ --risk:#EE9184; --risk-soft:#2E1713;
+ --shadow:0 1px 2px rgba(0,0,0,.4),0 6px 18px rgba(0,0,0,.3);
+}}
+:root[data-theme="dark"]{
+ --paper:#111613; --card:#181F1B; --sunk:#141A17;
+ --ink:#E6EBE7; --ink-2:#A8B5AD; --ink-3:#76837B;
+ --line:#242D28; --line-2:#33403A;
+ --leaf:#7CC79C; --leaf-soft:#17291F;
+ --ig:#E39BC6; --ig-soft:#2A1826;
+ --fb:#8FB6EC; --fb-soft:#13203A; --ln:#5FD99A; --ln-soft:#0E2A1B;
+ --warn:#E0AC5C; --warn-soft:#2A2013;
+ --risk:#EE9184; --risk-soft:#2E1713;
+ --shadow:0 1px 2px rgba(0,0,0,.4),0 6px 18px rgba(0,0,0,.3);
+}
+*{box-sizing:border-box}
+[hidden]{display:none!important}
+body{margin:0;background:var(--paper);color:var(--ink);
+ font-family:"IBM Plex Sans Thai",system-ui,-apple-system,"Segoe UI",sans-serif;
+ font-size:15px;line-height:1.65;-webkit-font-smoothing:antialiased}
+h1,h2,h3{font-family:"Noto Serif Thai","IBM Plex Sans Thai",serif;font-weight:700;text-wrap:balance;margin:0}
+.wrap{max-width:1220px;margin:0 auto;padding:0 22px}
+.num{font-family:"IBM Plex Mono",ui-monospace,monospace;font-variant-numeric:tabular-nums}
+.lab{font-family:"IBM Plex Mono",ui-monospace,monospace;font-size:11px;letter-spacing:.09em;text-transform:uppercase;color:var(--ink-3)}
+
+/* masthead */
+.mast{padding:30px 0 16px}
+.mast h1{font-size:clamp(25px,3.4vw,36px);letter-spacing:-.01em}
+.mast p{color:var(--ink-2);margin:8px 0 0;max-width:64ch}
+.src{display:flex;gap:8px;flex-wrap:wrap;margin-bottom:12px}
+.src span{font-family:"IBM Plex Mono",monospace;font-size:11px;letter-spacing:.05em;border:1px solid var(--line);
+ border-radius:999px;padding:3px 10px;color:var(--ink-2);background:var(--card)}
+
+/* control rail */
+.rail{position:sticky;top:0;z-index:40;background:color-mix(in srgb,var(--paper) 92%,transparent);
+ backdrop-filter:blur(10px);border-bottom:1px solid var(--line);margin-bottom:26px}
+.railin{display:flex;flex-wrap:wrap;gap:14px 20px;align-items:center;padding:11px 0}
+.ctl{display:flex;align-items:center;gap:8px}
+.ctl>.lab{white-space:nowrap}
+.seg{display:flex;background:var(--sunk);border:1px solid var(--line);border-radius:9px;padding:2px;gap:2px}
+.seg button{font:inherit;font-size:13.5px;font-weight:500;border:0;background:none;color:var(--ink-2);
+ padding:5px 13px;border-radius:7px;cursor:pointer;display:flex;align-items:center;gap:6px}
+.seg button:hover{color:var(--ink)}
+.seg button[aria-pressed="true"]{background:var(--card);color:var(--ink);box-shadow:var(--shadow)}
+.seg button[data-ch="ig"][aria-pressed="true"]{color:var(--ig)}
+.seg button[data-ch="fb"][aria-pressed="true"]{color:var(--fb)}
+.dot{width:8px;height:8px;border-radius:50%;display:inline-block}
+.dot.ig{background:var(--ig)} .dot.fb{background:var(--fb)} .dot.line{background:var(--ln)}
+.fill.line{background:var(--ln-soft);border-right:2px solid var(--ln)}
+.lnwrap{display:grid;gap:10px}
+.lnbar{display:grid;grid-template-columns:110px 1fr auto;gap:10px;align-items:center;font-size:13px}
+.lnbar .t{display:block;height:9px;border-radius:5px;background:var(--ln);min-width:3px}
+.lnbar .track{display:block;height:9px;background:var(--sunk);border-radius:5px;overflow:hidden}
+.lnnote{border-left:3px solid var(--ln);background:var(--ln-soft)}
+select{font:inherit;font-size:13.5px;padding:6px 10px;border:1px solid var(--line-2);border-radius:8px;
+ background:var(--card);color:var(--ink);cursor:pointer}
+.now{margin-left:auto;font-family:"IBM Plex Mono",monospace;font-size:12px;color:var(--ink-2);
+ border-left:2px solid var(--leaf);padding-left:11px;line-height:1.45}
+.now b{color:var(--ink);font-weight:600}
+
+/* trend + deltas */
+.trow{margin:0 0 16px}
+.trow>.ch{font-family:"IBM Plex Mono",monospace;font-size:11px;letter-spacing:.07em;text-transform:uppercase;
+ color:var(--ink-3);margin:0 0 7px;display:flex;align-items:center;gap:7px}
+.tgrid{display:grid;grid-template-columns:repeat(auto-fit,minmax(200px,1fr));gap:11px}
+@media(max-width:820px){.tgrid{grid-template-columns:repeat(2,minmax(0,1fr))!important}}
+@media(max-width:480px){.tgrid{grid-template-columns:1fr!important}}
+.tp{background:var(--card);border:1px solid var(--line);border-radius:11px;padding:12px 14px 8px;box-shadow:var(--shadow)}
+.tp .h{font-size:12.5px;color:var(--ink-2);margin-bottom:2px}
+.tp .v{font-family:"IBM Plex Mono",monospace;font-size:21px;font-weight:600;font-variant-numeric:tabular-nums;line-height:1.15}
+.tp .d{font-family:"IBM Plex Mono",monospace;font-size:11.5px;margin:1px 0 5px}
+.dup{color:var(--leaf)} .ddn{color:var(--risk)} .dfl{color:var(--ink-3)}
+.spark{display:block;width:100%;height:44px}
+.k .d{font-family:"IBM Plex Mono",monospace;font-size:11.5px;margin-top:2px}
+.nsm{font-family:"IBM Plex Mono",monospace;font-size:11px;color:var(--ink-3)}
+.lown{color:var(--ink-3)}
+.lown .nsm{color:var(--warn)}
+
+/* hour strip */
+.hstrip{display:grid;grid-template-columns:repeat(24,1fr);gap:3px;align-items:end;height:96px;
+ background:var(--card);border:1px solid var(--line);border-radius:11px 11px 0 0;
+ border-bottom:0;padding:12px 12px 0;box-shadow:var(--shadow)}
+.hstrip .hb{border-radius:3px 3px 0 0;background:var(--fb);min-height:3px}
+.hstrip .hb.w{background:var(--warn)} .hstrip .hb.r{background:var(--risk)}
+.hstrip .hb.z{background:var(--sunk)}
+.hax{display:grid;grid-template-columns:repeat(24,1fr);gap:2px;background:var(--card);
+ border:1px solid var(--line);border-top:0;border-radius:0 0 11px 11px;padding:5px 10px 8px;
+ font-family:"IBM Plex Mono",monospace;font-size:9.5px;color:var(--ink-3);text-align:center;box-shadow:var(--shadow)}
+.dowrow{display:grid;grid-template-columns:repeat(7,1fr);gap:7px;margin-top:11px}
+.dowc{background:var(--card);border:1px solid var(--line);border-radius:9px;padding:8px 6px;text-align:center;box-shadow:var(--shadow)}
+.dowc .t{font-size:11.5px;color:var(--ink-3)}
+.dowc .b{height:5px;border-radius:99px;background:var(--fb);margin:5px auto 4px}
+.dowc .n{font-family:"IBM Plex Mono",monospace;font-size:12.5px;font-variant-numeric:tabular-nums}
+
+/* two-way matrix */
+.mtx{width:100%;border-collapse:separate;border-spacing:3px;font-size:13px}
+.mtx th{font-weight:500;color:var(--ink-2);font-size:12px;padding:5px 7px;text-align:center;white-space:normal}
+.mtx th.rh{text-align:right;white-space:nowrap;width:150px}
+.mtx td{border-radius:7px;padding:10px 6px;text-align:center;font-family:"IBM Plex Mono",monospace;
+ font-variant-numeric:tabular-nums;background:var(--sunk)}
+.mtx td .p{display:block;font-size:16px;font-weight:600}
+.mtx td .q{display:block;font-size:10px;color:var(--ink-3);margin-top:2px}
+.mtx td.on{background:var(--leaf);color:#fff} .mtx td.on .q{color:rgba(255,255,255,.8)}
+
+/* buckets */
+.bk{display:grid;grid-template-columns:118px 1fr;gap:11px;align-items:center;margin-bottom:8px;font-size:13px}
+.bk .lab2{color:var(--ink-2);text-align:right;font-size:12.5px}
+.bk .tr{position:relative;background:var(--sunk);border-radius:5px;height:22px;overflow:hidden}
+.bk .tr i{position:absolute;inset:0 auto 0 0;background:var(--leaf-soft);border-right:2px solid var(--leaf);border-radius:5px 0 0 5px}
+.bk .tr i.bad{background:var(--risk-soft);border-right-color:var(--risk)}
+.bk .vv{position:absolute;inset:0;display:flex;align-items:center;gap:8px;padding-left:9px;
+ font-family:"IBM Plex Mono",monospace;font-size:11.5px;color:var(--ink)}
+.scat{background:var(--card);border:1px solid var(--line);border-radius:11px;padding:14px;box-shadow:var(--shadow)}
+.warnbox{border-left:3px solid var(--warn);background:var(--warn-soft);border-radius:9px;padding:10px 13px;
+ font-size:13px;color:var(--ink-2);margin:0 0 14px}
+.warnbox b{color:var(--ink)}
+.dlbtn{font:inherit;font-size:12.5px;padding:4px 11px;border-radius:8px;border:1px solid var(--line-2);
+ background:var(--card);color:var(--ink-2);cursor:pointer}
+.dlbtn:hover{border-color:var(--leaf);color:var(--leaf)}
+
+/* sections */
+section{margin:0 0 40px}
+.shead{display:flex;align-items:baseline;gap:12px;border-bottom:1px solid var(--line);padding-bottom:9px;margin-bottom:18px}
+.shead h2{font-size:20px}
+.shead .lab{margin-left:auto}
+.note{color:var(--ink-2);font-size:14px;margin:0 0 14px;max-width:74ch}
+
+/* callouts */
+.callout{border:1px solid var(--line);border-left:3px solid var(--ink-3);background:var(--card);
+ border-radius:10px;padding:14px 16px;margin-bottom:10px;box-shadow:var(--shadow)}
+.callout h4{margin:0 0 4px;font-size:15.5px;font-family:"Noto Serif Thai",serif;font-weight:600}
+.callout p{margin:0;color:var(--ink-2);font-size:14px}
+.callout.risk{border-left-color:var(--risk);background:var(--risk-soft)}
+.callout.warn{border-left-color:var(--warn);background:var(--warn-soft)}
+.callout.ok{border-left-color:var(--leaf);background:var(--leaf-soft)}
+.callout.info{border-left-color:var(--fb);background:var(--fb-soft)}
+
+/* kpi */
+.kpis{display:grid;grid-template-columns:repeat(auto-fill,minmax(184px,1fr));gap:11px}
+.k{background:var(--card);border:1px solid var(--line);border-radius:11px;padding:13px 15px;box-shadow:var(--shadow)}
+.k .lab{display:block;margin-bottom:5px}
+.k .v{font-family:"IBM Plex Mono",monospace;font-size:26px;font-weight:600;line-height:1.15;font-variant-numeric:tabular-nums}
+.k .v small{font-size:13px;font-weight:400;color:var(--ink-2);margin-left:3px}
+.k .s{font-size:12.5px;color:var(--ink-3);margin-top:3px;line-height:1.4}
+.k.risk .v{color:var(--risk)} .k.ok .v{color:var(--leaf)} .k.warn .v{color:var(--warn)}
+
+/* tables */
+.tw{overflow-x:auto;border:1px solid var(--line);border-radius:11px;background:var(--card);box-shadow:var(--shadow)}
+table{border-collapse:collapse;width:100%;font-size:14px}
+th,td{padding:9px 13px;text-align:left;border-bottom:1px solid var(--line);white-space:nowrap}
+th{font-family:"IBM Plex Mono",monospace;font-size:11px;letter-spacing:.07em;text-transform:uppercase;
+ color:var(--ink-3);font-weight:500;background:var(--sunk)}
+tbody tr:last-child td{border-bottom:0}
+td.n{font-family:"IBM Plex Mono",monospace;font-variant-numeric:tabular-nums;text-align:right}
+td.w{white-space:normal;color:var(--ink-3);font-size:13px;min-width:200px}
+.chIG{color:var(--ig);font-weight:600} .chFB{color:var(--fb);font-weight:600} .chLN{color:var(--ln);font-weight:600}
+
+/* funnel */
+.fun{display:flex;flex-direction:column;gap:7px}
+.fstep{display:grid;grid-template-columns:38px 1fr;gap:12px;align-items:center}
+.fstep .no{font-family:"IBM Plex Mono",monospace;font-size:11px;color:var(--ink-3);text-align:right}
+.bar{position:relative;background:var(--sunk);border-radius:7px;height:38px;overflow:hidden;border:1px solid var(--line)}
+.fill{position:absolute;inset:0 auto 0 0;border-radius:6px}
+.fill.ig{background:var(--ig-soft);border-right:2px solid var(--ig)}
+.fill.fb{background:var(--fb-soft);border-right:2px solid var(--fb)}
+.blab{position:relative;display:flex;justify-content:space-between;align-items:center;height:100%;padding:0 12px;font-size:13.5px}
+.blab b{font-family:"IBM Plex Mono",monospace;font-variant-numeric:tabular-nums}
+
+/* master-detail */
+.md{display:grid;grid-template-columns:minmax(280px,360px) 1fr;gap:16px;align-items:start}
+@media(max-width:860px){.md{grid-template-columns:1fr}}
+.pane{background:var(--card);border:1px solid var(--line);border-radius:11px;box-shadow:var(--shadow);overflow:hidden}
+.ptop{padding:11px 13px;border-bottom:1px solid var(--line);display:flex;flex-direction:column;gap:9px}
+input[type=search]{font:inherit;font-size:14px;width:100%;padding:8px 11px;border:1px solid var(--line-2);
+ border-radius:8px;background:var(--sunk);color:var(--ink)}
+.chips{display:flex;gap:5px;flex-wrap:wrap}
+.chip{font:inherit;font-size:12px;padding:3px 10px;border-radius:999px;border:1px solid var(--line-2);
+ background:var(--card);color:var(--ink-2);cursor:pointer}
+.chip[aria-pressed="true"]{background:var(--ink);color:var(--paper);border-color:var(--ink)}
+.deeprow{display:flex;align-items:center;gap:6px;font-size:12.5px;color:var(--ink-3)}
+.plist{display:block;max-height:560px;overflow-y:auto}
+.prow{display:block;width:100%;text-align:left;font:inherit;background:none;border:0;border-bottom:1px solid var(--line);
+ padding:9px 13px;cursor:pointer;color:var(--ink)}
+.prow:hover{background:var(--sunk)}
+.prow[aria-current="true"]{background:var(--leaf-soft);box-shadow:inset 3px 0 0 var(--leaf)}
+.prow .nm{display:block;font-weight:600;font-size:14px}
+.prow .sb{display:block;font-family:"IBM Plex Mono",monospace;font-size:11px;color:var(--ink-3);margin-top:1px}
+.prow .fl{display:flex;gap:4px;flex-wrap:wrap;margin-top:5px}
+.badge{font-family:"IBM Plex Mono",monospace;font-size:10.5px;padding:1px 7px;border-radius:999px;
+ border:1px solid var(--line-2);color:var(--ink-2);background:var(--sunk)}
+.badge.risk{color:var(--risk);background:var(--risk-soft);border-color:transparent}
+.badge.ok{color:var(--leaf);background:var(--leaf-soft);border-color:transparent}
+.pfoot{display:flex;align-items:center;gap:8px;padding:9px 13px;border-top:1px solid var(--line);flex-wrap:wrap}
+#pcount{font-family:"IBM Plex Mono",monospace;font-size:11.5px;color:var(--ink-3)}
+#pager{display:flex;gap:3px;margin-left:auto}
+#pager button{font:inherit;font-size:12px;min-width:27px;padding:3px 6px;border:1px solid var(--line-2);
+ background:var(--card);color:var(--ink-2);border-radius:6px;cursor:pointer}
+#pager button[aria-current="true"]{background:var(--ink);color:var(--paper);border-color:var(--ink)}
+#pager button:disabled{opacity:.4;cursor:default}
+.chead{padding:13px 16px;border-bottom:1px solid var(--line)}
+.chead .who{font-family:"Noto Serif Thai",serif;font-size:17px;font-weight:700}
+.chead .mt{font-size:12.5px;color:var(--ink-3);margin-top:3px}
+.chead .fl{display:flex;gap:5px;flex-wrap:wrap;margin-top:8px}
+.thread{max-height:560px;overflow-y:auto;padding:14px 16px;background:var(--sunk)}
+.daysep{text-align:center;font-family:"IBM Plex Mono",monospace;font-size:11px;color:var(--ink-3);margin:12px 0 8px}
+.msg{display:flex;gap:7px;align-items:flex-end;margin-bottom:7px}
+.msg .bub{max-width:76%;padding:8px 12px;border-radius:13px;font-size:14px;white-space:pre-wrap;word-break:break-word}
+.msg .ts{font-family:"IBM Plex Mono",monospace;font-size:10px;color:var(--ink-3)}
+.msg.r0 .bub{background:var(--card);border:1px solid var(--line);border-bottom-left-radius:4px}
+.msg.r1,.msg.r2,.msg.r3{flex-direction:row-reverse}
+.msg.r1 .bub{background:var(--leaf);color:#fff;border-bottom-right-radius:4px}
+.msg.r2 .bub,.msg.r3 .bub{background:var(--card);border:1px dashed var(--line-2);color:var(--ink-2);border-bottom-right-radius:4px}
+.tplmark{display:block;font-family:"IBM Plex Mono",monospace;font-size:9.5px;letter-spacing:.06em;
+ text-transform:uppercase;color:var(--ink-3);margin-bottom:2px;font-weight:500}
+.empty{padding:34px 18px;text-align:center;color:var(--ink-3);font-size:14px}
+.fixbtn{font:inherit;font-size:13px;margin-top:9px;padding:6px 13px;border-radius:8px;border:1px solid var(--leaf);
+ background:var(--leaf-soft);color:var(--leaf);cursor:pointer;font-weight:500}
+a{color:var(--leaf)}
+.big{display:block;border:1px solid var(--line);border-radius:11px;background:var(--card);padding:18px 20px;
+ box-shadow:var(--shadow);text-decoration:none;color:inherit}
+.big:hover{border-color:var(--leaf)}
+.big .lab{display:block;margin-bottom:5px}
+.big h3{font-size:17px;margin-bottom:4px}
+.big p{margin:0;color:var(--ink-2);font-size:14px}
+:focus-visible{outline:2px solid var(--leaf);outline-offset:2px}
+@media (prefers-reduced-motion:reduce){*{transition:none!important;animation:none!important}}
+footer{border-top:1px solid var(--line);padding:20px 0 42px;color:var(--ink-3);font-size:13px}
+.fdesc{margin:9px 0 0;font-size:12.5px;line-height:1.65;color:var(--ink-2);background:var(--sunk);
+ border:1px solid var(--line);border-radius:9px;padding:9px 12px}
+.fdesc b{color:var(--ink)}
+.fhelp{margin-top:8px;font-size:12.5px;color:var(--ink-2)}
+.fhelp summary{cursor:pointer;color:var(--leaf);font-weight:500;list-style:none}
+.fhelp summary::-webkit-details-marker{display:none}
+.fhelp summary::before{content:"\25B8 ";display:inline-block;transition:transform .15s}
+.fhelp[open] summary::before{content:"\25BE "}
+.fhelp dl{margin:9px 0 0;padding:0 0 0 2px}
+.fhelp dt{font-weight:600;color:var(--ink);margin-top:9px}
+.fhelp dd{margin:2px 0 0;line-height:1.65}
+
+#gate{position:fixed;inset:0;z-index:100;background:var(--paper);display:flex;
+ align-items:center;justify-content:center;padding:24px}
+.gbox{width:100%;max-width:392px;background:var(--card);border:1px solid var(--line);
+ border-radius:16px;padding:32px 28px 24px;box-shadow:var(--shadow)}
+.gmark{width:42px;height:42px;border-radius:11px;background:var(--leaf);color:#fff;display:flex;
+ align-items:center;justify-content:center;font-weight:600;letter-spacing:.5px;font-size:15px;margin-bottom:18px}
+.gh{font-size:19px;line-height:1.35;margin:0 0 6px;font-weight:600;letter-spacing:-.01em;font-family:inherit}
+.gs{font-size:13.5px;line-height:1.6;color:var(--ink-2);margin:0 0 22px}
+#gate label{display:block;font-size:12.5px;font-weight:500;color:var(--ink-2);margin:0 0 6px}
+#gate input{width:100%;font:inherit;font-size:14.5px;color:var(--ink);background:var(--sunk);
+ border:1px solid var(--line-2);border-radius:9px;padding:10px 12px;margin:0 0 14px}
+#gate input:focus{outline:none;border-color:var(--leaf);box-shadow:0 0 0 3px var(--leaf-soft)}
+#gate button{width:100%;font:inherit;font-size:14.5px;font-weight:600;cursor:pointer;background:var(--leaf);
+ color:#fff;border:0;border-radius:9px;padding:11px 14px;margin-top:4px}
+#gate button[disabled]{opacity:.55;cursor:progress}
+.gerr{display:none;font-size:13px;line-height:1.5;color:var(--risk);background:var(--risk-soft);
+ border-radius:8px;padding:8px 11px;margin:0 0 12px}
+.gerr.on{display:block}
+.gft{font-size:11.5px;line-height:1.6;color:var(--ink-3);margin:18px 0 0;text-align:center}
+@media (prefers-color-scheme:dark){:root:not([data-theme="light"]) .gmark,
+ :root:not([data-theme="light"]) #gate button{color:#0F1512}}
+</style>
+</head>
+<body>
+<div id="gate">
+ <form class="gbox" id="gform" autocomplete="off">
+  <div class="gmark">BP</div>
+  <h1 class="gh">Admin Performance</h1>
+  <p class="gs">รายงานผลงานทีมแอดมิน BioPalm — กรอกชื่อผู้ใช้และรหัสผ่านที่ได้รับเพื่อเปิดดู</p>
+  <label for="gu">ชื่อผู้ใช้</label>
+  <input id="gu" type="text" autocapitalize="none" autocorrect="off" spellcheck="false" required>
+  <label for="gp">รหัสผ่าน</label>
+  <input id="gp" type="password" required>
+  <div class="gerr" id="gerr" role="alert"></div>
+  <button id="gb" type="submit">เข้าสู่ระบบ</button>
+  <p class="gft">หน้านี้เข้ารหัสด้วย AES-256-GCM · ข้อมูลถูกถอดรหัสในเครื่องของคุณเท่านั้น ไม่มีการส่งรหัสผ่านออกไปที่ใด</p>
+ </form>
+</div>
+<div id="app" hidden>
+
+<div class="wrap mast">
+ <div class="src"><span>ข้อมูลจริงจาก API</span><span>Instagram @biopalmmm</span><span>Facebook · BioPalm</span><span>LINE OA · @biopalm</span><span>ดึงเมื่อ 31 ส.ค. 2026</span></div>
+ <h1>Admin Performance</h1>
+ <p>แชททุกข้อความจากสามช่องทาง แยกคนที่สนใจคอร์สออกจากคนที่มารับของแถม วัดว่าแอดมินตอบเร็วแค่ไหน และดูว่าดีลหลุดตรงไหน — เลือกช่องทางและเดือนได้จากแถบด้านล่าง</p>
+</div>
+<div class="rail"><div class="wrap railin">
+ <div class="ctl"><span class="lab">ช่องทาง</span>
+  <div class="seg" id="chseg" role="group" aria-label="เลือกช่องทาง">
+   <button data-ch="all" aria-pressed="true">ทุกช่องทาง</button>
+   <button data-ch="ig" aria-pressed="false"><i class="dot ig"></i>Instagram</button>
+   <button data-ch="fb" aria-pressed="false"><i class="dot fb"></i>Facebook</button>
+   <button data-ch="line" aria-pressed="false"><i class="dot line"></i>LINE OA</button>
+  </div></div>
+ <div class="ctl"><span class="lab">เดือน</span><select id="msel" aria-label="เลือกเดือน"></select></div>
+ <div class="ctl"><span class="lab">หน้า</span>
+  <div class="seg" id="vseg" role="group" aria-label="เลือกหน้า">
+   <button data-v="ov" aria-pressed="true">ภาพรวม</button>
+   <button data-v="raw" aria-pressed="false">ข้อมูลดิบ</button>
+  </div></div>
+ <div class="now" id="now"></div>
+</div></div>
+<div class="wrap">
+ <section id="s-key"><div class="shead"><h2>สรุปสำคัญ</h2><span class="lab" id="keyscope"></span></div><div id="key"></div></section>
+ <section id="s-kpi"><div class="shead"><h2>ตัวเลขสำคัญ</h2><span class="lab" id="kpiscope">เฉพาะแชทที่สนใจคอร์ส</span></div><div class="kpis" id="kpi"></div></section>
+ <section id="s-trend"><div class="shead"><h2>แนวโน้มรายเดือน</h2><span class="lab">แต่ละกรอบใช้สเกลของตัวเอง</span></div><div id="trend"></div></section>
+ <section id="s-fun"><div class="shead"><h2>กรวยการขาย</h2><span class="lab" id="funscope">S2 → S5</span></div>
+  <p class="note">ทุกคนที่สนใจคอร์สเริ่มที่ S2 แล้วไหลลงตามลำดับ ตัวเลขที่หายไประหว่างขั้นคือจุดที่ดีลหลุด — ขั้นถูกจัดจากการอ่านคำในข้อความ ไม่ใช่เหตุการณ์ที่ยืนยันได้ จึงใช้ดูสัดส่วนคร่าว ๆ ไม่ใช่ตัวเลขชี้ขาด</p><div class="fun" id="fun"></div><div id="funsrc"></div></section>
+ <section id="s-deep"><div class="shead"><h2>ความเร็วตอบมีผลกับยอดปิดแค่ไหน</h2><span class="lab" id="deepscope"></span></div><div id="deep"></div></section>
+ <section id="s-why"><div class="shead"><h2>ดีลหลุดเพราะอะไร</h2><span class="lab" id="whyscope">เฉพาะที่ยังไม่ปิด</span></div><div id="why"></div></section>
+ <section id="s-day"><div class="shead"><h2>ช่วงเวลาที่ลีดทักเข้ามา</h2><span class="lab" id="dayscope">เวลาไทย</span></div><div id="hrs"></div></section>
+ <section id="s-cmp"><div class="shead"><h2>เทียบช่องทาง</h2><span class="lab" id="cmpscope"></span></div>
+  <p class="note" id="cmpnote"></p><div id="cmp"></div></section>
+ <section id="s-lnwork"><div class="shead"><h2>ภาระงานรายแอดมิน · LINE OA</h2><span class="lab" id="lnscope">LINE OA</span></div><div id="lnwork"></div></section>
+ <section id="s-lnhour"><div class="shead"><h2>ช่วงเวลาที่ลูกค้าทักเข้ามา · LINE OA</h2><span class="lab">เวลาไทย</span></div><div id="lnhour"></div></section>
+ <section id="s-lntag"><div class="shead"><h2>แท็กที่ทีมติดไว้ · LINE OA</h2><span class="lab">LINE OA</span></div><div id="lntag"></div></section>
+ <section id="s-raw"><div class="shead"><h2>ข้อมูลดิบ</h2><span class="lab" id="rawscope"></span></div><div id="raw"></div></section>
+</div>
+<footer><div class="wrap">
+ <p id="ftbuilt"></p>
+ <p id="ftscope">วิเคราะห์จากแชท Instagram @biopalmmm · Facebook เพจ BioPalm · LINE OA ของ BioPalm</p>
+ <p>“ปิดการขาย” ฝั่ง Facebook อ้างอิงป้ายสถานะที่ทีมกดเองในกล่องข้อความ Meta หรือข้อความยืนยันการสมัคร · ฝั่ง Instagram อ้างอิงข้อความยืนยันเข้ากลุ่มเรียน · ฝั่ง LINE ใช้แท็ก <b>Q-สมัครแล้ว</b> ที่ทีมติดไว้เอง ซึ่งติดที่ตัวห้องไม่ผูกกับเดือน จึงเทียบกับ “ปิดการขาย” ของอีกสองช่องทางตรง ๆ ไม่ได้</p>
+ <p>แต่ละช่องทางให้ชื่อลูกค้าคนละแบบ (Facebook ให้ชื่อจริง · Instagram ให้ @username · LINE ให้ชื่อบัญชี LINE) จึงเชื่อมตัวตนข้ามช่องทางไม่ได้ คนเดียวกันที่ทักหลายทางถูกนับแยกกันทุกช่องทาง · ในโหมด “ทุกเดือนรวมกัน” ของ LINE ห้องเดียวกันที่มีความเคลื่อนไหวหลายเดือนจะถูกนับซ้ำในทุกเดือนที่คุย</p>
+</div></footer>
+</div>
+<script>
+function bootApp(){
+const MKEYS=AGG.mkeys, FBKEYS=AGG.fbkeys, MLABEL=AGG.mlabel, MSHORT=AGG.mshort, IGT=AGG.igt;
+const FBU=AGG.fbuid||{};
+
+;
+
+const CHN={all:'ทุกช่องทาง',ig:'Instagram',fb:'Facebook',line:'LINE OA'};
+const LINEKEYS=AGG.linekeys||[]; const LINEFULL={};
+const ALLKEYS=Array.from(new Set([].concat(MKEYS||[],FBKEYS||[],LINEKEYS))).sort();
+const SHEET_LINE='https://docs.google.com/spreadsheets/d/1TPJVVmIcfRxjXvQNHU2IlvMDDL6Oc8TsXn1tQMIbaOY/edit';
+const LINEBOT='U38b62d24ef14a84a048cd6633fc15d21';
+const lineMonths=()=>M==='all'?LINEKEYS.slice():(LINEKEYS.includes(M)?[M]:[]);
+const lineA=()=>lineMonths().map(k=>(AGG.line||{})[k]).filter(Boolean);
+const RZ={
+ N01:['ไม่เคยได้คุยกับแอดมินตัวจริง','เรา'],
+ N02:['มีคำถามของลูกค้าที่คนจริงไม่เคยตอบ','เรา'],
+ N03:['ลูกค้าเงียบแล้วไม่มีการติดตามซ้ำ','เรา'],
+ N04:['ยังไม่เคยได้รับราคา','เรา'],
+ N05:['ถูกถามข้อมูลเดิมซ้ำ','เรา'],
+ C01:['ลูกค้าพูดเรื่องราคา / งบ','ลูกค้า'],
+ C02:['ตาราง / เวลาไม่ตรง','ลูกค้า'],
+ C03:['ต้องปรึกษาผู้ปกครอง','ลูกค้า'],
+ C04:['เทียบกับที่อื่น','ลูกค้า'],
+ C05:['ลูกค้าปิดบทสนทนาเอง','ลูกค้า'],
+ T01:['ไม่ใช่กลุ่มเป้าหมาย (ระดับชั้นไม่ตรง)','ทราฟฟิก'],
+ T02:['มาเพราะของแถม','ทราฟฟิก'],
+ U00:['ยังระบุสาเหตุไม่ได้','—'],
+ R01:['ได้ราคาไปแล้วแต่ไม่ปิด','ราคา'],R02:['ตารางไม่ตรง','สินค้า'],R04:['ต้องปรึกษาผู้ปกครอง','ลูกค้า'],
+ R05:['ข้อความสุดท้ายเป็นของลูกค้า','แอดมิน'],R06:['ไม่เคยได้คุยกับ Admin เลย','แอดมิน'],
+ R08:['ยังระบุสาเหตุไม่ได้','—'],R99:['อื่น ๆ','—']};
+const OWNCLR={'เรา':'risk','ลูกค้า':'warn','ทราฟฟิก':'info','—':''};
+const OWNFIX={'เรา':'แก้ได้ด้วยกระบวนการตอบแชท','ลูกค้า':'ต้องใช้ข้อเสนอหรือการติดตาม','ทราฟฟิก':'แก้ที่การเลือกกลุ่มเป้าหมายของโฆษณา','—':''};
+const WHO={A:'ทีม “ครับ”',B:'ทีม “ค่ะ”',AB:'ทั้งสองทีมปนกัน','-':'ไม่มีคนพิมพ์เอง','':'ไม่มีคนพิมพ์เอง'};
+const STAGEN={S0:'ไม่มีข้อความลูกค้า',S1:'ทักแต่ไม่ถามคอร์ส',G:'มารับของแถม',
+ S2:'ถามเรื่องคอร์ส',S3:'ได้รับราคาเป็นตัวเลข',S4:'ขอสมัคร / ได้วิธีจ่าย',S5:'ยืนยันปิดการขาย'};
+const SPEEDN=['≤ 5 นาที','5–60 นาที','ช้ากว่า 60 นาที','ไม่เคยมีคนตอบ'];
+const BANDN={hi:'คุณภาพสูง 70–100',mid:'คุณภาพกลาง 40–69',lo:'คุณภาพต่ำ 0–39'};
+const isV2=()=>!!(AGG&&AGG.v2);
+const FORDER=['all','nohuman','risk','dup','price','won'];
+const FNAME={all:'ทั้งหมด',nohuman:'ไม่เคยได้คุยกับ Admin',risk:'ทักมาแล้วหาย',dup:'ถามซ้ำ',price:'ได้ราคาแล้ว',won:'ปิดการขาย'};
+const FDESC={
+ all:'ทุกแชทในเดือนที่เลือก ไม่กรองอะไรเลย',
+ nohuman:'แชทที่<b>ไม่เคยมีแอดมินตัวจริงพิมพ์ตอบเลยสักข้อความ</b> — ทั้งแชทมีแต่ข้อความอัตโนมัติ (Instant Reply / Ice Breakers / ข้อความสำเร็จรูป) หรือแชทบอทตอบเท่านั้น · ลูกค้าทักมาแล้วคุยอยู่กับระบบตั้งแต่ต้นจนจบ',
+ risk:'แชทที่<b>ข้อความสุดท้ายเป็นของลูกค้า แล้วบทสนทนาจบลงตรงนั้น</b> — ลูกค้าทักเข้ามาหรือตอบคำถามไว้แล้วไม่มีใครตอบต่อ จนเรื่องค้างและลูกค้าหายไป',
+ dup:'แชทที่<b>ฝั่งเราถามคำถามเดิมซ้ำตั้งแต่ 2 ครั้งขึ้นไป</b> ในแชทเดียวกัน — ส่วนใหญ่คือคำถามคัดกรอง “น้องอยู่ชั้นอะไร / เรียนโรงเรียนไหน / สนใจคอร์สไหน” นับรวมทั้งข้อความสำเร็จรูปและที่แอดมินพิมพ์เอง · มักเกิดจากบอทถามไปแล้วแอดมินมาถามซ้ำ หรือแอดมินคนละกะไม่ได้ไล่อ่านย้อน ทำให้ลูกค้าต้องตอบเรื่องเดิมหลายรอบ (ตัวเลขบนป้ายคือจำนวนครั้งที่ถูกถามซ้ำ)',
+ price:'แชทที่<b>ได้รับราคา/ค่าคอร์สไปแล้ว</b> — ผ่านขั้น “เสนอราคา” เรียบร้อย เหลือแค่การตัดสินใจ',
+ won:'แชทที่<b>ปิดการขายได้</b> — ฝั่ง Facebook ยึดป้ายสถานะ “สร้างคอนเวอร์ชั่นแล้ว” ที่ทีมกดเองในกล่องข้อความ Meta หรือข้อความยืนยันการสมัคร · ฝั่ง Instagram ยึดข้อความยืนยันเข้ากลุ่มเรียน'};
+function fdescOf(k){if(k==='all'&&CH==='fb')return 'ทุกแชท Facebook ในเดือนที่เลือก ไม่กรองอะไรเลย — <b>รวมแชทกลุ่ม S0/S1</b> (ไม่มีข้อความจากลูกค้า หรือทักมาคำเดียวแล้วเงียบ) ที่ตัวเลขสรุปด้านบนไม่นับเป็นลีด';return FDESC[k]||'';}
+const DOWN=['จ','อ','พ','พฤ','ศ','ส','อา'];
+const SHEET_FB='https://docs.google.com/spreadsheets/d/1wRVBJcpZObBp73B2HG_IM7DPR8xkr3Y-1qfDSNLmYh4/edit';
+const SHEET_IG='https://docs.google.com/spreadsheets/d/1TZcYVU9MSPiZNtlGmThjxPTPST2byH7scrKrWHNbzhU/edit';
+
+const $=s=>document.querySelector(s);
+const esc=s=>String(s).replace(/&/g,'&amp;').replace(/</g,'&lt;');
+const nf=n=>(n==null?'—':Number(n).toLocaleString('en-US'));
+function dur(s){if(s==null)return '—';if(s<0)return 'ไม่เคยมีคนพิมพ์ตอบ';if(s<60)return s+' วิ';if(s<3600)return Math.round(s/60)+' นาที';if(s<86400)return (s/3600).toFixed(1)+' ชม.';return Math.round(s/86400)+' วัน';}
+const pc=(a,b)=>b?Math.round(a*1000/b)/10+'%':'—';
+function dictOf(m){return CH==='fb'?((FBFULL[m===undefined?M:m]||{}).dict||[]):((IGFULL||{}).dict||[]);}
+const txt=(v,m)=>typeof v==='number'?dictOf(m)[v]:v;
+const sub=(s,nm)=>String(s).split('\u0001').join(nm||'ลูกค้า');
+const FBPAGE='691470034208676',FBBIZ='310165158296126';
+const INBOX='https://business.facebook.com/latest/inbox/all/?business_id='+FBBIZ+'&asset_id='+FBPAGE+'&mailbox_id='+FBPAGE;
+const INBOXFB='https://business.facebook.com/latest/inbox/messenger?asset_id='+FBPAGE+'&business_id='+FBBIZ+'&mailbox_id='+FBPAGE;
+function igLink(u){var n=IGT[u];return n?INBOX+'&selected_item_id='+n+'&thread_type=IG_MESSAGE':null;}
+function fbLink(r){var u=FBU[String(r[19])];return u?INBOXFB+'&selected_item_id='+u+'&thread_type=FB_MESSAGE':null;}
+function inboxBtn(r){var dl=(CH==='ig')?igLink(r[0]):fbLink(r);
+ if(dl)return '<a class="inbtn" href="'+dl+'" target="_blank" rel="noopener">เปิดแชทนี้ใน Inbox ↗</a>';
+ var nm=r[0]||'';
+ if(nm)return '<a class="inbtn" href="'+INBOX+'" target="_blank" rel="noopener" data-copy="'+esc(nm).replace(/"/g,'&quot;')+'">เปิด Inbox + คัดลอกชื่อ ↗</a>';
+ return '<a class="inbtn" href="'+INBOX+'" target="_blank" rel="noopener">เปิด Inbox ↗</a>';}
+function copyText(v){try{if(navigator.clipboard&&window.isSecureContext){navigator.clipboard.writeText(v);return true;}}catch(e){}
+ try{const t=document.createElement('textarea');t.value=v;t.setAttribute('readonly','');t.style.cssText='position:fixed;top:0;left:0;opacity:0';
+  document.body.appendChild(t);t.select();t.setSelectionRange(0,v.length);const ok=document.execCommand('copy');t.remove();return ok;}catch(e){return false;}}
+function csvCell(v){const t=(v==null?'':String(v));return /[",\n]/.test(t)?'"'+t.split('"').join('""')+'"':t;}
+function downloadCSV(fname,rows){
+ const body=rows.map(r=>r.map(csvCell).join(',')).join('\r\n');
+ const blob=new Blob(['﻿'+body],{type:'text/csv;charset=utf-8'});
+ const u=URL.createObjectURL(blob), a=document.createElement('a');
+ a.href=u;a.download=fname;document.body.appendChild(a);a.click();
+ setTimeout(function(){URL.revokeObjectURL(u);a.remove();},400);
+ toast('ดาวน์โหลด '+fname+' แล้ว — '+(rows.length-1)+' แถว');}
+function exportChats(){
+ const rows=filtered();
+ const head=['เดือน','ชื่อลูกค้า','ขั้น','วัน','ชั่วโมง','วันในสัปดาห์','ข้อความลูกค้า','แอดมินพิมพ์เอง','สำเร็จรูป','สลับถาม-ตอบ',
+  'ตอบครั้งแรก(วินาที)','รอนานสุด(วินาที)','ทักมาแล้วหาย','ทีม','ถามระดับชั้นซ้ำ','ได้ราคาแล้ว','ส่งหลักฐานจ่าย','ปิดการขาย','จากโฆษณา','ป้ายมีคุณสมบัติ'];
+ const out=[head];
+ for(const o of rows){const r=o.r;
+  out.push([MLABEL[o.m]||o.m,r[0],r[1],r[3],r[4],DOWN[r[5]],r[6],r[7],r[8],r[9],
+   (r[10]<0?'':r[10]),(r[11]==null?'':r[11]),r[12]?'Y':'',WHO[r[13]]||r[13],r[14]||'',r[15]?'Y':'',r[16]?'Y':'',r[17]?'Y':'',r[20]?'Y':'',r[21]?'Y':'']);}
+ downloadCSV('chat-'+(CH==='fb'?'facebook':'instagram')+'-'+(M==='all'?'ทุกเดือน':M)+'-'+(FNAME[FILTER]||FILTER)+'.csv',out);}
+function exportLine(){
+ const rows=lnFiltered();
+ const head=['เดือน','ชื่อลูกค้า','สถานะแท็ก','แท็กทั้งหมด','แอดมินที่เข้าไปตอบ','ข้อความลูกค้า','ข้อความแอดมิน','ข้อความบอท',
+  'ตอบครั้งแรก(วินาที)','ค่ากลางการตอบ(วินาที)','รอนานสุด(วินาที)','ไม่เคยได้คุยกับ Admin','ทักมาแล้วหาย','ลิงก์ห้องแชท'];
+ const out=[head];
+ for(const o of rows){
+  out.push([MLABEL[o._m]||o._m,o.n,o.st,(o.tg||[]).join(' | '),(o.ad||[]).join(' | '),o.c,o.h,o.b,
+   (o.r1==null?'':o.r1),(o.rm==null?'':o.rm),(o.rw==null?'':o.rw),o.nh?'Y':'',o.hg?'Y':'',lnLink(o.id,o._m)]);}
+ downloadCSV('chat-line-'+(M==='all'?'ทุกเดือน':M)+'-'+(LN_FNAME[LN_F]||LN_F)+'.csv',out);}
+function toast(m){let t=document.getElementById('bp-toast');
+ if(!t){t=document.createElement('div');t.id='bp-toast';document.body.appendChild(t);
+  const st=document.createElement('style');st.textContent='#bp-toast{position:fixed;left:50%;bottom:26px;transform:translateX(-50%) translateY(12px);max-width:min(92vw,520px);'+
+   'background:var(--ink);color:var(--paper);padding:11px 16px;border-radius:10px;font:500 13px/1.5 "IBM Plex Sans Thai",system-ui,sans-serif;'+
+   'box-shadow:0 8px 28px rgba(0,0,0,.28);opacity:0;pointer-events:none;transition:opacity .18s,transform .18s;z-index:9999}'+
+   '#bp-toast.show{opacity:1;transform:translateX(-50%) translateY(0)}';document.head.appendChild(st);}
+ t.textContent=m;t.classList.add('show');clearTimeout(t._h);t._h=setTimeout(()=>t.classList.remove('show'),2800);}
+
+let CH='all', M='all', VIEW='ov';
+let FILTER='all', TERM='', PAGE=0, SEL=0, DEEP=false; const PER=25;
+
+const rangeLabel=ks=>{if(!ks.length)return '';if(ks.length===1)return MLABEL[ks[0]]||ks[0];
+ const a=ks[0],b=ks[ks.length-1];
+ return (MSHORT[a]||a)+' – '+(MSHORT[b]||b);};
+const igMonths=()=>M==='all'?MKEYS.slice():(MKEYS.includes(M)?[M]:[]);
+const fbMonths=()=>M==='all'?FBKEYS.slice():(FBKEYS.includes(M)?[M]:[]);
+function sumA(list,f){let t=0;for(const a of list)t+=(a[f]||0);return t;}
+function igA(){return igMonths().map(k=>AGG.ig[k]).filter(Boolean);}
+function fbA(){return fbMonths().map(k=>AGG.fb[k]).filter(Boolean);}
+function pool(){const o=[];if(CH!=='fb')o.push(...igA());if(CH!=='ig')o.push(...fbA());return o;}
+function single(){const p=pool();return p.length===1?p[0]:null;}
+const rng=(a,f)=>{const v=a.map(x=>x[f]).filter(z=>z!=null);return v.length?[Math.min.apply(null,v),Math.max.apply(null,v)]:null;};
+const durR=(v,r)=>v!=null?dur(v):(r?(r[0]===r[1]?dur(r[0]):dur(r[0])+' – '+dur(r[1])):'—');
+function lnMerge(ks){
+ const a=(ks?ks:lineMonths()).map(k=>(AGG.line||{})[k]).filter(Boolean); if(!a.length)return null;
+ const o={n:a.length};
+ ['threads','msgs','cust','adm','bot','won','open','sysonly','notag','notyped','unans'].forEach(f=>o[f]=sumA(a,f));
+ o.rngFt=rng(a,'first_med'); o.rngP90=rng(a,'first_p90'); o.rngMed=rng(a,'med_med');
+ if(a.length===1){o.first_med=a[0].first_med;o.first_p90=a[0].first_p90;o.med_med=a[0].med_med;
+  o.admins=(a[0].admins||[]).slice();o.tags=(a[0].tags||[]).slice();o.hours=(a[0].hours||[]).slice();return o;}
+ o.first_med=null;o.first_p90=null;o.med_med=null;
+ const am={};for(const x of a)for(const r of (x.admins||[])){const k=r[0];if(!am[k])am[k]=[k,0,0];am[k][1]+=r[1]||0;am[k][2]+=r[2]||0;}
+ o.admins=Object.keys(am).map(k=>am[k]).sort((p,q)=>q[1]-p[1]);
+ const tg={};for(const x of a)for(const r of (x.tags||[]))tg[r[0]]=(tg[r[0]]||0)+r[1];
+ o.tags=Object.keys(tg).map(k=>[k,tg[k]]).sort((p,q)=>q[1]-p[1]);
+ const hr=[];for(let h=0;h<24;h++)hr.push([h,0]);
+ for(const x of a)for(const r of (x.hours||[]))if(hr[r[0]])hr[r[0]][1]+=(r[1]||0);
+ o.hours=hr;
+ return o;}
+function chSum(w,ks){
+ if(w==='line'){const o=lnMerge(ks);if(!o)return null;
+  o.mc=o.threads?Math.round(o.cust*10/o.threads)/10:null;
+  o.mh=o.threads?Math.round(o.adm*10/o.threads)/10:null;
+  o.ma=o.threads?Math.round(o.bot*10/o.threads)/10:null;
+  return o;}
+ const a=ks?ks.map(k=>((w==='ig'?AGG.ig:AGG.fb)||{})[k]).filter(Boolean):(w==='ig'?igA():fbA()); if(!a.length)return null;
+ const o={n:a.length};
+ ['threads','msgs','leads','closed','notyped','unans','ask2','price','gw','qual','adLeads','adClosed','noAdLeads','noAdClosed',
+  'wonLabel','wonSlip','wonMaybe','noHumanReply','noReplyAfter','noReplyWon','gradeStated','gradeTarget','ftN'].forEach(f=>o[f]=sumA(a,f));
+ o.rngFt=rng(a,'ftMed'); o.rngP90=rng(a,'ftP90');
+ if(a.length===1){o.ftMed=a[0].ftMed;o.ftP75=a[0].ftP75;o.ftP90=a[0].ftP90;o.turnsMed=a[0].turnsMed;o.turnsMean=a[0].turnsMean;}
+ else {o.ftMed=null;o.ftP75=null;o.ftP90=null;}
+ const wt=f=>{let sm=0,t=0;for(const x of a){if(x[f]!=null){const wgt=(x.leads!=null?x.leads:x.threads)||0;sm+=x[f]*wgt;t+=wgt;}}return t?Math.round(sm*10/t)/10:null;};
+ o.mc=wt('mc');o.mh=wt('mh');o.ma=wt('ma');
+ return o;}
+
+/* ---------- comparison helpers ---------- */
+const MINN=30;
+function keysOf(w){return w==='ig'?MKEYS:(w==='fb'?FBKEYS:LINEKEYS);}
+/* the month immediately before the selected one, for the same channel; empty in all-months mode */
+function prevKeys(w){if(M==='all')return null;const ks=keysOf(w)||[];const i=ks.indexOf(M);return i>0?[ks[i-1]]:null;}
+function prevSum(w){const pk=prevKeys(w);return pk?chSum(w,pk):null;}
+/* percentage that always carries its sample size, and admits when the sample is too small */
+function pcn(a,b){if(!b)return '—';
+ const v=Math.round(a*1000/b)/10;
+ return b<MINN?`<span class="lown">${v}% <span class="nsm">n=${nf(b)} น้อยเกินไป</span></span>`:`${v}% <span class="nsm">n=${nf(b)}</span>`;}
+function delta(now,prev,upIsGood){
+ if(now==null||prev==null||!isFinite(prev)||prev===0)return '';
+ const d=(now-prev)/prev*100, r=Math.round(Math.abs(d)*10)/10;
+ if(r<0.05)return '<span class="dfl">ไม่เปลี่ยนจากเดือนก่อน</span>';
+ const up=d>0, good=up===!!upIsGood;
+ return `<span class="${good?'dup':'ddn'}">${up?'▲':'▼'} ${r}% จากเดือนก่อน</span>`;}
+/* one small multiple: its own scale, endpoint marked, no shared axis */
+function spark(vals,color){
+ const v=vals.filter(x=>x!=null);
+ if(v.length<2)return '';
+ const mn=Math.min.apply(null,v), mx=Math.max.apply(null,v), sp=(mx-mn)||1;
+ const n=vals.length, W=220, H=44, x=i=>6+i*(W-12)/(n-1), y=t=>6+(1-(t-mn)/sp)*(H-14);
+ const pts=vals.map((t,i)=>x(i).toFixed(1)+','+y(t).toFixed(1)).join(' ');
+ const area=`M${pts.split(' ').join(' L')} L${x(n-1).toFixed(1)},${H-2} L${x(0).toFixed(1)},${H-2} Z`;
+ return `<svg class="spark" viewBox="0 0 ${W} ${H}" preserveAspectRatio="none" aria-hidden="true">
+  <path d="${area}" fill="${color}" fill-opacity=".10"></path>
+  <polyline points="${pts}" fill="none" stroke="${color}" stroke-width="2" stroke-linejoin="round" stroke-linecap="round"></polyline>
+  <circle cx="${x(n-1).toFixed(1)}" cy="${y(vals[n-1]).toFixed(1)}" r="4.5" fill="var(--card)"></circle>
+  <circle cx="${x(n-1).toFixed(1)}" cy="${y(vals[n-1]).toFixed(1)}" r="2.8" fill="${color}"></circle></svg>`;}
+
+/* ---------- controls ---------- */
+function chKeys(){return (CH==='fb')?FBKEYS:(CH==='ig'?MKEYS:(CH==='line'?LINEKEYS:ALLKEYS));}
+function buildMonths(){
+ const keys=chKeys();
+ if(!keys.includes(M)&&M!=='all')M=keys.length?keys[keys.length-1]:'all';
+ const opts=[['all','ทุกเดือนรวมกัน']].concat(keys.map(k=>[k,MLABEL[k]||k]));
+ $('#msel').innerHTML=opts.map(([v,l])=>`<option value="${v}"${v===M?' selected':''}>${l}</option>`).join('');
+}
+function scopeKeys(){const o=[];
+ if(CH==='all')o.push(...igMonths(),...fbMonths(),...lineMonths());
+ else if(CH==='ig')o.push(...igMonths());
+ else if(CH==='fb')o.push(...fbMonths());
+ else o.push(...lineMonths());
+ return Array.from(new Set(o)).sort();}
+function moLabel(){return M==='all'?(rangeLabel(scopeKeys())||'ทุกเดือน'):(MLABEL[M]||M);}
+function lnDupNote(){return (M==='all'&&lineMonths().length>1)?' · <b>โหมดทุกเดือนรวมกัน</b> นับห้องแยกตามเดือน ห้องเดียวกันที่คุยหลายเดือนจึงถูกนับซ้ำ':'';}
+function scopeText(){
+ if(CH==='line'){const a=lineA(),t=sumA(a,'threads'),m=sumA(a,'msgs');
+  return `กำลังดู <b>LINE OA</b> · <b>${moLabel()}</b><br>${nf(t)} ห้องแชท · ${nf(m)} ข้อความ · ดึงจาก LINE Official Account Manager`;}
+ const p=pool(), la=(CH==='all')?lineA():[];
+ const th=sumA(p,'threads')+sumA(la,'threads'), ms=sumA(p,'msgs')+sumA(la,'msgs');
+ const parts=[];
+ if(CH!=='fb'){const v=sumA(igA(),'threads');if(v)parts.push('IG '+nf(v));}
+ if(CH!=='ig'){const v=sumA(fbA(),'threads');if(v)parts.push('FB '+nf(v));}
+ if(CH==='all'){const v=sumA(la,'threads');if(v)parts.push('LINE '+nf(v));}
+ return `กำลังดู <b>${CHN[CH]}</b> · <b>${moLabel()}</b><br>${nf(th)} แชท · ${nf(ms)} ข้อความ${parts.length>1?' <span class="lab">('+parts.join(' · ')+')</span>':''}`;
+}
+function setNow(){$('#now').innerHTML=scopeText();
+ $('#keyscope').textContent=CHN[CH]+' · '+(M==='all'?'ทุกเดือน':(MLABEL[M]||M));
+ const ks=$('#kpiscope');if(ks)ks.textContent=CH==='line'?'ทุกห้องแชทที่มีความเคลื่อนไหว':(CH==='all'?'ยอดแชทรวมทุกช่องทาง · ตัวเลขลีดเฉพาะ IG + Facebook':'เฉพาะแชทที่สนใจคอร์ส');
+ ['funscope','whyscope','dayscope'].forEach(function(id){const e=document.getElementById(id);
+  if(e)e.textContent=(CH==='all'?'IG + Facebook · ':'')+(id==='funscope'?'S2 → S5':(id==='whyscope'?'เฉพาะที่ยังไม่ปิด':'เวลาไทย'));});
+ const ls=$('#lnscope');if(ls)ls.textContent='LINE OA · '+moLabel();
+ const ft=$('#ftscope');if(ft)ft.innerHTML='ข้อมูลในหน้านี้: Instagram @biopalmmm '+(MKEYS.length?rangeLabel(MKEYS):'—')+
+  ' · Facebook เพจ BioPalm '+(FBKEYS.length?rangeLabel(FBKEYS):'—')+
+  ' · LINE OA '+(LINEKEYS.length?rangeLabel(LINEKEYS):'—')+' · แต่ละช่องทางมีเดือนไม่เท่ากัน เดือนที่ช่องทางไหนยังไม่มีข้อมูลจะขึ้นเป็น “—”';
+ $('#rawscope').textContent=CH==='fb'?'Facebook':(CH==='ig'?'Instagram':(CH==='line'?'LINE OA · '+moLabel():'เลือกช่องทางเพื่อดูแชท'));}
+
+/* ---------- key findings ---------- */
+function keyCards(){
+ const ig=(CH==='all'||CH==='ig')?chSum('ig'):null;
+ const fb=(CH==='all'||CH==='fb')?chSum('fb'):null;
+ const ln=(CH==='all')?chSum('line'):null;
+ const mo=moLabel();
+ const rate=(x,f,d)=>x&&x[d]?x[f]*100/x[d]:null;
+ const cand=[];
+ const push=(imp,kind,head,body)=>cand.push({imp:imp,k:kind,h:head,b:body});
+
+ /* --- is the close rate moving, and by how much --- */
+ [['fb',fb,'Facebook'],['ig',ig,'Instagram']].forEach(function(e){
+  const w=e[0], x=e[1], nm=e[2]; if(!x||!x.leads)return;
+  const pv=prevSum(w); const now=rate(x,'closed','leads'), was=pv?rate(pv,'closed','leads'):null;
+  if(was!=null&&now!=null&&pv.leads>=MINN&&x.leads>=MINN){
+   const dp=now-was;
+   if(Math.abs(dp)>=Math.max(0.5,was*0.15)){
+    const worse=dp<0;
+    push(Math.abs(dp)*x.leads/100, worse?'risk':'ok',
+     nm+': อัตราปิด'+(worse?'ตกลง':'ดีขึ้น')+' '+(Math.round(Math.abs(dp)*10)/10)+' จุด',
+     mo+' ปิดได้ <b>'+pc(x.closed,x.leads)+'</b> ของลีด ('+nf(x.closed)+' จาก '+nf(x.leads)+') · เดือนก่อน <b>'+pc(pv.closed,pv.leads)+'</b> ('+nf(pv.closed)+' จาก '+nf(pv.leads)+')'+
+     (worse?' — ส่วนต่างนี้เท่ากับประมาณ <b>'+Math.round(Math.abs(dp)*x.leads/100)+' ดีล</b> ที่หายไปจากอัตราปิดเพียงอย่างเดียว':''));
+   }
+  }
+ });
+
+ /* --- ads vs organic: state whichever direction the data actually shows --- */
+ if(fb&&fb.adLeads>=MINN&&fb.noAdLeads>=MINN){
+  const ra=fb.adClosed*100/fb.adLeads, ro=fb.noAdClosed*100/fb.noAdLeads;
+  const gap=ro-ra, share=fb.adLeads/(fb.adLeads+fb.noAdLeads)*100;
+  let head,kind;
+  if(Math.abs(gap)<Math.max(0.4,Math.max(ra,ro)*0.12)){head='โฆษณากับคนที่มาเอง ปิดได้ใกล้เคียงกัน';kind='';}
+  else if(gap>0){head='โฆษณาพาคนมา '+Math.round(share)+'% ของลีด แต่ปิดได้ยากกว่าคนที่มาเอง';kind='warn';}
+  else {head='ลีดจากโฆษณาปิดได้ดีกว่าคนที่มาเอง';kind='ok';}
+  push(Math.abs(gap)*fb.adLeads/100, kind, head,
+   'ลีดจากโฆษณา '+nf(fb.adLeads)+' คน ปิดได้ '+nf(fb.adClosed)+' (<b>'+pc(fb.adClosed,fb.adLeads)+'</b>) · ลีดที่มาเอง '+nf(fb.noAdLeads)+' คน ปิดได้ '+nf(fb.noAdClosed)+' (<b>'+pc(fb.noAdClosed,fb.noAdLeads)+'</b>)'+
+   (Math.abs(gap)>=0.4?' — ถ้าลีดโฆษณาปิดได้เท่าคนที่มาเอง จะได้เพิ่มอีกราว <b>'+Math.round(Math.abs(gap)*fb.adLeads/100)+' ดีล</b>':''));
+ }
+
+ /* --- lead quality: share of chats that actually ask about courses --- */
+ [['fb',fb,'Facebook'],['ig',ig,'Instagram']].forEach(function(e){
+  const w=e[0], x=e[1], nm=e[2]; if(!x||!x.threads)return;
+  const pv=prevSum(w); const now=rate(x,'leads','threads'), was=pv?rate(pv,'leads','threads'):null;
+  if(was==null||now==null||x.threads<MINN||pv.threads<MINN)return;
+  const dp=now-was;
+  if(dp<=-Math.max(1.5,was*0.12))
+   push(Math.abs(dp)*x.threads/100,'risk',
+    nm+': คุณภาพทราฟฟิกตกลง — คนที่ถามเรื่องคอร์สเหลือ '+pc(x.leads,x.threads)+' ของแชท',
+    'เดือนก่อนอยู่ที่ <b>'+pc(pv.leads,pv.threads)+'</b> · ปริมาณแชทรวม '+nf(pv.threads)+' → '+nf(x.threads)+' — คนทัก'+(x.threads>=pv.threads?'ไม่ได้ลด':'ลดลง')+' แต่สัดส่วนคนที่สนใจคอร์สจริงลดลง ซึ่งเป็นสัญญาณฝั่งกลุ่มเป้าหมายของโฆษณา ไม่ใช่ฝั่งการตอบแชท');
+  else if(dp>=Math.max(1.5,was*0.12))
+   push(Math.abs(dp)*x.threads/100,'ok',
+    nm+': คุณภาพทราฟฟิกดีขึ้น — คนที่ถามเรื่องคอร์สขึ้นเป็น '+pc(x.leads,x.threads)+' ของแชท',
+    'เดือนก่อนอยู่ที่ <b>'+pc(pv.leads,pv.threads)+'</b> · ปริมาณแชทรวม '+nf(pv.threads)+' → '+nf(x.threads));
+ });
+
+ /* --- response speed trend --- */
+ [['fb',fb,'Facebook'],['ig',ig,'Instagram']].forEach(function(e){
+  const w=e[0], x=e[1], nm=e[2]; if(!x||x.ftMed==null)return;
+  const pv=prevSum(w); if(!pv||pv.ftMed==null)return;
+  const dp=(x.ftMed-pv.ftMed)/Math.max(1,pv.ftMed)*100;
+  if(Math.abs(dp)<20)return;
+  const slower=dp>0;
+  push(Math.abs(dp)*2, slower?'warn':'ok',
+   nm+': แอดมินตอบครั้งแรก'+(slower?'ช้าลง':'เร็วขึ้น')+' '+Math.round(Math.abs(dp))+'%',
+   'ค่ากลาง <b>'+dur(pv.ftMed)+' → '+dur(x.ftMed)+'</b> · หางยาว p90 <b>'+dur(x.ftP90)+'</b>'+
+   (slower?' — ตัวเลขนี้ยังไม่หักเวลานอกทำการ จึงสูงกว่าความจริง แต่ทิศทางเทียบเดือนต่อเดือนใช้ได้':''));
+ });
+
+ /* --- the one that dwarfs everything else: they wrote back and nobody answered --- */
+ [['fb',fb,'Facebook'],['ig',ig,'Instagram']].forEach(function(e){
+  const x=e[1], nm=e[2]; if(!x||!x.leads||!x.noReplyAfter)return;
+  const share=x.noReplyAfter*100/x.leads;
+  if(share<5)return;
+  const others=x.leads-x.noReplyAfter, ow=x.closed-(x.noReplyWon||0);
+  push(x.noReplyAfter*2,'risk',
+   nm+': '+nf(x.noReplyAfter)+' ลีด ('+pc(x.noReplyAfter,x.leads)+') ลูกค้าตอบกลับมาแล้วไม่มีใครตอบต่อ',
+   'กลุ่มนี้ปิดได้ <b>'+nf(x.noReplyWon||0)+' ราย</b> ขณะที่ลีดที่ได้คุยกับคนจริงปิดได้ <b>'+pc(ow,others)+'</b> ('+nf(ow)+' จาก '+nf(others)+')'+
+   ' — ส่วนใหญ่คือแชทที่ทีมยิงข้อความตามเอง ลูกค้าตอบกลับ แล้วบทสนทนาจบตรงนั้น'+
+   (others&&ow?' · ถ้าตามเก็บกลุ่มนี้ได้แม้แค่เศษเสี้ยวของอัตราปิดปกติ ก็เป็นยอดหลักสิบดีลต่อเดือน':''));
+ });
+
+ /* --- process defects, sized by how many leads they touch --- */
+ const dfx=[];
+ if(fb)dfx.push(['Facebook',fb]); if(ig)dfx.push(['Instagram',ig]);
+ dfx.forEach(function(e){
+  const nm=e[0], x=e[1]; if(!x.leads)return;
+  const items=[['ไม่เคยได้คุยกับ Admin',x.notyped],['ทักมาแล้วหาย',x.unans],['ถูกถามระดับชั้นซ้ำ',x.ask2]];
+  items.sort(function(p,q){return q[1]-p[1];});
+  const top=items[0]; if(!top[1])return;
+  const r=top[1]*100/x.leads; if(r<8)return;
+  push(top[1]*0.5,'risk',
+   nm+': '+nf(top[1])+' ลีด ('+pc(top[1],x.leads)+') ติดปัญหา “'+top[0]+'”',
+   'อีกสองรายการ: '+items[1][0]+' '+nf(items[1][1])+' ('+pc(items[1][1],x.leads)+') · '+items[2][0]+' '+nf(items[2][1])+' ('+pc(items[2][1],x.leads)+') — กดแท็บชื่อเดียวกันในหน้า<b>ข้อมูลดิบ</b>เพื่อไล่เก็บรายเคส');
+ });
+
+ /* --- LINE's tag definition really does not line up with the other two --- */
+ if(ln&&ln.won)
+  push(0.4,'warn','ตัวเลข “สมัครแล้ว” ของ LINE เทียบกับยอดปิดของ Facebook ตรง ๆ ไม่ได้',
+   nf(ln.won)+' ห้องติดแท็ก <b>Q-สมัครแล้ว</b> ซึ่งติดที่ตัวห้อง <b>ไม่ผูกกับเดือน</b> — หลายห้องสมัครไปตั้งแต่เดือนก่อน · อีก <b>'+nf(ln.notag)+' ห้อง</b> ยังไม่ติดแท็กเลย');
+
+ cand.sort(function(p,q){return q.imp-p.imp;});
+ return cand.slice(0,3).map(function(x){return [x.k,x.h,x.b];});
+}
+function renderKey(){
+ $('#key').innerHTML=keyCards().map(([k,h,b])=>`<div class="callout ${k}"><h4>${h}</h4><p>${b}</p></div>`).join('')
+  || '<div class="callout"><h4>ไม่มีข้อมูลในช่วงที่เลือก</h4><p>ลองเปลี่ยนเดือนหรือช่องทาง</p></div>';
+}
+
+/* ---------- KPI ---------- */
+function K(cls,lab,v,unit,sub){const long=String(v).replace(/<[^>]*>/g,'').length>9;
+ return `<div class="k ${cls}"><span class="lab">${lab}</span>
+ <div class="v"${long?' style="font-size:19px"':''}>${v}${unit?'<small>'+unit+'</small>':''}</div><div class="s">${sub||''}</div></div>`;}
+function renderKPI(){
+ const p=pool();
+ const ig=(CH!=='fb')?chSum('ig'):null, fb=(CH!=='ig')?chSum('fb'):null, ln=(CH==='all')?chSum('line'):null;
+ if(!p.length&&!ln){$('#kpi').innerHTML='<div class="empty">ไม่มีข้อมูลในช่วงที่เลือก — ลองเปลี่ยนเดือนหรือช่องทาง</div>';return;}
+ const pth=sumA(p,'threads'),pms=sumA(p,'msgs');
+ const ld=sumA(p,'leads'),cl=sumA(p,'closed'),nt=sumA(p,'notyped'),
+       un=sumA(p,'unans'),a2=sumA(p,'ask2'),pr=sumA(p,'price'),gw=sumA(p,'gw');
+ const th=pth+(ln?ln.threads:0), ms=pms+(ln?ln.msgs:0);
+ const one=single();
+ const only=ln?' (IG + Facebook)':'';
+ /* previous month, same scope — drives every ▲▼ below */
+ const pig=(CH!=='fb')?prevSum('ig'):null, pfb=(CH!=='ig')?prevSum('fb'):null, pln=(CH==='all')?prevSum('line'):null;
+ const pv=[]; if(pig)pv.push(pig); if(pfb)pv.push(pfb);
+ const pth2=pv.length?sumA(pv,'threads'):null;
+ const pld=pv.length?sumA(pv,'leads'):null, pcl=pv.length?sumA(pv,'closed'):null;
+ const pnt=pv.length?sumA(pv,'notyped'):null, pun=pv.length?sumA(pv,'unans'):null;
+ const pa2=pv.length?sumA(pv,'ask2'):null, ppr=pv.length?sumA(pv,'price'):null;
+ const rt=(x,y)=>(x!=null&&y)?x/y:null;
+ let h='';
+ const KD=(cls,lab,v,unit,sub,dl)=>{const long=String(v).replace(/<[^>]*>/g,'').length>9;
+  return `<div class="k ${cls}"><span class="lab">${lab}</span>
+  <div class="v"${long?' style="font-size:19px"':''}>${v}${unit?'<small>'+unit+'</small>':''}</div>
+  ${dl?'<div class="d">'+dl+'</div>':''}<div class="s">${sub||''}</div></div>`;};
+
+ const pthAll=(pth2!=null||pln)?((pth2||0)+(pln?pln.threads:0)):null;
+ if(ln){
+  const parts=[]; if(ig)parts.push('IG '+nf(ig.threads)); if(fb)parts.push('FB '+nf(fb.threads)); parts.push('LINE '+nf(ln.threads));
+  h+=KD('','แชททั้งหมด (ทุกช่องทาง)',nf(th),'',parts.join(' · ')+' · รวม '+nf(ms)+' ข้อความ · นับเป็นบทสนทนา ไม่ใช่จำนวนคน',
+    delta(pthAll?th:null,pthAll,true));
+ }else{
+  h+=KD('','แชททั้งหมด',nf(th),'',nf(ms)+' ข้อความ · นับเป็นบทสนทนา ไม่ใช่จำนวนคน',delta(pth2!=null?th:null,pth2,true));
+ }
+ h+=KD('','สนใจคอร์สจริง',nf(ld),'',pcn(ld,pth)+' ของแชท'+only+(ln?' · LINE ไม่มีการแยกลีด':''),
+   delta(rt(ld,pth),rt(pld,pth2),true));
+ const wlab=sumA(p,'wonLabel'), wslip=sumA(p,'wonSlip'), wmb=sumA(p,'wonMaybe');
+ h+=KD(cl?'ok':'risk','ปิดการขายได้',nf(cl),'',pcn(cl,ld)+' ของลีด'+only+
+   ((wlab||wslip)?' · หลักฐาน: ป้าย Meta '+nf(wlab)+' · ลูกค้าแจ้งโอน '+nf(wslip)+(wmb?' · อีก '+nf(wmb)+' แนบรูปหลังได้วิธีจ่าย ยังไม่นับ':''):''),
+   delta(rt(cl,ld),rt(pcl,pld),true));
+ const nra=sumA(p,'noReplyAfter'), nrw=sumA(p,'noReplyWon');
+ if(nra)h+=KD('risk','ลูกค้าตอบกลับแล้วไม่มีใครตอบต่อ',nf(nra),'',
+   pcn(nra,ld)+' ของลีด · ปิดได้เพียง '+nf(nrw)+' ราย — กลุ่มนี้แทบไม่เคยกลายเป็นยอดขาย',
+   delta(rt(nra,ld),rt(pv.length?sumA(pv,'noReplyAfter'):null,pld),false));
+ if(ln)h+=KD('warn','LINE · ติดแท็กสมัครแล้ว',nf(ln.won),'ห้อง','แท็กติดที่ตัวห้อง ไม่ผูกกับเดือน — เทียบกับ “ปิดการขาย” ตรง ๆ ไม่ได้','');
+ const ntAll=nt+(ln?ln.notyped:0), unAll=un+(ln?ln.unans:0);
+ h+=KD(ntAll?'risk':'','ไม่เคยได้คุยกับ Admin',nf(ntAll),'',
+   ln?('IG+FB '+pcn(nt,ld)+' ของลีด · LINE '+pcn(ln.notyped,ln.threads)+' ของห้อง'):(pcn(nt,ld)+' ของลีด'),
+   delta(rt(nt,ld),rt(pnt,pld),false));
+ h+=KD(unAll?'risk':'','ทักมาแล้วหาย (ไม่มีใครตอบต่อ)',nf(unAll),'',
+   ln?('IG+FB '+pcn(un,ld)+' ของลีด · LINE '+pcn(ln.unans,ln.threads)+' ของห้อง'):(pcn(un,ld)+' ของลีด'),
+   delta(rt(un,ld),rt(pun,pld),false));
+ h+=KD(a2?'warn':'','ถูกถามระดับชั้นซ้ำ ≥2 ครั้ง',nf(a2),'',pcn(a2,ld)+' ของลีด'+only,
+   delta(rt(a2,ld),rt(pa2,pld),false));
+ h+=KD('','ได้รับราคาแล้ว',nf(pr),'',pcn(pr,ld)+' ของลีด'+only+(isV2()?' · ต้องเจอจำนวนเงินจริงในข้อความ ไม่ใช่คำว่า “บาท” ลอย ๆ · ตรงกับขั้น S3 ขึ้นไปในกรวย':' · เกณฑ์กว้างกว่าขั้น S3 เล็กน้อย'),
+   delta(rt(pr,ld),rt(ppr,pld),true));
+ if(ln)h+=KD('ok','LINE · แอดมินพิมพ์ตอบครั้งแรก',durR(ln.first_med,ln.rngFt),'',
+   ln.n>1?('ค่ากลางของแต่ละเดือน '+ln.n+' เดือน — บวกกันไม่ได้ จึงแสดงเป็นช่วง'):'นับเฉพาะแอดมินตัวจริง ไม่นับบอท','');
+ if(one){
+  const pone=(CH==='ig')?pig:((CH==='fb')?pfb:null);
+  h+=KD('',(ln?'IG+FB · ':'')+'แอดมินพิมพ์ตอบครั้งแรก',(one.ftMed/60).toFixed(1),'นาที',
+    'p75 '+dur(one.ftP75)+' · p90 '+dur(one.ftP90)+' · ยังไม่หักเวลานอกทำการ',
+    delta(pone&&pone.ftMed!=null?one.ftMed:null,pone?pone.ftMed:null,false));
+  if(one.maxwP90!=null){
+   const pone2=(CH==='ig')?pig:((CH==='fb')?pfb:null);
+   h+=KD('warn',(ln?'IG+FB · ':'')+'รอนานสุดในแชท (p90)',dur(one.maxwP90),'',
+    (isV2()?'ลูกค้าพิมพ์แล้วต้องรอฝั่งเราตอบนานสุดเท่าไร — การหายไปกลางบทสนทนา':'ช่องว่างที่ยาวที่สุดในบทสนทนา'),
+    delta(pone2&&pone2.maxwP90!=null?one.maxwP90:null,pone2?pone2.maxwP90:null,false));}
+  h+=KD('',(ln?'IG+FB · ':'')+'สลับถาม-ตอบ',one.turnsMed,'ครั้ง','เฉลี่ย '+one.turnsMean+' ครั้ง','');
+  h+=KD('',(ln?'IG+FB · ':'')+'ข้อความต่อแชท',one.mc+' / '+one.mh+' / '+one.ma,'','ลูกค้า / แอดมินพิมพ์เอง / สำเร็จรูป · เฉลี่ยต่อลีด','');
+ }else if(p.length){
+  h+=KD('',(ln?'IG+FB · ':'')+'แอดมินพิมพ์ตอบครั้งแรก','—','','ค่ากลางรวมกันไม่ได้ — เลือกช่องทางหรือเดือนเดียว','');
+ }
+ if(gw)h+=KD('warn','มาเพราะของแถม',nf(gw),'','ไม่ได้ถามเรื่องคอร์ส · ตัวชี้คุณภาพทราฟฟิก','');
+ $('#kpi').innerHTML=h;
+}
+
+/* ---------- monthly trend: small multiples, each with its own scale ---------- */
+function trendRow(name,dot,keys,agg,cols){
+ const ks=keys.filter(k=>agg[k]);
+ if(ks.length<2)return '';
+ const use=(CH==='all')?cols.slice(0,4):cols;
+ const N=use.length%4===0?4:(use.length%3===0?3:Math.min(use.length,4));
+ const cells=use.map(function(c){
+  const vals=ks.map(k=>{const x=agg[k];return c.f(x);});
+  const last=vals[vals.length-1], prev=vals[vals.length-2];
+  return `<div class="tp"><div class="h">${c.lab}</div>
+   <div class="v">${c.fmt?c.fmt(last):nf(last)}</div>
+   <div class="d">${delta(last,prev,c.up)}</div>
+   ${spark(vals,c.col)}
+   <div class="s" style="font-size:11px;color:var(--ink-3)">${MSHORT[ks[0]]||ks[0]} → ${MSHORT[ks[ks.length-1]]||ks[ks.length-1]} · ${ks.length} เดือน</div></div>`;
+ }).join('');
+ return `<div class="trow"><p class="ch"><span class="dot ${dot}"></span>${name}</p><div class="tgrid" style="grid-template-columns:repeat(${N},minmax(0,1fr))">${cells}</div></div>`;
+}
+function renderTrend(){
+ const el=$('#trend'); if(!el)return;
+ const pctf=v=>v==null?'—':(Math.round(v*10)/10+'%');
+ let h='';
+ if(CH==='all'||CH==='fb')h+=trendRow('Facebook','fb',FBKEYS,AGG.fb||{},[
+   {lab:'แชททั้งหมด',f:x=>x.threads,up:true,col:'var(--fb)'},
+   {lab:'สนใจคอร์สจริง (ลีด)',f:x=>x.leads,up:true,col:'var(--fb)'},
+   {lab:'ปิดการขายได้',f:x=>x.closed,up:true,col:'var(--fb)'},
+   {lab:'อัตราปิดต่อลีด',f:x=>x.leads?Math.round(x.closed*1000/x.leads)/10:null,up:true,col:'var(--leaf)',fmt:pctf},
+   {lab:'ตอบครั้งแรก (ค่ากลาง)',f:x=>x.ftMed!=null?Math.round(x.ftMed/6)/10:null,up:false,col:'var(--warn)',fmt:v=>v==null?'—':v+' นาที'},
+   {lab:'สัดส่วนลีดต่อแชท',f:x=>x.threads?Math.round(x.leads*1000/x.threads)/10:null,up:true,col:'var(--leaf)',fmt:pctf}]);
+ if(CH==='all'||CH==='ig')h+=trendRow('Instagram','ig',MKEYS,AGG.ig||{},[
+   {lab:'แชททั้งหมด',f:x=>x.threads,up:true,col:'var(--ig)'},
+   {lab:'สนใจคอร์สจริง (ลีด)',f:x=>x.leads,up:true,col:'var(--ig)'},
+   {lab:'ปิดการขายได้',f:x=>x.closed,up:true,col:'var(--ig)'},
+   {lab:'สัดส่วนลีดต่อแชท',f:x=>x.threads?Math.round(x.leads*1000/x.threads)/10:null,up:true,col:'var(--leaf)',fmt:pctf}]);
+ if((CH==='all'||CH==='line')&&(AGG.line))h+=trendRow('LINE OA','line',LINEKEYS,AGG.line||{},[
+   {lab:'ห้องแชทที่มีความเคลื่อนไหว',f:x=>x.threads,up:true,col:'var(--ln)'},
+   {lab:'ติดแท็กสมัครแล้ว',f:x=>x.won,up:true,col:'var(--ln)'},
+   {lab:'ทักมาแล้วหาย',f:x=>x.unans,up:false,col:'var(--risk)'},
+   {lab:'ตอบครั้งแรก (ค่ากลาง)',f:x=>x.first_med!=null?Math.round(x.first_med/6)/10:null,up:false,col:'var(--warn)',fmt:v=>v==null?'—':v+' นาที'}]);
+ el.innerHTML=h||'<div class="empty">ต้องมีข้อมูลอย่างน้อย 2 เดือนจึงจะเห็นแนวโน้ม</div>';
+}
+
+/* ---------- IG vs FB comparison ---------- */
+function renderCmp(){
+ const sec=$('#s-cmp');
+ if(CH!=='all'){sec.hidden=true;return;}
+ const ig=chSum('ig'), fb=chSum('fb'), ln=chSum('line');
+ if([ig,fb,ln].filter(Boolean).length<2){sec.hidden=true;return;}
+ sec.hidden=false;
+ const cs=$('#cmpscope'); if(cs)cs.textContent=moLabel();
+ const miss=[]; if(!ig)miss.push('Instagram'); if(!fb)miss.push('Facebook'); if(!ln)miss.push('LINE OA');
+ const cn=$('#cmpnote');
+ if(cn)cn.innerHTML='เทียบตามเดือนที่เลือกด้านบน — ตอนนี้คือ <b>'+moLabel()+'</b>'+
+  (miss.length?' · ช่วงนี้ยังไม่มีข้อมูล'+miss.join(' และ ')+' จึงขึ้นเป็น “—”':'')+
+  (M==='all'?' · <b>โหมดทุกเดือนรวมกันเทียบกันไม่ได้ตรง ๆ</b> เพราะแต่ละช่องทางมีจำนวนเดือนไม่เท่ากัน และค่ากลางบวกกันไม่ได้ (แสดงเป็นช่วงต่ำสุด–สูงสุดแทน) — ถ้าจะเทียบจริง เลือกเดือนเดียว':'');
+ const V=(x,f)=>x&&x[f]!=null?nf(x[f]):'—';
+ const R=(lab,a1,b1,c1,note)=>`<tr><td>${lab}</td><td class="n chIG">${a1}</td><td class="n chFB">${b1}</td><td class="n chLN">${c1}</td><td class="w">${note||''}</td></tr>`;
+ const P=(x,f,d)=>x&&x[d]?pcn(x[f],x[d]):'—';
+ sec.querySelector('#cmp').innerHTML=`<div class="tw"><table>
+  <thead><tr><th>ตัวชี้วัด · ${esc(moLabel())}</th><th class="n">Instagram</th><th class="n">Facebook</th><th class="n">LINE OA</th><th>อ่านว่าอย่างไร</th></tr></thead><tbody>
+  ${R('แชท / ห้องแชท',V(ig,'threads'),V(fb,'threads'),V(ln,'threads'),'นับเป็นบทสนทนา ไม่ใช่จำนวนคน — เชื่อมตัวตนข้ามช่องทางไม่ได้')}
+  ${R('สนใจคอร์สจริง (ลีด)',P(ig,'leads','threads'),P(fb,'leads','threads'),'—','คุณภาพทราฟฟิก · LINE ไม่ได้แยกลีดออกจากห้องทั่วไป')}
+  ${R('อัตราปิดต่อลีด',P(ig,'closed','leads'),P(fb,'closed','leads'),'—','ฝีมือการปิด — ตัวหารคือลีด ไม่ใช่แชททั้งหมด')}
+  ${R('ไม่เคยได้คุยกับ Admin',P(ig,'notyped','leads'),P(fb,'notyped','leads'),P(ln,'notyped','threads'),'IG/FB คิดจากลีด · LINE คิดจากห้องทั้งหมด')}
+  ${R('ทักมาแล้วหาย',P(ig,'unans','leads'),P(fb,'unans','leads'),P(ln,'unans','threads'),'ข้อความสุดท้ายเป็นของลูกค้า — รวมเคสที่ลูกค้าพิมพ์ปิดท้ายเอง')}
+  ${R('ตอบครั้งแรก (ค่ากลาง)',ig?durR(ig.ftMed,ig.rngFt):'—',fb?durR(fb.ftMed,fb.rngFt):'—',ln?durR(ln.first_med,ln.rngFt):'—','ยังไม่หักเวลานอกทำการ')}
+  ${R('— p90 (หางยาว)',ig?durR(ig.ftP90,ig.rngP90):'—',fb?durR(fb.ftP90,fb.rngP90):'—',ln?durR(ln.first_p90,ln.rngP90):'—','ลีดที่รอนานที่สุด 10% สุดท้าย — ตัวนี้คือที่ดีลหลุด')}
+  </tbody></table></div>
+  ${ln?`<p class="warnbox" style="margin-top:12px">ตัวเลขที่<b>ไม่ได้</b>อยู่ในตารางนี้เพราะนิยามคนละเรื่อง: LINE มี <b>${nf(ln.won)} ห้อง</b> ติดแท็ก Q-สมัครแล้ว ซึ่งติดที่ตัวห้องไม่ผูกกับเดือน จึงไม่ใช่ “ยอดปิดของเดือนนี้” แบบฝั่ง Facebook · และ ${nf(ln.notag)} ห้องยังไม่ติดแท็กเลย</p>`:''}`;
+}
+
+/* ---------- funnel ---------- */
+function renderFunnel(){
+ const p=pool(); if(!p.length){$('#fun').innerHTML='';const fs0=$('#funsrc');if(fs0)fs0.innerHTML='';return;}
+ const st={};for(const a of p)for(const k in a.stages)st[k]=(st[k]||0)+a.stages[k];
+ const base=(st.S2||0)+(st.S3||0)+(st.S4||0)+(st.S5||0);
+ const steps=[['S2','สนใจคอร์ส',base],
+  ['S3','ได้รับราคาแล้ว',(st.S3||0)+(st.S4||0)+(st.S5||0)],
+  ['S4','ขอสมัคร / ถามวิธีจ่าย',(st.S4||0)+(st.S5||0)],
+  ['S5','ปิดการขายได้',(st.S5||0)]];
+ const col=CH==='ig'?'ig':'fb';
+ $('#fun').innerHTML=steps.map(([c,l,v],i)=>{
+  const w=base?Math.max(1.5,v*100/base):0;
+  const prev=i?steps[i-1][2]:0, drop=i?prev-v:0;
+  return `<div class="fstep"><span class="no">${i+1}</span>
+   <div class="bar"><div class="fill ${col}" style="width:${w}%"></div>
+   <div class="blab"><span><b>${c}</b> ${l}</span>
+   <span><b>${nf(v)}</b> · ${base?Math.round(v*100/base):0}%${i?` <span style="color:var(--ink-3)">(หลุด ${nf(drop)} = ${prev?Math.round(drop*1000/prev)/10:0}% ของขั้นก่อน)</span>`:''}</span></div></div></div>`;
+ }).join('');
+ /* the one ad-vs-organic cut that is available without new data */
+ const fs=$('#funsrc'); if(!fs)return;
+ const fb=(CH!=='ig')?chSum('fb'):null;
+ if(!fb||!(fb.adLeads||fb.noAdLeads)){fs.innerHTML='';return;}
+ fs.innerHTML=`<div class="tw" style="margin-top:16px"><table>
+  <thead><tr><th>แหล่งที่มาของลีด · Facebook</th><th class="n">ลีด</th><th class="n">ปิดได้</th><th class="n">อัตราปิด</th></tr></thead><tbody>
+  <tr><td>มาจากโฆษณา</td><td class="n">${nf(fb.adLeads)}</td><td class="n">${nf(fb.adClosed)}</td><td class="n">${pcn(fb.adClosed,fb.adLeads)}</td></tr>
+  <tr><td>มาเอง / ไม่ได้มาจากโฆษณา</td><td class="n">${nf(fb.noAdLeads)}</td><td class="n">${nf(fb.noAdClosed)}</td><td class="n">${pcn(fb.noAdClosed,fb.noAdLeads)}</td></tr>
+  </tbody></table></div>
+  <p class="note" style="margin-top:9px">ธง “มาจากโฆษณา” อ่านจากข้อความอ้างอิงโฆษณาในแชท ซึ่ง<b>นับได้ต่ำกว่าตัวเลขของ Meta</b> และแยกได้แค่ ad/ไม่ ad — ยังไม่รู้ว่าแคมเปญไหน จึงบอกได้ว่าโฆษณาโดยรวมเป็นอย่างไร แต่ยังชี้ไม่ได้ว่าควรปิด ad set ตัวไหน</p>`;
+}
+
+/* ---------- reasons ---------- */
+function renderWhy(){
+ const p=pool(), el=$('#why'); if(!el)return;
+ const m={}, own={}; let base=0, tagged=0, v2=false;
+ for(const a of p){
+  for(const [k,v] of (a.reasons||[]))m[k]=(m[k]||0)+v;
+  for(const [k,v] of (a.reasonOwner||[]))own[k]=(own[k]||0)+v;
+  if(a.reasonBase!=null){base+=a.reasonBase;tagged+=(a.reasonTagged||0);v2=true;}
+ }
+ const rows=Object.entries(m).sort((x,y)=>y[1]-x[1]);
+ if(!rows.length){el.innerHTML='<div class="empty">ไม่มีข้อมูลในช่วงที่เลือก</div>';return;}
+ const denom=v2?base:rows.reduce((t,r)=>t+r[1],0);
+ const unknown=m.U00||m.R08||0, cov=denom?unknown*100/denom:0;
+ const mx=rows[0][1];
+ /* ownership split first — it is the decision, the detail is the evidence */
+ const ows=['เรา','ลูกค้า','ทราฟฟิก'].filter(k=>own[k]);
+ const owBlock=ows.length?`<div class="kpis" style="margin-bottom:16px">${ows.map(k=>
+   `<div class="k ${OWNCLR[k]||''}"><span class="lab">แก้ที่${k==='เรา'?'ฝั่งเรา':(k==='ลูกค้า'?'ข้อเสนอ / การติดตาม':'คุณภาพทราฟฟิก')}</span>
+    <div class="v">${pc(own[k],denom)}</div><div class="s">${nf(own[k])} จาก ${nf(denom)} ลีดที่ยังไม่ปิด · ${OWNFIX[k]}</div></div>`).join('')}</div>`:'';
+ el.innerHTML=owBlock+
+  `<p class="warnbox">${v2?`ดีลที่ยังไม่ปิด <b>${nf(denom)}</b> รายการ ระบุสาเหตุได้ <b>${pc(tagged,denom)}</b>${cov>=1?` · ยังระบุไม่ได้ <b>${pc(unknown,denom)}</b>`:''}
+   · หนึ่งดีลติดได้หลายสาเหตุ ตัวเลข % จึงบวกกันเกิน 100 ได้ — อ่านเป็น “สาเหตุนี้แตะกี่ % ของดีลที่ไม่ปิด”`
+   :`สาเหตุยังถูกเดาจากธง 3 ตัวในข้อความ ${cov>=40?`และ <b>${Math.round(cov)}% ระบุไม่ได้</b> — สูงเกินกว่าจะเอาไปตัดสินใจ`:''}`}
+   · ทางแก้ระยะยาวคือให้แอดมินติดแท็กเหตุผลเองใน LINE / ป้าย Meta</p>
+  <div style="margin-bottom:6px">${rows.map(function(r){
+    const k=r[0], v=r[1], nm=(RZ[k]||['—','—']);
+    return `<div class="bk"><span class="lab2">${esc(nm[0])}</span>
+     <span class="tr"><i class="${nm[1]==='เรา'?'bad':''}" style="width:${Math.max(2,Math.round(v*100/mx))}%"></i>
+     <span class="vv"><b>${denom?Math.round(v*1000/denom)/10+'%':'—'}</b>
+     <span class="nsm">${nf(v)} ดีล · ${esc(nm[1])}</span></span></span></div>`;}).join('')}</div>`;
+}
+
+/* ---------- when leads arrive, and how long they wait ---------- */
+function renderHours(){
+ const p=pool(); const el=$('#hrs'); if(!el)return;
+ if(!p.length){el.innerHTML='';return;}
+ const H=Array.from({length:24},(_,h)=>[h,0,0,0]);
+ for(const a of p)for(const r of (a.hours||[])){H[r[0]][1]+=r[1];if(r[2]!=null){H[r[0]][2]+=r[2]*r[3];H[r[0]][3]+=r[3];}}
+ const mx=Math.max(1,...H.map(r=>r[1]));
+ const wait=h=>H[h][3]?H[h][2]/H[h][3]:null;
+ const HMAX=72; /* px of drawable height inside .hstrip */
+ const bars=H.map(function(r){
+  const h=r[0], w=wait(h);
+  const px=r[1]?Math.max(4,Math.round(r[1]*HMAX/mx)):3;
+  const cls=!r[1]?'z':(w==null?'':(w>60?'r':(w>15?'w':'')));
+  const tip=String(h).padStart(2,'0')+':00 — '+nf(r[1])+' ลีด'+(w==null?'':' · รอเฉลี่ย '+(Math.round(w*10)/10)+' นาที');
+  return `<span class="hb ${cls}" style="height:${px}px" title="${tip}" aria-label="${tip}"></span>`;
+ }).join('');
+ const ax=H.map(r=>`<span>${r[0]%3===0?String(r[0]).padStart(2,'0'):''}</span>`).join('');
+ const peak=H.slice().sort((x,y)=>y[1]-x[1]).slice(0,3).map(r=>String(r[0]).padStart(2,'0')+':00 ('+nf(r[1])+')');
+ const worst=H.filter(r=>r[3]>=10&&wait(r[0])!=null).sort((x,y)=>wait(y[0])-wait(x[0])).slice(0,3)
+   .map(r=>String(r[0]).padStart(2,'0')+':00 — '+(Math.round(wait(r[0])*10)/10)+' นาที');
+ let dow=[0,0,0,0,0,0,0];
+ for(const a of p)if(a.dow)for(let i=0;i<7;i++)dow[i]+=(a.dow[i]||0);
+ const dmx=Math.max(1,...dow);
+ const dcells=dow.map((v,i)=>`<div class="dowc"><div class="t">${DOWN[i]}</div><div class="b" style="width:${Math.max(8,Math.round(v*100/dmx))}%"></div><div class="n">${nf(v)}</div></div>`).join('');
+ el.innerHTML=`<div class="hstrip">${bars}</div><div class="hax">${ax}</div>
+  <p class="note" style="margin-top:11px">สูงของแท่ง = จำนวนลีดที่ทักเข้ามาในชั่วโมงนั้น · สีเหลือง/แดง = ช่วงที่รอนานกว่า 15 / 60 นาที
+  · ชั่วโมงที่คนทักมากที่สุด <b>${peak.join(' · ')}</b>${worst.length?` · ช่วงที่รอนานที่สุด <b>${worst.join(' · ')}</b>`:''}
+  ${p.length>1?'<br><b>หมายเหตุ</b> เวลารอที่แสดงคือค่าเฉลี่ยของค่ากลางรายเดือน (ค่ากลางบวกกันไม่ได้) เลือกเดือนเดียวถ้าต้องการค่ากลางจริง':''}</p>
+  <div class="dowrow">${dcells}</div>
+  <p class="note" style="margin-top:9px">จำนวนลีดแยกตามวันในสัปดาห์ — ใช้คู่กับแถบชั่วโมงด้านบนเพื่อจัดกะ</p>`;
+}
+
+/* ---------- raw: IG chat browser ---------- */
+function leads(){const o=[];
+ if(CH==='fb'){for(const k of fbMonths()){const d=FBFULL[k];if(d)for(const r of d.chats)o.push({m:k,r});}return o;}
+ if(!IGFULL)return o;
+ for(const k of igMonths()){const mm=IGFULL.months[k];if(mm)for(const r of mm.leads)o.push({m:k,r});}
+ return o;}
+const norm=s=>String(s==null?'':s).toLowerCase().replace(/^[@\s]+/,'').replace(/\s+$/,'');
+const hitName=(r,t)=>norm(r[0]).includes(t);
+const hitBody=(r,t,m)=>(r[18]||[]).some(e=>String(txt(e[2],m)).toLowerCase().includes(t));
+const hitTerm=(r,t,m)=>!t||hitName(r,t)||(DEEP&&hitBody(r,t,m));
+function hitChip(r,f){if(f==='leadsonly')return ['S2','S3','S4','S5'].indexOf(r[1])>=0;if(f==='nohuman')return r[10]<0;if(f==='risk')return r[12]===1;
+ if(f==='price')return r[15]===1;if(f==='dup')return r[14]>=2;if(f==='won')return r[17]===1;return true;}
+function filtered(){const t=norm(TERM);return leads().filter(o=>hitTerm(o.r,t,o.m)&&hitChip(o.r,FILTER));}
+function everywhere(t){let n=0;
+ if(CH==='fb'){for(const k of FBKEYS){const d=FBFULL[k];if(d)for(const r of d.chats)if(hitTerm(r,t,k))n++;}return n;}
+ if(!IGFULL)return 0;
+ for(const k of MKEYS){const mm=IGFULL.months[k];if(mm)for(const r of mm.leads)if(hitTerm(r,t,k))n++;}
+ return n;}
+function emptyMsg(){
+ const t=norm(TERM); let body='ไม่พบแชทที่ตรงกับเงื่อนไข', act='';
+ if(t){
+  const inTab=leads().filter(o=>hitTerm(o.r,t,o.m)).length, all=everywhere(t);
+  if(inTab>0&&FILTER!=='all'){body='พบ '+inTab+' แชทที่ชื่อตรงกับ “'+esc(TERM)+'” แต่ถูกตัวกรองซ่อนไว้';act='<button class="fixbtn" data-act="chip">ล้างตัวกรอง</button>';}
+  else if(all>0&&M!=='all'){body='ไม่พบใน'+MLABEL[M]+' — แต่พบ '+all+' แชทในเดือนอื่น';act='<button class="fixbtn" data-act="all">ดูทุกเดือน</button>';}
+  else if(all===0&&!DEEP){body='ไม่พบบัญชีชื่อ “'+esc(TERM)+'”';act='<button class="fixbtn" data-act="deep">ลองค้นในข้อความแชทด้วย</button>';}
+ }
+ return '<div class="empty">'+body+(act?'<div>'+act+'</div>':'')+'</div>';
+}
+function fbNote(){const a=fbA(),th=sumA(a,'threads'),ms=sumA(a,'msgs'),mo=M==='all'?rangeLabel(FBKEYS):MLABEL[M];
+ return `<p class="note">แชท Facebook <b>${mo}</b> — <b>${nf(th)} แชท / ${nf(ms)} ข้อความ</b> ฝังครบทุกข้อความในหน้านี้แล้ว ค้นด้วยชื่อลูกค้าได้ทันที · รายการนี้รวม<b>ทุกแชท</b> รวมกลุ่ม S0/S1 ที่ตัวเลขสรุปด้านบนไม่นับเป็นลีด${M==='all'?' · <b>โหมดทุกเดือนรวมกัน</b> ต้องโหลดข้อมูลทั้ง '+FBKEYS.length+' เดือน ครั้งแรกจึงช้ากว่าปกติ และการติ๊ก “ค้นในเนื้อข้อความด้วย” จะหน่วงบ้างเพราะไล่อ่านทุกข้อความ':''} · ห้องที่มีป้าย <b>🔗 ลิงก์ตรง</b> กดปุ่ม <b>เปิดแชทนี้ใน Inbox</b> ที่หัวแชทแล้วเข้าห้องนั้นได้ทันที (ตอนนี้ทำไว้ ${Object.keys(FBU).length} ห้องแรกของกลุ่มปิดการขาย กำลังทยอยเพิ่ม) · ห้องที่ยังไม่มี ปุ่มจะคัดลอกชื่อลูกค้าให้แล้วเปิดกล่องข้อความ วางในช่องค้นหาเพื่อเข้าห้องนั้น · <a href="${SHEET_FB}" target="_blank" rel="noopener">เปิดสเปรดชีตต้นทาง ↗</a></p>`;}
+function igBrowserShell(){
+ return `${CH==='fb'?fbNote():''}<div class="md">
+ <div class="pane"><div class="ptop">
+  <input id="q" type="search" placeholder="${CH==='fb'?'ค้นหาชื่อลูกค้า Facebook…':'ค้นหาชื่อบัญชี IG (พิมพ์ @ หรือไม่พิมพ์ก็ได้)…'}" aria-label="ค้นหาชื่อบัญชี" value="${esc(TERM)}">
+  <div class="chips" id="chips">
+   <button class="chip" data-f="all" aria-pressed="${FILTER==='all'}">ทั้งหมด</button>
+   <button class="chip" data-f="nohuman" aria-pressed="${FILTER==='nohuman'}">ไม่เคยได้คุยกับ Admin</button>
+   <button class="chip" data-f="risk" aria-pressed="${FILTER==='risk'}">ทักมาแล้วหาย</button>
+   <button class="chip" data-f="dup" aria-pressed="${FILTER==='dup'}">ถามซ้ำ</button>
+   <button class="chip" data-f="price" aria-pressed="${FILTER==='price'}">ได้ราคาแล้ว</button>
+   <button class="chip" data-f="won" aria-pressed="${FILTER==='won'}">ปิดการขาย</button></div>
+  <p class="fdesc"><b>${FNAME[FILTER]||'ทั้งหมด'}</b> — ${fdescOf(FILTER)}</p>
+  <details class="fhelp"><summary>คำอธิบายทุกแท็บ</summary><dl>${FORDER.map(k=>'<dt>'+FNAME[k]+'</dt><dd>'+fdescOf(k)+'</dd>').join('')}</dl></details>
+  <label class="deeprow"><input type="checkbox" id="deep"${DEEP?' checked':''}> ค้นในเนื้อข้อความด้วย</label>
+ </div><div class="plist" id="plist"></div>
+ <div class="pfoot"><span id="pcount"></span><button class="dlbtn" id="dlcsv" type="button">⤓ CSV</button><span id="pager"></span></div></div>
+ <div class="pane"><div class="chead" id="chead"></div><div class="thread" id="thread"></div></div></div>`;
+}
+function renderList(){
+ const rows=filtered(), pages=Math.max(1,Math.ceil(rows.length/PER));
+ if(PAGE>=pages)PAGE=pages-1; if(SEL>=rows.length)SEL=0;
+ const slice=rows.slice(PAGE*PER,PAGE*PER+PER);
+ $('#plist').innerHTML=slice.map((o,i)=>{
+  const gi=PAGE*PER+i,r=o.r,fl=[];
+  if(r[10]<0)fl.push('<span class="badge risk">ไม่เคยได้คุยกับ Admin</span>');
+  if(r[12])fl.push('<span class="badge risk">ทักมาแล้วหาย</span>');
+  if(r[14]>=2)fl.push('<span class="badge risk">ถามซ้ำ '+r[14]+'</span>');
+  if(r[17])fl.push('<span class="badge ok">ปิดการขาย</span>');
+  if(CH==='fb'&&r[20])fl.push('<span class="badge">จากโฆษณา</span>');
+  if(CH==='fb'&&FBU[String(r[19])])fl.push('<span class="badge ok">🔗 ลิงก์ตรง</span>');
+  fl.push('<span class="badge">'+r[1]+'</span>');
+  return `<button class="prow" data-i="${gi}" aria-current="${gi===SEL}">
+   <span class="nm">${CH==='fb'?'':'@'}${esc(r[0]||'(ไม่มีชื่อผู้ใช้)')}</span>
+   <span class="sb">${MSHORT[o.m]} ${r[3]} · ${String(r[4]).padStart(2,'0')}:00 (${DOWN[r[5]]}) · ${r[6]}/${r[7]} ข้อความ</span>
+   <span class="fl">${fl.join('')}</span></button>`;}).join('')||emptyMsg();
+ $('#plist').querySelectorAll('.prow').forEach(b=>b.addEventListener('click',()=>{SEL=+b.dataset.i;renderList();renderChat();}));
+ $('#pcount').textContent=rows.length?`${PAGE*PER+1}–${Math.min(rows.length,PAGE*PER+PER)} จาก ${rows.length} แชท`:'0 แชท';
+ let pg=`<button ${PAGE===0?'disabled':''} data-p="${PAGE-1}" aria-label="หน้าก่อน">‹</button>`;
+ const win=[];for(let p=0;p<pages;p++)if(p===0||p===pages-1||Math.abs(p-PAGE)<=1)win.push(p);
+ let last=-1;win.forEach(p=>{if(p-last>1)pg+='<button disabled>…</button>';pg+=`<button data-p="${p}" aria-current="${p===PAGE}">${p+1}</button>`;last=p;});
+ pg+=`<button ${PAGE>=pages-1?'disabled':''} data-p="${PAGE+1}" aria-label="หน้าถัดไป">›</button>`;
+ $('#pager').innerHTML=pg;
+ $('#pager').querySelectorAll('button[data-p]').forEach(b=>b.addEventListener('click',()=>{PAGE=+b.dataset.p;renderList();$('#plist').scrollTop=0;}));
+ $('#plist').querySelectorAll('.fixbtn').forEach(b=>b.addEventListener('click',()=>{
+  const a=b.dataset.act;
+  if(a==='chip'){FILTER='all';}
+  else if(a==='all'){M='all';buildMonths();setNow();renderOverview();}
+  else if(a==='deep'){DEEP=true;}
+  PAGE=0;SEL=0;renderRaw();}));
+}
+function stamp(m,mk){const d=Math.floor(m/1440)+1,r=m%1440;
+ return {d,day:String(d).padStart(2,'0')+' '+(MSHORT[mk]||''),time:String(Math.floor(r/60)).padStart(2,'0')+':'+String(r%60).padStart(2,'0')};}
+function renderChat(){
+ const rows=filtered();
+ if(!rows.length){$('#chead').innerHTML='<div class="mt">เลือกแชททางซ้ายเพื่ออ่านบทสนทนา</div>';$('#thread').innerHTML='';return;}
+ const o=rows[Math.min(SEL,rows.length-1)],r=o.r;
+ const rz=CH==='fb'?(r[17]?'ปิดการขายแล้ว (ป้าย Meta)':(r[21]?'มีคุณสมบัติ (ป้าย Meta)':'—')):(RZ[r[2]]?RZ[r[2]][0]:(r[17]?'ปิดการขายแล้ว':'—'));
+ const fl=[];
+ if(r[10]<0)fl.push('<span class="badge risk">ไม่เคยได้คุยกับ Admin</span>');
+ if(r[12])fl.push('<span class="badge risk">ทักมาแล้วหาย</span>');
+ if(r[14]>=2)fl.push('<span class="badge risk">ถูกถามระดับชั้นซ้ำ '+r[14]+' ครั้ง</span>');
+ if(r[17])fl.push('<span class="badge ok">ปิดการขายได้</span>');
+ fl.push('<span class="badge">'+r[1]+' '+(STAGEN[r[1]]||'')+'</span>');
+ $('#chead').innerHTML=`<div class="who">${CH==='fb'?'':'@'}${esc(r[0]||'(ไม่มีชื่อผู้ใช้)')} ${inboxBtn(r)}${CH==='fb'?'':' <a class="inbtn ghost" href="https://instagram.com/'+encodeURIComponent(r[0])+'" target="_blank" rel="noopener">โปรไฟล์ ↗</a>'}</div>
+  <div class="mt">${MLABEL[o.m]} · ทัก ${r[3]} เวลา ${String(r[4]).padStart(2,'0')}:00 (${DOWN[r[5]]}) · ลูกค้า ${r[6]} / แอดมินพิมพ์เอง ${r[7]} / สำเร็จรูป ${r[8]} · สลับถาม-ตอบ ${r[9]} ครั้ง</div>
+  <div class="mt">แอดมินพิมพ์ตอบครั้งแรก <b>${dur(r[10])}</b> · รอนานสุดในแชทนี้ <b>${dur(r[11])}</b> · ${WHO[r[13]]||r[13]} · สาเหตุ: ${rz}</div>
+  <div class="fl">${fl.join('')}</div>`;
+ let html='',lastDay=null;
+ for(const e of r[18]){
+  const s=stamp(e[0],o.m);
+  if(s.d!==lastDay){html+=`<div class="daysep">— ${s.day} —</div>`;lastDay=s.d;}
+  const tag=e[1]===2?'สำเร็จรูป':(e[1]===3?'บรอดแคสต์':'');
+  html+=`<div class="msg r${e[1]}"><div class="bub">${tag?'<b class="tplmark">'+tag+'</b>':''}${esc(sub(txt(e[2],o.m),r[0]))}</div><span class="ts">${s.time}</span></div>`;
+ }
+ $('#thread').innerHTML=html;$('#thread').scrollTop=0;
+}
+function needFiles(){if(CH==='ig')return IGFULL?[]:['ig-all'];
+ if(CH==='fb')return fbMonths().filter(k=>!FBFULL[k]).map(k=>'fb-'+k);
+ return [];}
+function renderRaw(){
+ const el=$('#raw');
+ if(CH==='ig'||CH==='fb'){
+  const need=needFiles();
+  if(need.length){
+   const ch=CH,mo=M,tot=need.length;let done=0;
+   const stale=()=>CH!==ch||(ch==='fb'&&M!==mo);
+   const show=()=>{if(stale())return;
+    el.innerHTML='<div class="empty">กำลังโหลดข้อมูลแชท… <span class="lab">'+(ch==='fb'?'Facebook':'Instagram')+'</span>'+
+     (tot>1?'<div class="mt">'+done+' / '+tot+' เดือน — ทุกเดือนรวมกันเป็นข้อมูลก้อนใหญ่ ครั้งแรกอาจใช้เวลาสักครู่</div>':'')+'</div>';};
+   show();
+   (async function(){
+    for(const nm of need){
+     const d=await getFile(nm);
+     if(stale())return false;
+     if(nm==='ig-all')IGFULL=d;else FBFULL[nm.slice(3)]=d;
+     done++;show();
+    }
+    return true;
+   })().then(function(ok){if(ok&&!stale())renderRaw();
+   }).catch(function(e){if(stale())return;
+    el.innerHTML='<div class="empty">โหลดข้อมูลแชทไม่สำเร็จ — '+esc(String((e&&e.message)||e))+
+     '<div><button class="fixbtn" onclick="location.reload()">ลองใหม่</button></div></div>';});
+   return;
+  }
+  el.innerHTML=igBrowserShell();
+  $('#q').addEventListener('input',e=>{TERM=e.target.value;PAGE=0;SEL=0;renderList();renderChat();});
+  $('#deep').addEventListener('change',e=>{DEEP=e.target.checked;PAGE=0;SEL=0;renderList();renderChat();});
+  el.querySelectorAll('#chips .chip').forEach(c=>c.addEventListener('click',()=>{
+   FILTER=c.dataset.f;PAGE=0;SEL=0;renderRaw();}));
+  const dl=$('#dlcsv'); if(dl)dl.addEventListener('click',exportChats);
+  renderList();renderChat();
+  return;
+ }
+ const ig=chSum('ig'), fb=chSum('fb'), ln=chSum('line');
+ el.innerHTML=`<p class="note">ข้อมูลดิบของแต่ละช่องทางเก็บคนละที่ เพราะโครงข้อมูลต่างกัน — กดปุ่มช่องทางด้านบนเพื่อเปิดอ่านบทสนทนาเต็มของช่องทางนั้น</p>
+ <div class="kpis">
+  <div class="k"><span class="lab">Instagram</span><div class="v" style="font-size:17px">อ่านได้ในหน้านี้</div>
+   <div class="s">${ig?nf(ig.leads)+' ลีด / '+nf(ig.msgs)+' ข้อความ':'ไม่มีข้อมูลในช่วงที่เลือก'} พร้อมบทสนทนาเต็มทุกข้อความ ค้นด้วยชื่อบัญชีได้</div></div>
+  <div class="k"><span class="lab">Facebook</span><div class="v" style="font-size:17px">อ่านได้ในหน้านี้</div>
+   <div class="s">${fb?nf(fb.threads)+' แชท / '+nf(fb.msgs)+' ข้อความ':'ไม่มีข้อมูลในช่วงที่เลือก'} พร้อมบทสนทนาเต็ม ค้นด้วยชื่อลูกค้าได้</div></div>
+  <div class="k"><span class="lab">LINE OA</span><div class="v" style="font-size:17px">อ่านได้ในหน้านี้</div>
+   <div class="s">${ln?nf(ln.threads)+' ห้อง / '+nf(ln.msgs)+' ข้อความ':'ไม่มีข้อมูลในช่วงที่เลือก'} พร้อมบทสนทนาเต็ม และปุ่มเปิดห้องจริงใน LINE OA Manager</div></div>
+ </div>`;
+}
+
+
+/* ---------- LINE OA ---------- */
+const LN_FNAME={all:'ทั้งหมด',nohuman:'ไม่เคยได้คุยกับ Admin',risk:'ทักมาแล้วหาย',won:'สมัครแล้ว',open:'ยังไม่สมัคร',notag:'ไม่ติดแท็ก'};
+const LN_FORDER=['all','won','open','risk','nohuman','notag'];
+const LN_FDESC={
+ all:'ทุกห้องแชทที่มีความเคลื่อนไหวในเดือนที่เลือก',
+ nohuman:'ห้องที่<b>ไม่มีแอดมินตัวจริงพิมพ์ตอบเลยสักข้อความ</b> — ทั้งห้องมีแต่บอทตอบอัตโนมัติ',
+ risk:'ห้องที่<b>ข้อความสุดท้ายเป็นของลูกค้า</b> แล้วไม่มีแอดมินตอบต่อ — ลูกค้าถามค้างไว้แล้วเงียบไป',
+ won:'ห้องที่ทีมติดแท็ก <b>Q-สมัครแล้ว</b> ใน LINE OA · <b>ระวัง</b> แท็กนี้ติดที่ตัวห้อง ไม่ได้ผูกกับเดือน หลายห้องเป็นนักเรียนเก่าที่สมัครไปก่อนหน้านี้ จึงเทียบกับ “ปิดการขาย” ของ Facebook ตรง ๆ ไม่ได้',
+ open:'ห้องที่ทีมติดแท็ก <b>Q-ยังไม่สมัคร</b> — คือกลุ่มที่ยังตามต่อได้',
+ notag:'ห้องที่<b>ยังไม่ได้ติดแท็กสถานะใด ๆ</b> — ตกสำรวจจากระบบแท็กของทีม'};
+let LN_F='all', LN_TERM='', LN_PAGE=0, LN_SEL=0, LN_DEEP=false; const LN_PER=25;
+function lnRooms(){const o=[];for(const k of lineMonths()){const d=LINEFULL[k];
+ if(d&&d.rooms)for(const r of d.rooms)o.push(r);}return o;}
+const lnTxt=(v,m)=>typeof v==='number'?((((LINEFULL[m]||{}).dict)||[])[v]||''):v;
+const lnLink=(id,m)=>'https://chat.line.biz/'+((LINEFULL[m]||{}).bot||LINEBOT)+'/chat/'+id;
+function lnHit(o,t){if(!t)return true;
+ if((o.n||'').toLowerCase().includes(t))return true;
+ if((o.ad||[]).join(' ').toLowerCase().includes(t))return true;
+ if(LN_DEEP)return o.tr.some(m=>String(lnTxt(m[2],o._m)).toLowerCase().includes(t));
+ return false;}
+function lnFiltered(){const t=LN_TERM.trim().toLowerCase();
+ return lnRooms().filter(o=>{
+  if(LN_F==='nohuman'&&!o.nh)return false;
+  if(LN_F==='risk'&&!o.hg)return false;
+  if(LN_F==='won'&&o.st!=='สมัครแล้ว')return false;
+  if(LN_F==='open'&&o.st!=='ยังไม่สมัคร')return false;
+  if(LN_F==='notag'&&o.st!=='ไม่ติดแท็ก')return false;
+  return lnHit(o,t);});}
+function lnCount(f){const t=LN_TERM.trim().toLowerCase();
+ return lnRooms().filter(o=>{
+  if(f==='nohuman')return o.nh&&lnHit(o,t);
+  if(f==='risk')return o.hg&&lnHit(o,t);
+  if(f==='won')return o.st==='สมัครแล้ว'&&lnHit(o,t);
+  if(f==='open')return o.st==='ยังไม่สมัคร'&&lnHit(o,t);
+  if(f==='notag')return o.st==='ไม่ติดแท็ก'&&lnHit(o,t);
+  return lnHit(o,t);}).length;}
+function lnShell(){
+ const multi=lineMonths().length>1;
+ return `<p class="note lnnote">แชท LINE OA <b>${esc(moLabel())}</b> — ${nf(lnRooms().length)} ห้อง พร้อมบทสนทนาเต็มทุกข้อความ${multi?' · <b>โหมดทุกเดือนรวมกัน</b> โหลดข้อมูลทั้ง '+lineMonths().length+' เดือน ครั้งแรกจึงช้ากว่าปกติ · ห้องเดียวกันที่คุยหลายเดือนจะขึ้นหนึ่งรายการต่อหนึ่งเดือน (ดูป้ายเดือนที่แต่ละรายการ)':''} · <b>เขียว</b> = แอดมินตัวจริง (มีชื่อกำกับ) · <b>เทา</b> = บอทตอบอัตโนมัติ · เวลาตอบนับเฉพาะแอดมินตัวจริง · ทุกห้องกดปุ่ม <b>เปิดห้องแชทนี้</b> เข้าห้องจริงใน LINE OA Manager ได้ทันที (ต้องล็อกอิน LINE Business ID อยู่) · <a href="${SHEET_LINE}" target="_blank" rel="noopener">เปิดสเปรดชีตต้นทาง ↗</a></p>
+ <div class="md"><div class="pane"><div class="ptop">
+  <input id="lnq" type="search" placeholder="ค้นหาชื่อลูกค้า หรือชื่อแอดมิน…" aria-label="ค้นหา" value="${esc(LN_TERM)}">
+  <div class="chips" id="lnchips">${LN_FORDER.map(k=>`<button class="chip" data-f="${k}" aria-pressed="${LN_F===k}">${LN_FNAME[k]} (${nf(lnCount(k))})</button>`).join('')}</div>
+  <p class="fdesc"><b>${LN_FNAME[LN_F]}</b> — ${LN_FDESC[LN_F]}</p>
+  <details class="fhelp"><summary>คำอธิบายทุกแท็บ</summary><dl>${LN_FORDER.map(k=>'<dt>'+LN_FNAME[k]+'</dt><dd>'+LN_FDESC[k]+'</dd>').join('')}</dl></details>
+  <label class="deeprow"><input type="checkbox" id="lndeep"${LN_DEEP?' checked':''}> ค้นในเนื้อข้อความด้วย</label>
+ </div><div class="plist" id="lnlist"></div>
+ <div class="pfoot"><span id="lncount"></span><button class="dlbtn" id="lndlcsv" type="button">⤓ CSV</button><span id="lnpager"></span></div></div>
+ <div class="pane"><div class="chead" id="lnhead"></div><div class="thread" id="lnthread"></div></div></div>`;}
+function lnRenderList(){
+ const rows=lnFiltered(), pages=Math.max(1,Math.ceil(rows.length/LN_PER));
+ if(LN_PAGE>=pages)LN_PAGE=pages-1; if(LN_SEL>=rows.length)LN_SEL=0;
+ const slice=rows.slice(LN_PAGE*LN_PER,LN_PAGE*LN_PER+LN_PER);
+ $('#lnlist').innerHTML=slice.length?slice.map((o,i)=>{
+  const gi=LN_PAGE*LN_PER+i,fl=[];
+  if(o.nh)fl.push('<span class="badge risk">ไม่เคยได้คุยกับ Admin</span>');
+  if(o.hg)fl.push('<span class="badge risk">ทักมาแล้วหาย</span>');
+  if(o.st==='สมัครแล้ว')fl.push('<span class="badge ok">สมัครแล้ว</span>');
+  else if(o.st!=='ไม่ติดแท็ก')fl.push('<span class="badge">'+esc(o.st)+'</span>');
+  if(lineMonths().length>1)fl.push('<span class="badge">'+(MSHORT[o._m]||o._m||'')+'</span>');
+  fl.push('<span class="badge">ตอบครั้งแรก '+dur(o.r1)+'</span>');
+  (o.ad||[]).slice(0,3).forEach(a=>fl.push('<span class="badge">👤 '+esc(a)+'</span>'));
+  return `<button class="prow" data-i="${gi}" aria-current="${gi===LN_SEL}">
+   <span class="nm">${esc(o.n||'(ไม่มีชื่อ)')}</span>
+   <span class="meta">${esc(o.f)} → ${esc(o.t)} · ลูกค้า ${o.c} · แอดมิน ${o.h} · บอท ${o.b}</span>
+   <span class="fl">${fl.join('')}</span></button>`;}).join('')
+  :'<div class="empty">ไม่พบห้องแชทที่ตรงเงื่อนไข</div>';
+ $('#lncount').textContent=nf(rows.length)+' ห้อง';
+ let pg='';for(let p=0;p<pages;p++){if(pages>9&&Math.abs(p-LN_PAGE)>2&&p>0&&p<pages-1){if(Math.abs(p-LN_PAGE)===3)pg+='<span class="lab"> … </span>';continue;}
+  pg+=`<button class="pg" data-p="${p}" aria-current="${p===LN_PAGE}">${p+1}</button>`;}
+ $('#lnpager').innerHTML=pages>1?pg:'';
+ $('#lnlist').querySelectorAll('.prow').forEach(b=>b.addEventListener('click',()=>{LN_SEL=+b.dataset.i;lnRenderList();lnRenderChat();}));
+ $('#lnpager').querySelectorAll('.pg').forEach(b=>b.addEventListener('click',()=>{LN_PAGE=+b.dataset.p;lnRenderList();}));}
+function lnRenderChat(){
+ const rows=lnFiltered(), o=rows[LN_SEL];
+ if(!o){$('#lnhead').innerHTML='';$('#lnthread').innerHTML='<div class="empty">เลือกห้องแชททางซ้ายเพื่ออ่านบทสนทนา</div>';return;}
+ $('#lnhead').innerHTML=`<h3>${esc(o.n||'(ไม่มีชื่อ)')}<a class="inbtn" href="${lnLink(o.id,o._m)}" target="_blank" rel="noopener">เปิดห้องแชทนี้ ↗</a></h3>
+  <p class="lab">${MLABEL[o._m]||''} · ${esc(o.f)} → ${esc(o.t)} · ${o.tr.length} ข้อความ · ตอบครั้งแรก ${dur(o.r1)} · ตอบกลาง ${dur(o.rm)} · นานสุด ${dur(o.rw)}</p>
+  <p class="lab">ดูแลโดย ${esc(o.ow||'-')}${(o.ad||[]).length?' · ตอบจริง '+o.ad.map(esc).join(', '):''}${(o.tg||[]).length?'<br>แท็ก: '+o.tg.map(esc).join(' · '):''}</p>`;
+ let html='',lastDay='';
+ for(const e of o.tr){
+  const day=e[0].slice(0,5), time=e[0].slice(6), who=e[1];
+  if(day!==lastDay){html+=`<div class="daysep">— ${day} —</div>`;lastDay=day;}
+  const cls=who==='C'?'r0':(who==='B'?'r2':'r1');
+  const tag=who==='C'?'':(who==='B'?'บอท':esc(who));
+  html+=`<div class="msg ${cls}"><div class="bub">${tag?'<b class="tplmark">'+tag+'</b>':''}${esc(lnTxt(e[2],o._m))}</div><span class="ts">${time}</span></div>`;}
+ $('#lnthread').innerHTML=html;$('#lnthread').scrollTop=0;}
+function lnRenderRaw(){
+ const el=$('#raw');
+ const need=lineMonths().filter(k=>!LINEFULL[k]);
+ if(need.length){
+  const mo=M,tot=need.length;let done=0;
+  const stale=()=>CH!=='line'||M!==mo;
+  const show=()=>{if(stale())return;
+   el.innerHTML='<div class="empty">กำลังโหลดข้อมูลแชท… <span class="lab">LINE OA</span>'+
+    (tot>1?'<div class="mt">'+done+' / '+tot+' เดือน — ทุกเดือนรวมกันเป็นข้อมูลก้อนใหญ่ ครั้งแรกอาจใช้เวลาสักครู่</div>':'')+'</div>';};
+  show();
+  (async function(){
+   for(const k of need){
+    const d=await getFile('line-'+k);
+    if(stale())return false;
+    (d.rooms||[]).forEach(function(r){r._m=k;});
+    LINEFULL[k]=d;done++;show();
+   }
+   return true;
+  })().then(function(ok){if(ok&&!stale())lnRenderRaw();
+  }).catch(function(e){if(stale())return;
+   el.innerHTML='<div class="empty">โหลดข้อมูลแชทไม่สำเร็จ — '+esc(String((e&&e.message)||e))+
+    '<div><button class="fixbtn" onclick="location.reload()">ลองใหม่</button></div></div>';});
+  return;}
+ if(!lnRooms().length){el.innerHTML='<div class="empty">ไม่มีข้อมูล LINE ในช่วงที่เลือก</div>';return;}
+ el.innerHTML=lnShell();
+ $('#lnq').addEventListener('input',e=>{LN_TERM=e.target.value;LN_PAGE=0;LN_SEL=0;lnRenderList();lnRenderChat();});
+ $('#lndeep').addEventListener('change',e=>{LN_DEEP=e.target.checked;LN_PAGE=0;LN_SEL=0;lnRenderList();lnRenderChat();});
+ el.querySelectorAll('#lnchips .chip').forEach(c=>c.addEventListener('click',()=>{LN_F=c.dataset.f;LN_PAGE=0;LN_SEL=0;lnRenderRaw();}));
+ const lndl=$('#lndlcsv'); if(lndl)lndl.addEventListener('click',exportLine);
+ lnRenderList();lnRenderChat();}
+function lnBar(lab,v,max,extra){return `<div class="lnbar"><span>${esc(lab)}</span><span class="track"><span class="t" style="width:${max?Math.max(2,Math.round(v*100/max)):0}%"></span></span><span>${nf(v)}${extra||''}</span></div>`;}
+function lnPanels(a){
+ const w=$('#lnwork'), hh=$('#lnhour'), tg=$('#lntag');
+ if(!a){if(w)w.innerHTML='';if(hh)hh.innerHTML='';if(tg)tg.innerHTML='';return;}
+ const adm=a.admins||[], hrs=a.hours||[], tags=a.tags||[];
+ const amax=adm.reduce((m,x)=>Math.max(m,x[1]),0);
+ const hmax=hrs.reduce((m,x)=>Math.max(m,x[1]),0);
+ const tmax=tags.reduce((m,x)=>Math.max(m,x[1]),0);
+ if(w)w.innerHTML=`<p class="note">จำนวนห้องที่แอดมินแต่ละคนเข้าไปตอบใน<b>${esc(moLabel())}</b> (ห้องหนึ่งมีได้หลายคน) — ตัวเลขท้ายแถวคือจำนวนข้อความที่พิมพ์เอง${lnDupNote()}</p>
+  <div class="lnwrap">${adm.map(x=>lnBar(x[0],x[1],amax,' ห้อง · '+nf(x[2])+' ข้อความ')).join('')||'<p class="note">ไม่มีข้อมูล</p>'}</div>`;
+ if(hh)hh.innerHTML=`<p class="note">ช่วงเวลาที่ลูกค้าพิมพ์เข้ามาใน LINE OA (เวลาไทย) — ใช้จัดกะแอดมินได้</p>
+  <div class="lnwrap">${hrs.filter(x=>x[1]>0).map(x=>lnBar(String(x[0]).padStart(2,'0')+':00',x[1],hmax,' ข้อความ')).join('')||'<p class="note">ไม่มีข้อมูล</p>'}</div>`;
+ if(tg)tg.innerHTML=`<p class="note">แท็กที่ทีมติดไว้เองใน LINE OA — ใช้เป็นตัวชี้ความสนใจคอร์สได้เลย ไม่ต้องเดาจากข้อความ${lnDupNote()}</p>
+  <div class="lnwrap">${tags.map(x=>lnBar(x[0],x[1],tmax,' ห้อง')).join('')||'<p class="note">ไม่มีข้อมูล</p>'}</div>`;
+}
+function lnOverview(){
+ const a=chSum('line');
+ if(!a){$('#key').innerHTML='<div class="callout"><h4>ไม่มีข้อมูล LINE ในช่วงที่เลือก</h4><p>ลองเปลี่ยนเดือนด้านบน</p></div>';
+  $('#kpi').innerHTML='';lnPanels(null);return;}
+ const tot=a.threads||0, fb=chSum('fb');
+ const multi=a.n>1;
+ const lc=[];
+ if(a.first_med!=null&&fb&&fb.ftMed!=null){
+  const times=fb.ftMed/Math.max(1,a.first_med);
+  const much=times>=1.5, slower=times<0.67;
+  lc.push([times>=1.2?'ok':(slower?'warn':''), Math.abs(Math.log(times||1)),
+   slower?'LINE ตอบช้ากว่า Facebook':(much?'LINE ตอบเร็วกว่า Facebook '+(Math.round(times*10)/10)+' เท่า':'LINE กับ Facebook ตอบเร็วใกล้เคียงกัน'),
+   `ตอบครั้งแรกค่ากลาง <b>${durR(a.first_med,a.rngFt)}</b> · Facebook ช่วงเดียวกัน <b>${durR(fb.ftMed,fb.rngFt)}</b> · ช้าสุด 10% ของห้อง LINE อยู่ที่ <b>${durR(a.first_p90,a.rngP90)}</b>${multi?' <span class="lab">(ค่ากลางรวมข้ามเดือนไม่ได้ จึงแสดงเป็นช่วงรายเดือน)</span>':''}`]);
+ }else if(a.first_med!=null){
+  lc.push(['',0.2,'ตอบครั้งแรกค่ากลาง '+durR(a.first_med,a.rngFt),`ช้าสุด 10% ของห้องอยู่ที่ <b>${durR(a.first_p90,a.rngP90)}</b> — นับเฉพาะแอดมินตัวจริง ไม่นับบอท`]);
+ }
+ if(tot){
+  const r=a.notyped*100/tot;
+  lc.push([r>=10?'risk':'ok', Math.abs(r-6)/3+(r>=10?2:0),
+   r>=10?`${nf(a.notyped)} ห้อง (${pc(a.notyped,tot)}) ไม่เคยได้คุยกับแอดมินตัวจริง`:'แทบไม่มีห้องที่หลุดมือไปกับบอท',
+   `${nf(a.notyped)} จาก ${nf(tot)} ห้อง — ทั้งห้องมีแต่บอทตอบ${r>=10?' · กดแท็บ <b>ไม่เคยได้คุยกับ Admin</b> ในหน้าข้อมูลดิบเพื่อไล่เก็บ':''}`]);
+ }
+ if(a.unans)lc.push(['risk', a.unans*100/Math.max(1,tot)/2+1,
+   `${nf(a.unans)} ห้องที่ลูกค้าถามค้างไว้แล้วเงียบ`,
+   `${pc(a.unans,tot)} ของห้องทั้งหมด — ข้อความสุดท้ายเป็นของลูกค้าและไม่มีแอดมินตอบต่อ (รวมเคสที่ลูกค้าพิมพ์ปิดท้ายเอง) กดแท็บ <b>ทักมาแล้วหาย</b> ในหน้าข้อมูลดิบเพื่อไล่เก็บ`]);
+ lc.sort(function(x,y){return y[1]-x[1];});
+ const top=lc.slice(0,2).map(function(x){return `<div class="callout ${x[0]}"><h4>${x[2]}</h4><p>${x[3]}</p></div>`;}).join('');
+ $('#key').innerHTML=top+
+  `<div class="callout warn"><h4>อ่านตัวเลข “สมัครแล้ว” ของ LINE อย่างไร</h4>
+   <p>${nf(a.won)} ห้องติดแท็ก <b>Q-สมัครแล้ว</b> แต่แท็กนี้ติดที่ตัวห้อง <b>ไม่ผูกกับเดือน</b> — หลายห้องเป็นนักเรียนเก่าที่สมัครไปตั้งแต่เดือนก่อน ต่างจากฝั่ง Facebook ที่นับเฉพาะดีลที่ปิดได้ภายในเดือนนั้น · อีก <b>${nf(a.notag)} ห้อง</b> ยังไม่ติดแท็กเลย</p></div>`+
+  (multi?`<div class="callout"><h4>โหมดทุกเดือนรวมกัน — อ่านตัวเลขอย่างไร</h4>
+   <p>ยอดด้านล่างคือผลรวมของ <b>${a.n} เดือน</b> (${esc(moLabel())}) โดยนับ<b>แยกตามเดือน</b> ห้องเดียวกันที่คุยหลายเดือนจึงถูกนับซ้ำ — เหมาะกับการดูปริมาณงานรวม ไม่ใช่จำนวนลูกค้าไม่ซ้ำหน้า</p></div>`:'');
+ $('#kpi').innerHTML=`
+  ${K('',multi?'ห้องแชททั้งหมด (รวมทุกเดือน)':'ห้องแชททั้งหมด',nf(tot),'ห้อง',multi?'นับแยกตามเดือน ห้องที่คุยหลายเดือนถูกนับซ้ำ':'มีความเคลื่อนไหวอย่างน้อย 1 ข้อความในเดือนนี้')}
+  ${K('','ข้อความทั้งหมด',nf(a.msgs),'ข้อความ','ลูกค้า '+nf(a.cust)+' · แอดมิน '+nf(a.adm)+' · บอท '+nf(a.bot))}
+  ${K('ok','ตอบครั้งแรก (ค่ากลาง)',durR(a.first_med,a.rngFt),'',multi?'ช่วงต่ำสุด–สูงสุดของค่ากลางรายเดือน':'นับเฉพาะแอดมินตัวจริง ไม่นับบอท')}
+  ${K('ok','ติดแท็กสมัครแล้ว',nf(a.won),'ห้อง','อ่านคำเตือนด้านบนก่อนนำไปเทียบช่องทางอื่น')}
+  ${K('warn','ยังไม่สมัคร',nf(a.open),'ห้อง','กลุ่มที่ยังตามต่อได้')}
+  ${K('risk','ทักมาแล้วหาย',nf(a.unans),'ห้อง',pc(a.unans,tot)+' ของห้องทั้งหมด')}
+  ${K('risk','ไม่เคยได้คุยกับ Admin',nf(a.notyped),'ห้อง','ทั้งห้องมีแต่บอท')}
+  ${K('warn','ยังไม่ติดแท็กสถานะ',nf(a.notag),'ห้อง','ตกสำรวจจากระบบแท็กของทีม')}
+  ${K('','ข้อความต่อห้อง',a.mc+' / '+a.mh+' / '+a.ma,'','ลูกค้า / แอดมิน / บอท')}`;
+ lnPanels(a);}
+
+/* ---------- does answering faster actually close more ---------- */
+function deepChannel(){return CH==='ig'?'ig':'fb';}
+function deepNeed(){const w=deepChannel();
+ if(w==='ig')return IGFULL?[]:['ig-all'];
+ return fbMonths().filter(k=>!FBFULL[k]).map(k=>'fb-'+k);}
+function deepRows(){const w=deepChannel(),o=[];
+ if(w==='ig'){if(!IGFULL)return o;for(const k of igMonths()){const mm=IGFULL.months[k];if(mm)for(const r of mm.leads)o.push(r);}return o;}
+ for(const k of fbMonths()){const d=FBFULL[k];if(d)for(const r of d.chats)o.push(r);}
+ return o;}
+const isLead=r=>['S2','S3','S4','S5'].indexOf(r[1])>=0;
+const FTB=[[0,300,'≤ 5 นาที'],[300,1800,'5–30 นาที'],[1800,7200,'30 นาที – 2 ชม.'],[7200,86400,'2–24 ชม.'],[86400,Infinity,'ช้ากว่า 24 ชม.']];
+function bucketOf(sec){if(sec==null||sec<0)return -1;for(let i=0;i<FTB.length;i++)if(sec>=FTB[i][0]&&sec<FTB[i][1])return i;return FTB.length-1;}
+function q90(arr){if(!arr.length)return null;const a=arr.slice().sort((x,y)=>x-y);return a[Math.min(a.length-1,Math.floor(a.length*0.9))];}
+function renderDeep(){
+ const sec=$('#s-deep'), el=$('#deep'); if(!sec||!el)return;
+ if(CH==='line'){sec.hidden=true;return;}
+ sec.hidden=false;
+ const w=deepChannel(), chn=w==='ig'?'Instagram':'Facebook';
+ const AG=(w==='ig'?AGG.ig:AGG.fb)||{};
+ const ds=$('#deepscope'); if(ds)ds.textContent=chn+' · '+moLabel();
+
+ /* ---- 1. one dot per month: is speed tracking the close rate at all ---- */
+ const keys=(w==='ig'?MKEYS:FBKEYS).filter(k=>{const x=AG[k];return x&&x.ftMed!=null&&x.leads;});
+ let scat='';
+ if(keys.length>=3){
+  const pts=keys.map(k=>{const x=AG[k];return {k:k,x:x.ftMed/60,y:x.closed*100/x.leads,n:x.leads};});
+  const xs=pts.map(o=>o.x), ys=pts.map(o=>o.y);
+  const x0=0, x1=Math.max.apply(null,xs)*1.15||1, y1=Math.max.apply(null,ys)*1.2||1;
+  const W=520,H=196,L=48,R=14,T=16,B=42;
+  const px=v=>L+(v-x0)/(x1-x0)*(W-L-R), py=v=>T+(1-v/y1)*(H-T-B);
+  const byY=pts.slice().sort((m,n)=>n.y-m.y);
+  const named=new Set([pts[0].k,pts[pts.length-1].k,byY[0].k,byY[byY.length-1].k]);
+  const placed=[];
+  const room=function(cx,cy){
+   for(const q of placed)if(Math.abs(q[0]-cx)<44&&Math.abs(q[1]-cy)<16)return false;
+   placed.push([cx,cy]); return true;};
+  const dots=pts.map(function(o){
+   const cx=px(o.x), cy=py(o.y);
+   const lab=(named.has(o.k)&&room(cx,cy))?`<text x="${cx.toFixed(1)}" y="${(cy-12).toFixed(1)}" text-anchor="${cx>W-70?'end':(cx<L+30?'start':'middle')}" style="font-family:'IBM Plex Mono',monospace;font-size:10.5px;fill:var(--ink-2)">${esc(String(MSHORT[o.k]||o.k).split(' ')[0])}</text>`:'';
+   return `<circle cx="${cx.toFixed(1)}" cy="${cy.toFixed(1)}" r="7" fill="var(--card)"><title>${esc(MLABEL[o.k]||o.k)} — ตอบ ${Math.round(o.x*10)/10} นาที · ปิด ${Math.round(o.y*10)/10}% · ลีด ${nf(o.n)}</title></circle>
+   <circle cx="${cx.toFixed(1)}" cy="${cy.toFixed(1)}" r="4.5" fill="${w==='ig'?'var(--ig)':'var(--fb)'}" pointer-events="none"></circle>${lab}`;}).join('');
+  const yt=[0,y1/2,y1].map(v=>`<line x1="${L}" y1="${py(v).toFixed(1)}" x2="${W-R}" y2="${py(v).toFixed(1)}" stroke="var(--line)" stroke-width="1"></line>
+   <text x="${L-7}" y="${(py(v)+3.5).toFixed(1)}" text-anchor="end" style="font-family:'IBM Plex Mono',monospace;font-size:10px;fill:var(--ink-3)">${Math.round(v*10)/10}%</text>`).join('');
+  const xt=[0,x1/2,x1].map(v=>`<text x="${px(v).toFixed(1)}" y="${H-24}" text-anchor="middle" style="font-family:'IBM Plex Mono',monospace;font-size:10px;fill:var(--ink-3)">${Math.round(v)} น.</text>`).join('');
+  scat=`<div class="scat"><p class="ftitle" style="font-size:14px;font-weight:600;margin:0 0 10px">แต่ละจุดคือหนึ่งเดือน — ตอบเร็วขึ้นแล้วปิดได้มากขึ้นจริงไหม</p>
+   <svg viewBox="0 0 ${W} ${H}" style="width:100%;height:auto" role="img" aria-label="กราฟกระจายเวลาตอบครั้งแรกกับอัตราปิดรายเดือน">${yt}${xt}${dots}
+   <text x="${(L+(W-R))/2}" y="${H-6}" text-anchor="middle" style="font-family:'IBM Plex Sans Thai',sans-serif;font-size:11px;fill:var(--ink-3)">ตอบครั้งแรก ค่ากลาง (นาที) →</text></svg>
+   <p class="note" style="margin:8px 0 0">แกนตั้งคืออัตราปิดต่อลีด · ${keys.length} เดือนยังน้อยเกินกว่าจะสรุปเป็นเหตุเป็นผล แต่พอบอกทิศทางได้</p></div>`;
+ }
+
+ /* ---- 2. quality x speed, precomputed per month so nothing has to load ---- */
+ const ks=(w==='ig'?igMonths():fbMonths()).filter(k=>AG[k]);
+ const BND=['hi','mid','lo'];
+ const mt={hi:[[0,0],[0,0],[0,0],[0,0]],mid:[[0,0],[0,0],[0,0],[0,0]],lo:[[0,0],[0,0],[0,0],[0,0]]};
+ let hasM=false, lqsN=0, lqsSum=0, gT=0, gS=0, gL=0;
+ for(const k of ks){const x=AG[k];
+  if(x.matrix){hasM=true;BND.forEach(b=>{for(let i=0;i<4;i++){mt[b][i][0]+=x.matrix[b][i][0];mt[b][i][1]+=x.matrix[b][i][1];}});}
+  if(x.lqsMean!=null&&x.leads){lqsSum+=x.lqsMean*x.leads;lqsN+=x.leads;}
+  if(x.gradeTarget!=null){gT+=x.gradeTarget;gS+=(x.gradeStated||0);gL+=(x.leads||0);}
+ }
+ if(!hasM){legacyDeep(el,scat,chn);return;}
+ const colN=[0,0,0,0], colW=[0,0,0,0];
+ BND.forEach(b=>{for(let i=0;i<4;i++){colN[i]+=mt[b][i][0];colW[i]+=mt[b][i][1];}});
+ const totN=colN.reduce((x,y)=>x+y,0), totW=colW.reduce((x,y)=>x+y,0);
+ const rate=(n,won)=>n?won*100/n:null;
+ const mxr=Math.max.apply(null,[0].concat(colN.map((n,i)=>rate(n,colW[i])||0)));
+ const bars=SPEEDN.map(function(nm,i){
+  const r=rate(colN[i],colW[i]);
+  return `<div class="bk"><span class="lab2">${nm}</span>
+   <span class="tr"><i class="${i===3?'bad':''}" style="width:${mxr?Math.max(2,Math.round((r||0)*100/mxr)):0}%"></i>
+   <span class="vv"><b>${r==null?'—':Math.round(r*10)/10+'%'}</b>
+   <span class="nsm">${colN[i]?'ลีด '+nf(colN[i])+' · ปิด '+nf(colW[i])+(colN[i]<MINN?' · n น้อย':''):'ไม่มีข้อมูล'}</span></span></span></div>`;
+ }).join('');
+ /* highlight only cells with a real sample */
+ let best=0, worst=null;
+ BND.forEach(b=>{for(let i=0;i<4;i++){const c=mt[b][i];if(c[0]>=MINN){const r=rate(c[0],c[1]);
+  best=Math.max(best,r); worst=(worst==null?r:Math.min(worst,r));}}});
+ const overall=rate(totN,totW)||0;
+ /* ถ้าทุกช่องใกล้เคียงกัน การไฮไลต์ช่องหนึ่งคือการชี้นำที่ข้อมูลไม่รองรับ */
+ if(!(best>=overall*1.3&&worst!=null&&best-worst>=Math.max(1,overall*0.35)))best=0;
+ const td=function(c){ if(!c||!c[0])return '<td><span class="p">—</span></td>';
+  const r=rate(c[0],c[1]), on=best&&r>=best*0.75;
+  return `<td class="${on?'on':''}"><span class="p">${Math.round(r*10)/10}%</span><span class="q">n=${nf(c[0])}${c[0]<MINN?' น้อย':''}</span></td>`;};
+ const rowTot=b=>{let n=0,x=0;for(let i=0;i<4;i++){n+=mt[b][i][0];x+=mt[b][i][1];}return [n,x];};
+ const mtx=`<div class="tw" style="padding:14px;margin-top:16px"><table class="mtx">
+  <thead><tr><th class="rh">คุณภาพลีด \\ ความเร็วตอบ</th>${SPEEDN.map(n=>'<th>'+n+'</th>').join('')}<th>รวมทั้งแถว</th></tr></thead><tbody>
+  ${BND.map(b=>`<tr><th class="rh">${BANDN[b]}<br><span class="nsm">${pc(rowTot(b)[0],totN)} ของลีด</span></th>
+    ${[0,1,2,3].map(i=>td(mt[b][i])).join('')}${td(rowTot(b))}</tr>`).join('')}
+  <tr><th class="rh">รวมทั้งคอลัมน์</th>${[0,1,2,3].map(i=>td([colN[i],colW[i]])).join('')}${td([totN,totW])}</tr>
+  </tbody></table>
+  <p class="note" style="margin:10px 0 0"><b>อ่านตามแถว</b> — ถ้าแถว “คุณภาพสูง” ไล่ลงจากซ้ายไปขวา แปลว่าความเร็วตอบมีผลกับลีดที่ดีจริง <b>→ แก้ที่การตอบแชท</b> ·
+  <b>อ่านตามขนาด n</b> — ถ้าแถวคุณภาพต่ำกินสัดส่วนมากที่สุด แปลว่าโฆษณาส่งคนผิดกลุ่มเข้ามาเยอะ <b>→ แก้ที่กลุ่มเป้าหมายของโฆษณา</b><br>
+  คะแนนคุณภาพลีดคิดจาก<b>คำของลูกค้าเท่านั้น</b> (ระดับชั้นตรงเป้า · ระบุคอร์ส/สนามสอบเจาะจง · ถามคำถามจริง · ข้อความแรกยาวพอ · ไม่ได้มาขอของแถม)
+  ไม่มีสิ่งที่ทีมเราควบคุมได้อยู่ในคะแนน มิฉะนั้นตารางนี้จะวนกลับมาวัดตัวเองและแยกสองสาเหตุไม่ออก</p></div>`;
+
+ /* ---- 3. cohorts: fixes the month-boundary distortion ---- */
+ const COH=(w==='ig'?AGG.igCohort:AGG.fbCohort)||{};
+ const ck=Object.keys(COH).sort();
+ let coh='';
+ if(ck.length>=2){
+  const later=ck.reduce((t,k)=>t+(COH[k].later||0),0), wonAll=ck.reduce((t,k)=>t+(COH[k].won||0),0);
+  coh=`<div class="tw" style="margin-top:16px"><table>
+   <thead><tr><th>เดือนที่ลูกค้าทักครั้งแรก</th><th class="n">ลีดใหม่</th><th class="n">ปิดได้ทั้งหมด</th>
+   <th class="n">ภายใน 7 วัน</th><th class="n">ภายใน 30 วัน</th><th class="n">ปิดในเดือนถัดไป</th></tr></thead><tbody>
+   ${ck.map(function(k){const c=COH[k];
+     return `<tr><td>${esc(MLABEL[k]||k)}</td><td class="n">${nf(c.leads)}</td>
+     <td class="n">${nf(c.won)} <span class="nsm">${c.leads?Math.round(c.won*1000/c.leads)/10+'%':''}</span></td>
+     <td class="n">${nf(c.w7)}</td><td class="n">${nf(c.w30)}</td><td class="n">${nf(c.later||0)}</td></tr>`;}).join('')}
+   </tbody></table>
+   <p class="note" style="margin:10px 0 0">ยึด<b>เดือนที่ลูกค้าทักครั้งแรก</b>เป็นแกน ไม่ใช่เดือนที่ปิดได้ —
+   ${wonAll?`ในช่วงนี้มี <b>${nf(later)} จาก ${nf(wonAll)} ดีล (${pc(later,wonAll)})</b> ที่ปิดได้ในเดือนหลังจากที่ลูกค้าทักเข้ามา`:''}
+   ซึ่งแปลว่า<b>อัตราปิดรายเดือนแบบเดิมต่ำกว่าความจริงอย่างเป็นระบบ</b> และเดือนล่าสุดจะดูแย่ที่สุดเสมอเพราะดีลยังปิดไม่ครบ</p></div>`;
+ }
+
+ const NR=(w==='ig'?AGG.igNewRet:AGG.fbNewRet)||{};
+ let nrTxt='';
+ if(ks.length){let nn=0,rr=0;for(const k of ks){const o=NR[k];if(o){nn+=o.new;rr+=o.returning;}}
+  if(nn+rr)nrTxt=' · ลูกค้าใหม่ '+nf(nn)+' / กลับมาคุยอีก '+nf(rr)+' ('+pc(rr,nn+rr)+')';}
+
+ el.innerHTML=scat+`<div style="margin-top:16px">
+  <p class="ftitle" style="font-size:14px;font-weight:600;margin:0 0 10px">อัตราปิดต่อลีด แยกตามเวลาที่แอดมินพิมพ์ตอบครั้งแรก</p>
+  ${bars}
+  <p class="note" style="margin-top:10px">คิดจากลีด ${nf(totN)} รายการใน${esc(moLabel())} (${chn}) · ยังไม่หักเวลานอกทำการ
+  ${lqsN?' · คะแนนคุณภาพลีดเฉลี่ย <b>'+(Math.round(lqsSum/lqsN*10)/10)+'</b> / 100':''}
+  ${gL?' · ระดับชั้นตรงกลุ่มเป้าหมาย <b>'+pc(gT,gL)+'</b> ของลีด (บอกระดับชั้น '+pc(gS,gL)+')':''}${nrTxt}</p>
+ </div>${mtx}${coh}`;
+}
+/* ข้อมูลรุ่นเก่าที่ยังไม่มีเมทริกซ์ใน agg — คำนวณจากแถวแชทแบบโหลดตามต้องการ */
+function legacyDeep(el,scat,chn){
+ const need=deepNeed();
+ if(need.length){
+  el.innerHTML=scat+`<div class="empty" style="margin-top:14px">อัตราปิดแยกตามความเร็วในการตอบ ต้องอ่านข้อมูลรายแชท (${need.length} ไฟล์)
+   <div><button class="fixbtn" id="deepgo">คำนวณเลย</button></div></div>`;
+  const b=$('#deepgo'); if(b)b.addEventListener('click',function(){
+   const ch=CH,mo=M; b.disabled=true; b.textContent='กำลังโหลด…';
+   (async function(){for(const nm of need){const d=await getFile(nm);
+     if(CH!==ch||M!==mo)return; if(nm==='ig-all')IGFULL=d;else FBFULL[nm.slice(3)]=d;}
+    if(CH===ch&&M===mo)renderDeep();})().catch(function(){b.disabled=false;b.textContent='ลองใหม่';});});
+  return;
+ }
+ const rows=deepRows().filter(isLead);
+ if(!rows.length){el.innerHTML=scat||'<div class="empty">ไม่มีข้อมูลในช่วงที่เลือก</div>';return;}
+ const nb=FTB.length, cnt=new Array(nb+1).fill(0), won=new Array(nb+1).fill(0), waits=[];
+ for(const r of rows){const bk=bucketOf(r[10]); const i=bk<0?nb:bk; cnt[i]++; if(r[17])won[i]++;
+  if(r[11]!=null&&r[11]>=0)waits.push(r[11]);}
+ const rateOf=i=>cnt[i]?won[i]*100/cnt[i]:null;
+ const mxr=Math.max.apply(null,[0].concat(FTB.map((_,i)=>rateOf(i)||0)));
+ const bars=FTB.map(function(f,i){const r=rateOf(i);
+  return `<div class="bk"><span class="lab2">${f[2]}</span><span class="tr"><i style="width:${mxr?Math.max(2,Math.round((r||0)*100/mxr)):0}%"></i>
+   <span class="vv"><b>${r==null?'—':Math.round(r*10)/10+'%'}</b><span class="nsm">${cnt[i]?'ลีด '+nf(cnt[i])+' · ปิด '+nf(won[i]):'ไม่มีข้อมูล'}</span></span></span></div>`;}).join('');
+ const p90w=q90(waits);
+ el.innerHTML=scat+`<div style="margin-top:16px"><p class="ftitle" style="font-size:14px;font-weight:600;margin:0 0 10px">อัตราปิดต่อลีด แยกตามเวลาที่แอดมินพิมพ์ตอบครั้งแรก</p>
+  ${bars}<p class="note" style="margin-top:10px">คิดจากลีด ${nf(rows.length)} รายการ (${chn})
+  ${p90w!=null?'· ช่องว่างที่นานที่สุดในแต่ละแชท p90 = <b>'+dur(p90w)+'</b>':''}</p></div>`;
+}
+
+/* ---------- orchestration ---------- */
+function renderOverview(){
+ if(CH==='line'){lnOverview();renderTrend();return;}
+ renderKey();renderKPI();renderTrend();renderCmp();renderFunnel();renderDeep();renderWhy();renderHours();
+ lnPanels(CH==='all'?chSum('line'):null);
+}
+function applyView(){
+ const ov=VIEW==='ov', ln=CH==='line', hasP=pool().length>0;
+ const lnOn=ov&&(ln||(CH==='all'&&lineA().length>0));
+ ['s-key','s-kpi'].forEach(id=>{const e=document.getElementById(id);if(e)e.hidden=!ov;});
+ $('#s-cmp').hidden=!ov||ln;
+ ['s-fun','s-why','s-day','s-deep'].forEach(id=>{const e=document.getElementById(id);if(e)e.hidden=!ov||ln||!hasP;});
+ const st=document.getElementById('s-trend');if(st)st.hidden=!ov;
+ ['s-lnwork','s-lnhour','s-lntag'].forEach(id=>{const e=document.getElementById(id);if(e)e.hidden=!lnOn;});
+ $('#s-raw').hidden=ov;
+ if(ov){renderOverview();}else{if(CH==='line'){lnRenderRaw();}else{renderRaw();}}
+}
+function refresh(){buildMonths();setNow();applyView();}
+$('#chseg').querySelectorAll('button').forEach(b=>b.addEventListener('click',()=>{
+ CH=b.dataset.ch;PAGE=0;SEL=0;TERM='';FILTER='all';LN_PAGE=0;LN_SEL=0;LN_TERM='';LN_F='all';
+ $('#chseg').querySelectorAll('button').forEach(x=>x.setAttribute('aria-pressed',String(x.dataset.ch===CH)));
+ PAGE=0;SEL=0;refresh();}));
+$('#vseg').querySelectorAll('button').forEach(b=>b.addEventListener('click',()=>{
+ VIEW=b.dataset.v;
+ $('#vseg').querySelectorAll('button').forEach(x=>x.setAttribute('aria-pressed',String(x.dataset.v===VIEW)));
+ refresh();}));
+$('#msel').addEventListener('change',e=>{M=e.target.value;PAGE=0;SEL=0;refresh();});
+document.addEventListener('click',function(e){var a=e.target&&e.target.closest?e.target.closest('a[data-copy]'):null;if(!a)return;var v=a.getAttribute('data-copy');if(!v)return;if(copyText(v)){toast('คัดลอก “'+v+'” แล้ว — วางในช่องค้นหาของ Inbox ได้เลย');}else{toast('คัดลอกอัตโนมัติไม่สำเร็จ — คัดลอกชื่อจากหัวแชทเอง');}},true);
+(function(){var st=document.createElement('style');st.textContent='.inbtn{font-size:12.5px;font-weight:500;text-decoration:none;border:1px solid var(--line-2);border-radius:999px;padding:3px 10px;margin-left:8px;color:var(--fb);background:var(--card);white-space:nowrap;display:inline-block;vertical-align:middle}.inbtn:hover{background:var(--fb-soft)}.inbtn.ghost{color:var(--ig)}.inbtn.ghost:hover{background:var(--ig-soft)}';document.head.appendChild(st);})();
+(function(){const e=$('#ftbuilt'); if(!e)return;
+ const b=(typeof MAN!=='undefined'&&MAN)?MAN.built:null; if(!b){e.textContent='';return;}
+ let t=b; try{const d=new Date(b);
+  if(!isNaN(d))t=d.toLocaleString('th-TH',{timeZone:'Asia/Bangkok',dateStyle:'long',timeStyle:'short'})+' น.';}catch(x){}
+ e.innerHTML='<b>ข้อมูลชุดนี้สร้างเมื่อ '+esc(t)+'</b> — ตัวเลขทุกตัวในหน้านี้หยุดอยู่ที่เวลานั้น ไม่ได้อัปเดตสด';})();
+refresh();
+}
+
+const B64=s=>Uint8Array.from(atob(s),c=>c.charCodeAt(0));
+const G=i=>document.getElementById(i);
+let KEY=null,MAN=null,AGG=null,IGFULL=null;const FBFULL={},CACHE={};
+
+async function gunzip(buf){
+ if(typeof DecompressionStream==='undefined')throw new Error('nogzip');
+ const st=new Blob([buf]).stream().pipeThrough(new DecompressionStream('gzip'));
+ return new Uint8Array(await new Response(st).arrayBuffer());
+}
+async function openBlob(o){
+ const pt=await crypto.subtle.decrypt({name:'AES-GCM',iv:B64(o.i)},KEY,B64(o.c));
+ const raw=o.z==='gzip'?await gunzip(pt):new Uint8Array(pt);
+ return JSON.parse(new TextDecoder().decode(raw));
+}
+async function getFile(name){
+ if(CACHE[name])return CACHE[name];
+ const url=MAN.files[name];
+ if(!url)throw new Error('ไม่มีไฟล์ข้อมูล '+name);
+ const r=await fetch(url,{cache:'no-store'});
+ if(!r.ok)throw new Error('โหลดไฟล์ไม่สำเร็จ ('+r.status+')');
+ const o=await openBlob(await r.json());
+ CACHE[name]=o;return o;
+}
+let MANP=fetch('./manifest.json',{cache:'no-store'}).then(r=>{if(!r.ok)throw new Error('nomanifest');return r.json();}).catch(e=>({__err:String(e)}));
+
+G('gform').addEventListener('submit',async ev=>{
+ ev.preventDefault();
+ const err=G('gerr');err.classList.remove('on');
+ const btn=G('gb');btn.disabled=true;btn.textContent='กำลังเปิด…';
+ try{
+  MAN=await MANP;
+  if(!MAN||MAN.__err||!MAN.kdf)throw new Error('nomanifest');
+  const secret=G('gu').value.trim()+':'+G('gp').value;
+  const base=await crypto.subtle.importKey('raw',new TextEncoder().encode(secret),'PBKDF2',false,['deriveKey']);
+  KEY=await crypto.subtle.deriveKey({name:'PBKDF2',salt:B64(MAN.kdf.s),iterations:MAN.kdf.n,hash:'SHA-256'},
+       base,{name:'AES-GCM',length:256},false,['decrypt']);
+  await openBlob(MAN.check);
+  AGG=await getFile('agg');
+  G('gate').remove();
+  G('app').hidden=false;
+  bootApp();
+ }catch(x){
+  KEY=null;btn.disabled=false;btn.textContent='เข้าสู่ระบบ';
+  const m=x&&x.message;
+  if(m==='nomanifest'){MANP=fetch('./manifest.json',{cache:'no-store'}).then(r=>r.json()).catch(e=>({__err:String(e)}));
+   err.textContent='โหลดไฟล์ข้อมูลไม่สำเร็จ — ตรวจว่า manifest.json อยู่ในโฟลเดอร์เดียวกับหน้านี้ แล้วลองใหม่';}
+  else if(m==='nogzip')err.textContent='เบราว์เซอร์นี้เก่าเกินไป กรุณาเปิดด้วย Chrome, Edge หรือ Safari รุ่นใหม่';
+  else err.textContent='ชื่อผู้ใช้หรือรหัสผ่านไม่ถูกต้อง';
+  err.classList.add('on');G('gp').select();
+ }
+});
+G('gu').focus();
+</script>
+</body>
+</html>
