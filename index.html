@@ -335,8 +335,6 @@ footer{border-top:1px solid var(--line);padding:20px 0 42px;color:var(--ink-3);f
  <section id="s-v4m"><div class="shead"><h2>เทียบเดือนต่อเดือน</h2><span class="lab" id="v4mscope"></span></div><div id="v4m"></div></section>
  <section id="s-v4f"><div class="shead"><h2>กรวยลีด 4 ขั้น</h2><span class="lab" id="v4fscope"></span></div><div id="v4f"></div></section>
  <section id="s-v4s"><div class="shead"><h2>ความเร็วตอบแชท</h2><span class="lab" id="v4sscope"></span></div><div id="v4s"></div></section>
- <section id="s-v4i"><div class="shead"><h2>ลีดชัดเจนแค่ไหน กับผลที่ได้</h2><span class="lab" id="v4iscope"></span></div><div id="v4i"></div></section>
- <section id="s-v4c"><div class="shead"><h2>เทียบช่องทาง</h2><span class="lab" id="v4cscope"></span></div><div id="v4c"></div></section>
  <section id="s-v4a"><div class="shead"><h2>ผลงานรายแอดมิน · LINE OA</h2><span class="lab" id="v4ascope"></span></div><div id="v4a"></div></section>
  <section id="s-raw"><div class="shead"><h2>ข้อมูลดิบ</h2><span class="lab" id="rawscope"></span></div><div id="raw"></div></section>
 </div>
@@ -1784,10 +1782,10 @@ function renderV4Speed(){
 }
 
 /* ---------- orchestration ---------- */
-function renderOverview(){renderV4Cards();renderV4MoM();renderV4Funnel();renderV4Speed();renderV4Intent();renderV4Cmp();renderV4Adm();}
+function renderOverview(){renderV4Cards();renderV4MoM();renderV4Funnel();renderV4Speed();renderV4Adm();}
 function applyView(){
  const ov=VIEW==='ov';
- ['s-v4k','s-v4m','s-v4f','s-v4s','s-v4i','s-v4c','s-v4a'].forEach(id=>{const e=document.getElementById(id);if(e)e.hidden=!ov;});
+ ['s-v4k','s-v4m','s-v4f','s-v4s','s-v4a'].forEach(id=>{const e=document.getElementById(id);if(e)e.hidden=!ov;});
  $('#s-raw').hidden=ov;
  if(ov)renderOverview();else if(CH==='line')lnRenderRaw();else renderRaw();
 }
