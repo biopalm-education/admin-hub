@@ -166,7 +166,7 @@ section{margin:0 0 40px}
 .callout.info{border-left-color:var(--fb);background:var(--fb-soft)}
 
 /* kpi */
-.kpis{display:grid;grid-template-columns:repeat(auto-fill,minmax(184px,1fr));gap:11px}
+.kpis{display:grid;grid-template-columns:repeat(auto-fill,minmax(184px,1fr));gap:11px}.k.wide{grid-column:span 2}.ksplit{display:grid;grid-template-columns:1fr 1fr;gap:10px;margin-top:10px;padding-top:10px;border-top:1px solid var(--line)}.ksplit .v2{font-family:'IBM Plex Mono',monospace;font-size:19px;font-weight:600}.ksplit .v2 small{font-size:12px;color:var(--ink-3);font-weight:500}@media(max-width:560px){.k.wide{grid-column:auto}.ksplit{grid-template-columns:1fr}}
 .k{background:var(--card);border:1px solid var(--line);border-radius:11px;padding:13px 15px;box-shadow:var(--shadow)}
 .k .lab{display:block;margin-bottom:5px}
 .k .v{font-family:"IBM Plex Mono",monospace;font-size:26px;font-weight:600;line-height:1.15;font-variant-numeric:tabular-nums}
@@ -331,9 +331,9 @@ footer{border-top:1px solid var(--line);padding:20px 0 42px;color:var(--ink-3);f
  <div class="now" id="now"></div>
 </div></div>
 <div class="wrap">
- <section id="s-v4k"><div class="shead"><h2>ตัวเลขหลัก</h2><span class="lab" id="v4kscope"></span></div><div class="kpis" id="v4k"></div><p class="note" id="v4knote" style="margin-top:10px"></p></section>
+ <section id="s-v4k"><div class="shead"><h2>Metric</h2><span class="lab" id="v4kscope"></span></div><div class="kpis" id="v4k"></div><p class="note" id="v4knote" style="margin-top:10px"></p></section>
  <section id="s-v4m"><div class="shead"><h2>เทียบเดือนต่อเดือน</h2><span class="lab" id="v4mscope"></span></div><div id="v4m"></div></section>
- <section id="s-v4f"><div class="shead"><h2>กรวยลีด 4 ขั้น</h2><span class="lab" id="v4fscope"></span></div><div id="v4f"></div></section>
+ <section id="s-v4f"><div class="shead"><h2>แยกแชททั้งหมด</h2><span class="lab" id="v4fscope"></span></div><div id="v4f"></div></section>
  <section id="s-v4s"><div class="shead"><h2>ความเร็วตอบแชท</h2><span class="lab" id="v4sscope"></span></div><div id="v4s"></div></section>
  <section id="s-v4a"><div class="shead"><h2>ผลงานรายแอดมิน · LINE OA</h2><span class="lab" id="v4ascope"></span></div><div id="v4a"></div></section>
  <section id="s-raw"><div class="shead"><h2>ข้อมูลดิบ</h2><span class="lab" id="rawscope"></span></div><div id="raw"></div></section>
@@ -341,7 +341,7 @@ footer{border-top:1px solid var(--line);padding:20px 0 42px;color:var(--ink-3);f
 <footer><div class="wrap">
  <p id="ftbuilt"></p>
  <p id="ftscope">วิเคราะห์จากแชท Instagram @biopalmmm · Facebook เพจ BioPalm · LINE OA ของ BioPalm</p>
- <p><b>แชทสนใจคอร์ส</b> = ลูกค้าส่งข้อความมาในเดือนนั้น (ไม่นับมารับของแถม · แชทที่ไม่มีข้อความลูกค้า · ห้อง LINE ของนักเรียนเดิมที่ถามเรื่องลิงก์/เข้าเรียน) แบ่งเป็น 4 ขั้นไม่ซ้อนกัน: <b>ทักมาแล้วหาย</b> (กดปุ่ม/พิมพ์สั้นแล้วเงียบ) · <b>คุยแล้ว ยังไม่ได้ราคา</b> · <b>ส่งคอร์ส/ราคาแล้ว</b> (แอดมินส่งราคา ยอดชำระ หรือเลขบัญชี) · <b>ปิดการขาย</b> (ข้อความ “สถานะ: ตรวจสอบสลิปสำเร็จ” ที่ชื่อผู้รับ บจก. ไบโอปาล์ม เอ็ดดูเคชั่น เท่านั้น นับครั้งเดียวต่อเลขอ้างอิง) · <b>ยอดโอน</b> = ผลรวม “ยอดเงิน” ในสลิปที่ตรวจผ่าน</p>
+ <p><b>แชททั้งหมด</b> = สนใจคอร์สเรียน + เรื่องอื่น ๆ + แอดมินทักไปแต่ลูกค้าไม่ตอบ · <b>สนใจคอร์สเรียน</b> แบ่งเป็น <b>สนใจจริง</b> (คุยจนแอดมินส่งคอร์ส/ราคาให้) และ <b>ทักมาแล้วหาย</b> (กดปุ่ม/พิมพ์สั้นแล้วเงียบ หรือคุยแต่ไม่ถึงราคา) · <b>แอดมินไม่ได้ตอบเอง</b> = ไม่มีแอดมินพิมพ์ตอบเลย รวมแชทที่มีแต่แชทบอท · <b>ปิดการขาย</b> = มีข้อความ “ชื่อผู้รับ: บจก. ไบโอปาล์ม เอ็ดดูเคชั่น” หรือ “สถานะ: ตรวจสอบสลิปสำเร็จ” ทุกช่องทาง นับครั้งเดียวต่อเลขอ้างอิง · <b>อัตราปิด</b> = ปิดการขาย ÷ สนใจคอร์สเรียน</p>
  <p>แต่ละช่องทางให้ชื่อลูกค้าคนละแบบ จึงเชื่อมตัวตนข้ามช่องทางไม่ได้ คนเดียวกันที่ทักหลายทางถูกนับแยก · Instagram เก็บเฉพาะแชทที่ถามเรื่องคอร์ส · ห้อง LINE ที่คุยหลายเดือนนับแยกตามเดือน</p>
 </div></footer>
 </div>
@@ -385,12 +385,13 @@ const SPEEDN=['น้อยกว่า 15 นาที','15–30 นาที',
 const SHIFTN=['09.00–21.00','21.00–00.00','00.00–09.00'];const SHIFTD=['เวลาทำงานหลัก','ช่วงค่ำ','กลางคืน–เช้า'];
 const BANDN={hi:'คุณภาพสูง 70–100',mid:'คุณภาพกลาง 40–69',lo:'คุณภาพต่ำ 0–39'};
 const isV2=()=>!!(AGG&&AGG.v2);
-const FORDER=['all','V','T','Q','W'];
-const STGN={V:'ทักมาแล้วหาย',T:'คุยแล้ว ยังไม่ได้ราคา',Q:'ส่งราคาแล้ว ยังไม่ปิด',W:'ปิดการขาย',X:'ไม่มีข้อความลูกค้า',G:'มารับของแถม',S:'นักเรียนเดิม (ไม่นับ)'};
-const STGD={all:'ทุกแชทในช่วงที่เลือก รวมแชทที่ไม่นับในกรวย (ไม่มีข้อความลูกค้า / มารับของแถม)',V:'ลูกค้ามีแค่กดปุ่ม รูป สติกเกอร์ หรือพิมพ์สั้น “สนใจค่ะ / สวัสดี / ขอบคุณ” แล้วไม่พิมพ์ต่อ',T:'ลูกค้าพิมพ์คุยจริง แต่แอดมินยังไม่ได้ส่งราคา — เช็กว่าทำไมไปไม่ถึงราคา',Q:'แอดมินส่งราคา ยอดชำระ หรือเลขบัญชีแล้ว แต่ยังไม่มีสลิปตรวจผ่าน — <b>รายชื่อที่ควรตามต่อ</b>',W:'มีข้อความ “สถานะ: ตรวจสอบสลิปสำเร็จ” ที่ชื่อผู้รับ บจก. ไบโอปาล์ม เอ็ดดูเคชั่น'};
+const FORDER=['all','QW','VT','OTH','NA','W'];
+const STGN={V:'ทักมาแล้วหาย · กดปุ่ม/พิมพ์สั้น',T:'ทักมาแล้วหาย · คุยแต่ไม่ถึงราคา',Q:'สนใจจริง · ส่งราคาแล้ว',W:'ปิดการขาย',X:'ลูกค้าไม่ได้ส่งข้อความ',G:'เรื่องอื่น · ของแถม',S:'เรื่องอื่น · นักเรียนเดิม',O:'เรื่องอื่น ๆ'};
+function stHit(f,sg,fr){if(f==='QW')return sg==='Q'||sg==='W';if(f==='VT')return sg==='V'||sg==='T';if(f==='OTH')return sg==='O'||sg==='S'||sg==='G';if(f==='NA')return sg!=='X'&&(fr==null||fr<0);return sg===f;}
+const STGD={all:'ทุกแชทในช่วงที่เลือก',QW:'<b>สนใจจริง</b> — คุยจนแอดมินส่งคอร์ส/ราคาให้แล้ว (รวมที่ปิดการขายได้)',VT:'<b>ทักมาแล้วหาย</b> — กดปุ่มหรือพิมพ์สั้นแล้วเงียบ หรือคุยแต่ยังไม่ถึงขั้นได้ราคา',OTH:'<b>เรื่องอื่น ๆ</b> — ลูกค้าคุยเรื่องที่ไม่ใช่คอร์สเรียน เช่น นักเรียนเดิมถามลิงก์/เข้าเรียน ขอของแถม',NA:'<b>แอดมินไม่ได้ตอบเอง</b> — ไม่มีแอดมินพิมพ์ตอบเลย รวมแชทที่มีแต่แชทบอท/ข้อความอัตโนมัติ',W:'<b>ปิดการขาย</b> — มีข้อความ “ชื่อผู้รับ: บจก. ไบโอปาล์ม เอ็ดดูเคชั่น” หรือ “สถานะ: ตรวจสอบสลิปสำเร็จ”'};
 const TIERN={L0:'ไม่มีข้อความลูกค้า',G:'มารับของแถม',L1:'กดปุ่มแล้วหาย',L2:'พิมพ์สั้นแล้วหาย',L3:'ตอบคัดกรอง',L4:'ถาม/คุยจริง',L5:'พร้อมซื้อ'};
 const WONK={slip:'ตรวจสอบสลิปสำเร็จ',acc:'แอดมินส่งเลขบัญชี BioPalm',label:'ป้าย Meta “สร้างคอนเวอร์ชั่นแล้ว”'};
-const FNAME={all:'ทั้งหมด',V:'ทักมาแล้วหาย',T:'คุยแล้ว ยังไม่ได้ราคา',Q:'ส่งราคาแล้ว ยังไม่ปิด',W:'ปิดการขาย'};
+const FNAME={all:'ทั้งหมด',QW:'สนใจจริง',VT:'ทักมาแล้วหาย',OTH:'เรื่องอื่น ๆ',NA:'แอดมินไม่ได้ตอบเอง',W:'ปิดการขาย'};
 const FDESC={
  all:'ทุกแชทในเดือนที่เลือก ไม่กรองอะไรเลย',
  t1:'<b>L1 · ไม่นับเป็นลีด</b> — ข้อความลูกค้าทั้งหมดมาจาก<b>ปุ่ม</b> (ปุ่มโฆษณา / ปุ่มคำถามของเพจ / ปุ่มเมนูบอท) ไม่เคยพิมพ์เองสักข้อความ เช่น “สนใจลงเรียน ม.ต้น” แล้วเงียบ',
@@ -1103,7 +1104,7 @@ const norm=s=>String(s==null?'':s).toLowerCase().replace(/^[@\s]+/,'').replace(/
 const hitName=(r,t)=>norm(r[0]).includes(t);
 const hitBody=(r,t,m)=>(r[18]||[]).some(e=>String(txt(e[2],m)).toLowerCase().includes(t));
 const hitTerm=(r,t,m)=>!t||hitName(r,t)||(DEEP&&hitBody(r,t,m));
-function hitChip(r,f){if(f.slice(0,3)==='mx:'){const q=f.split(':');return mxHit(q[1],q[2],r[38],r[37],r[40]);}if(f==='V'||f==='T'||f==='Q'||f==='W')return r[37]===f;if(f==='leadsonly')return isRealLead(r);if(f==='t1')return r[34]==='L1';if(f==='t2')return r[34]==='L2';if(f==='t3')return r[34]==='L3';if(f==='t4')return r[34]==='L4';if(f==='t5')return r[34]==='L5';if(f==='hot')return r[34]==='L5'&&!r[17];if(f==='nohuman')return r[10]<0;if(f==='risk')return r[12]===1;
+function hitChip(r,f){if(f.slice(0,3)==='mx:'){const q=f.split(':');return mxHit(q[1],q[2],r[38],r[37],r[40]);}if(['QW','VT','OTH','NA','W'].includes(f))return stHit(f,r[37],r[40]);if(f==='leadsonly')return isRealLead(r);if(f==='t1')return r[34]==='L1';if(f==='t2')return r[34]==='L2';if(f==='t3')return r[34]==='L3';if(f==='t4')return r[34]==='L4';if(f==='t5')return r[34]==='L5';if(f==='hot')return r[34]==='L5'&&!r[17];if(f==='nohuman')return r[10]<0;if(f==='risk')return r[12]===1;
  if(f==='price')return r[15]===1;if(f==='dup')return r[14]>=2;if(f==='won')return r[17]===1;return true;}
 function filtered(){const t=norm(TERM);return leads().filter(o=>hitTerm(o.r,t,o.m)&&hitChip(o.r,FILTER));}
 function everywhere(t){let n=0;
@@ -1145,7 +1146,7 @@ function renderList(){
   if(r[10]<0)fl.push('<span class="badge risk">ไม่เคยได้คุยกับ Admin</span>');
   if(r[12])fl.push('<span class="badge risk">ลูกค้าพิมพ์ค้าง ยังไม่มีคนตอบ</span>');
   if(r[14]>=2)fl.push('<span class="badge risk">ถามซ้ำ '+r[14]+'</span>');
-  if(STGN[r[37]])fl.push('<span class="badge'+(r[37]==='W'?' ok':'')+'">'+STGN[r[37]]+(r[39]?' · ฿'+nf(r[39]):'')+'</span>');if(['V','T','Q','W'].includes(r[37]))fl.push('<span class="badge">แอดมินพิมพ์ตอบครั้งแรก '+(r[40]==null||r[40]<0?'ไม่มี':minTxt(r[40]))+'</span>');
+  if(STGN[r[37]])fl.push('<span class="badge'+(r[37]==='W'?' ok':'')+'">'+STGN[r[37]]+(r[39]?' · ฿'+nf(r[39]):'')+'</span>');if(r[37]!=='X')fl.push('<span class="badge">แอดมินพิมพ์ตอบครั้งแรก '+(r[40]==null||r[40]<0?'ไม่มี':minTxt(r[40]))+'</span>');
   if(CH==='fb'&&r[20])fl.push('<span class="badge">จากโฆษณา</span>');
   if(CH==='fb'&&FBU[String(r[19])])fl.push('<span class="badge ok">🔗 ลิงก์ตรง</span>');
   return `<button class="prow" data-i="${gi}" aria-current="${gi===SEL}">
@@ -1178,7 +1179,7 @@ function renderChat(){
  if(r[10]<0)fl.push('<span class="badge risk">ไม่เคยได้คุยกับ Admin</span>');
  if(r[12])fl.push('<span class="badge risk">ลูกค้าพิมพ์ค้าง ยังไม่มีคนตอบ</span>');
  if(r[14]>=2)fl.push('<span class="badge risk">ถูกถามระดับชั้นซ้ำ '+r[14]+' ครั้ง</span>');
- if(STGN[r[37]])fl.push('<span class="badge'+(r[37]==='W'?' ok':'')+'">'+STGN[r[37]]+(r[39]?' · ฿'+nf(r[39]):'')+'</span>');if(['V','T','Q','W'].includes(r[37]))fl.push('<span class="badge">แอดมินพิมพ์ตอบครั้งแรก '+(r[40]==null||r[40]<0?'ไม่มี':minTxt(r[40]))+'</span>');
+ if(STGN[r[37]])fl.push('<span class="badge'+(r[37]==='W'?' ok':'')+'">'+STGN[r[37]]+(r[39]?' · ฿'+nf(r[39]):'')+'</span>');if(r[37]!=='X')fl.push('<span class="badge">แอดมินพิมพ์ตอบครั้งแรก '+(r[40]==null||r[40]<0?'ไม่มี':minTxt(r[40]))+'</span>');
  $('#chead').innerHTML=`<div class="who">${CH==='fb'?'':'@'}${esc(r[0]||'(ไม่มีชื่อผู้ใช้)')} ${inboxBtn(r)}${CH==='fb'?'':' <a class="inbtn ghost" href="https://instagram.com/'+encodeURIComponent(r[0])+'" target="_blank" rel="noopener">โปรไฟล์ ↗</a>'}</div>
   <div class="mt">${MLABEL[o.m]} · ทัก ${r[3]} เวลา ${String(r[4]).padStart(2,'0')}:00 (${DOWN[r[5]]}) · ลูกค้า ${r[6]} / แอดมินพิมพ์เอง ${r[7]} / สำเร็จรูป ${r[8]} · สลับถาม-ตอบ ${r[9]} ครั้ง</div>
   <div class="mt">แอดมินพิมพ์ตอบครั้งแรก <b>${dur(r[10])}</b> · รอนานสุดในแชทนี้ <b>${dur(r[11])}</b> · ${WHO[r[13]]||r[13]} · สาเหตุ: ${rz}</div>
@@ -1243,9 +1244,9 @@ function renderRaw(){
 
 
 /* ---------- LINE OA ---------- */
-const LN_FNAME={all:'ทั้งหมด',V:'ทักมาแล้วหาย',T:'คุยแล้ว ยังไม่ได้ราคา',Q:'ส่งราคาแล้ว ยังไม่ปิด',W:'ปิดการขาย'};
-const LN_FORDER=['all','V','T','Q','W'];
-const LN_FDESC=Object.assign({},STGD,{all:'ทุกห้องแชทที่มีความเคลื่อนไหวในช่วงที่เลือก รวมห้องที่ไม่นับในกรวย (ไม่มีข้อความลูกค้า / นักเรียนเดิมถามเรื่องเข้าเรียน)'});
+const LN_FNAME=Object.assign({},FNAME);
+const LN_FORDER=FORDER.slice();
+const LN_FDESC=Object.assign({},STGD);
 let LN_F='all', LN_TERM='', LN_PAGE=0, LN_SEL=0, LN_DEEP=false; const LN_PER=25;
 function lnRooms(){const o=[];for(const k of lineMonths()){const d=LINEFULL[k];
  if(d&&d.rooms)for(const r of d.rooms)o.push(r);}return o;}
@@ -1258,7 +1259,7 @@ function lnHit(o,t){if(!t)return true;
  return false;}
 function lnFiltered(){const t=LN_TERM.trim().toLowerCase();
  return lnRooms().filter(o=>{
-  if(LN_F!=='all'&&!(LN_F.slice(0,3)==='mx:'?mxHit(LN_F.split(':')[1],LN_F.split(':')[2],o.it,o.sg,o.fr):o.sg===LN_F))return false;
+  if(LN_F!=='all'&&!(LN_F.slice(0,3)==='mx:'?mxHit(LN_F.split(':')[1],LN_F.split(':')[2],o.it,o.sg,o.fr):stHit(LN_F,o.sg,o.fr)))return false;
   if(LN_F==='risk'&&!o.hg)return false;
   if(LN_F==='won'&&o.st!=='สมัครแล้ว')return false;
   if(LN_F==='open'&&o.st!=='ยังไม่สมัคร')return false;
@@ -1266,7 +1267,7 @@ function lnFiltered(){const t=LN_TERM.trim().toLowerCase();
   return lnHit(o,t);});}
 function lnCount(f){const t=LN_TERM.trim().toLowerCase();
  return lnRooms().filter(o=>{
-  if(f!=='all')return (f.slice(0,3)==='mx:'?mxHit(f.split(':')[1],f.split(':')[2],o.it,o.sg,o.fr):o.sg===f)&&lnHit(o,t);
+  if(f!=='all')return (f.slice(0,3)==='mx:'?mxHit(f.split(':')[1],f.split(':')[2],o.it,o.sg,o.fr):stHit(f,o.sg,o.fr))&&lnHit(o,t);
   if(f==='risk')return o.hg&&lnHit(o,t);
   if(f==='won')return o.st==='สมัครแล้ว'&&lnHit(o,t);
   if(f==='open')return o.st==='ยังไม่สมัคร'&&lnHit(o,t);
@@ -1571,14 +1572,14 @@ const V4=AGG.v4||{fb:{},ig:{},line:{}};
 const STG=[['V','ทักมาแล้วหาย','var(--ink-3)',.6],['T','คุยแล้ว ยังไม่ได้ราคา','var(--warn)',.8],['Q','ส่งคอร์ส/ราคาแล้ว','var(--fb)',.85],['W','ปิดการขาย','var(--leaf)',1]];
 const CHS=[['fb','Facebook','var(--fb)'],['line','LINE OA','var(--ln)'],['ig','Instagram','var(--ig)']];
 let V4MET='L', V4SRC='all';
-const V4DEF=[['L','แชทสนใจคอร์ส','n',true],['V','ทักมาแล้วหาย','n',false],['QW','ส่งคอร์ส/ราคาแล้ว','n',true],['W','ปิดการขาย','n',true],['WR','อัตราปิด','p',true],['rev','ยอดโอน','b',true]];
+const V4DEF=[['threads','แชททั้งหมด','n',null],['L','สนใจคอร์สเรียน','n',true],['QW','สนใจจริง (ได้ราคาแล้ว)','n',true],['VT','ทักมาแล้วหาย','n',false],['OTH','เรื่องอื่น ๆ','n',null],['NA','แอดมินไม่ได้ตอบเอง','n',false],['W','ปิดการขาย','n',true],['WR','อัตราปิด','p',true],['rev','ยอดโอน','b',true]];
 function v4chs(){return CH==='all'?['fb','line','ig']:[CH];}
-function v4blank(){return {L:0,V:0,T:0,Q:0,W:0,rev:0,X:0,G:0,S:0,threads:0,I:{A:[0,0,0],B:[0,0,0],C:[0,0,0]},src:{},n:0};}
+function v4blank(){return {L:0,V:0,T:0,Q:0,W:0,rev:0,X:0,G:0,S:0,O:0,NA:0,threads:0,I:{A:[0,0,0],B:[0,0,0],C:[0,0,0]},src:{},n:0};}
 function v4add(o,x,src){if(!x)return;
- if(src&&src!=='all'){const s=(x.src||{})[src];if(!s)return;['L','V','T','Q','W','rev'].forEach(f=>o[f]+=s[f]||0);o.n++;return;}
- ['L','V','T','Q','W','rev','X','G','S','threads'].forEach(f=>o[f]+=x[f]||0);
+ if(src&&src!=='all'){const s=(x.src||{})[src];if(!s)return;['L','V','T','Q','W','rev','O','NA','X'].forEach(f=>o[f]+=s[f]||0);o.threads+=s.all||0;o.n++;return;}
+ ['L','V','T','Q','W','rev','X','G','S','O','NA','threads'].forEach(f=>o[f]+=x[f]||0);
  for(const k of ['A','B','C'])for(let i=0;i<3;i++)o.I[k][i]+=((x.I||{})[k]||[0,0,0])[i];
- for(const [s,v] of Object.entries(x.src||{})){const t=o.src[s]=o.src[s]||{L:0,V:0,T:0,Q:0,W:0,rev:0};for(const f in t)t[f]+=v[f]||0;}
+ for(const [s,v] of Object.entries(x.src||{})){const t=o.src[s]=o.src[s]||{all:0,L:0,V:0,T:0,Q:0,W:0,rev:0,O:0,NA:0,X:0};for(const f in t)t[f]+=v[f]||0;}
  o.n++;}
 function v4sum(chs,ks,src){const o=v4blank();for(const c of chs)for(const k of ks)v4add(o,(V4[c]||{})[k],src);return o.n?o:null;}
 function v4now(){const o=v4blank();for(const c of v4chs())for(const k of scopeOf(keysOf(c)))v4add(o,(V4[c]||{})[k]);return o.n?o:null;}
@@ -1591,7 +1592,7 @@ function ddelta(now,prev,up,isPct){
  if(!prev)return '';const d=(now-prev)*100/prev,r=Math.round(Math.abs(d));if(r<1)return '<span class="dfl">เท่าเดิม</span>';
  return `<span class="${(d>0)===up?'dup':'ddn'}">${d>0?'▲':'▼'} ${r}%</span>`;}
 function prevLabel(){return isMonth(M)?'เดือนก่อน':(M[0]==='Q'?'ไตรมาสก่อน':'3 เดือนก่อนหน้า');}
-function v4val(o,id){if(!o)return null;if(id==='QW')return o.Q+o.W;if(id==='WR')return o.L?o.W*100/o.L:null;return o[id];}
+function v4val(o,id){if(!o)return null;if(id==='QW')return o.Q+o.W;if(id==='VT')return o.V+o.T;if(id==='OTH')return (o.O||0)+(o.S||0)+(o.G||0);if(id==='WR')return o.L?o.W*100/o.L:null;return o[id];}
 function v4fmt(v,t){return v==null?'—':(t==='p'?(Math.round(v*10)/10)+'%':(t==='b'?'฿'+nf(Math.round(v)):nf(v)));}
 function v4short(v,t){if(t==='b')return v>=1e6?(Math.round(v/1e5)/10)+'M':(v>=1e3?Math.round(v/1e3)+'k':nf(v));return v4fmt(v,t);}
 const sw=c=>`<i style="display:inline-block;width:10px;height:10px;border-radius:2px;background:${c};vertical-align:-1px;margin-right:6px"></i>`;
@@ -1600,17 +1601,26 @@ function renderV4Cards(){
  const el=$('#v4k'),o=v4now(),p=v4prev(),cmp=(p&&o&&p.n===o.n)?p:null;
  $('#v4kscope').textContent=CHN[CH]+' · '+moLabel();
  if(!o){el.innerHTML='<div class="empty">ไม่มีข้อมูลในช่วงที่เลือก — ลองเปลี่ยนช่วงเวลาหรือช่องทาง</div>';$('#v4knote').innerHTML='';return;}
- const qd=o.Q+o.W, cq=cmp?cmp.Q+cmp.W:null;
- const K=(cls,lab,v,sub,dl)=>`<div class="k ${cls}"><span class="lab">${lab}</span><div class="v">${v}</div>${dl?'<div class="d">'+dl+' <span class="nsm">เทียบ'+prevLabel()+'</span></div>':''}<div class="s">${sub}</div></div>`;
+ const val=(x,id)=>x?v4val(x,id):null;
+ const dl=(id,up,pct,base)=>{if(!cmp)return '';if(pct)return ddelta(pcv(val(o,id),val(o,base)),pcv(val(cmp,id),val(cmp,base)),up,true);return ddelta(val(o,id),val(cmp,id),up);};
+ const K=(cls,lab,v,sub,d,extra)=>`<div class="k ${cls}"${extra||''}><span class="lab">${lab}</span><div class="v">${v}</div>${d?'<div class="d">'+d+' <span class="nsm">เทียบ'+prevLabel()+'</span></div>':''}<div class="s">${sub}</div></div>`;
+ const oth=val(o,'OTH'), cust=o.threads-o.X;
+ /* all-channel close rate for the same period, regardless of the channel filter */
+ const allc={};for(const c of ['fb','line','ig']){const x=v4sum([c],scopeOf(keysOf(c)));if(x)allc[c]=x;}
+ const aL=Object.values(allc).reduce((t,x)=>t+x.L,0), aW=Object.values(allc).reduce((t,x)=>t+x.W,0), aQ=Object.values(allc).reduce((t,x)=>t+x.Q+x.W,0);
+ const course=`<div class="k wide"><span class="lab">สนใจคอร์สเรียน</span><div class="v">${nf(o.L)}</div>${cmp?'<div class="d">'+ddelta(o.L,cmp.L,true)+' <span class="nsm">เทียบ'+prevLabel()+'</span></div>':''}<div class="s">${pctS(o.L,o.threads)} ของแชททั้งหมด</div>
+  <div class="ksplit"><div><span class="lab" style="color:var(--leaf)">สนใจจริง</span><div class="v2">${nf(o.Q+o.W)} <small>${pctS(o.Q+o.W,o.L)}</small></div><div class="s">คุยจนแอดมินส่งคอร์ส/ราคาให้แล้ว${cmp?' · '+dl('QW',true,true,'L'):''}</div></div>
+  <div><span class="lab" style="color:var(--warn)">ทักมาแล้วหาย</span><div class="v2">${nf(o.V+o.T)} <small>${pctS(o.V+o.T,o.L)}</small></div><div class="s">ไม่ได้สนใจจริง · กดปุ่ม/พิมพ์สั้นแล้วเงียบ ${nf(o.V)} · คุยแต่ไม่ถึงราคา ${nf(o.T)}${cmp?' · '+dl('VT',false,true,'L'):''}</div></div></div></div>`;
  el.innerHTML=
-  K('','แชทสนใจคอร์ส',nf(o.L),'ลูกค้าทักมาในช่วงนี้ · ไม่นับของแถม และแชทที่ลูกค้าไม่ได้พิมพ์',cmp?ddelta(o.L,cmp.L,true):'')+
-  K('warn','ทักมาแล้วหาย',nf(o.V),pctS(o.V,o.L)+' ของแชทสนใจคอร์ส · กดปุ่มหรือพิมพ์สั้นแล้วเงียบ'+(o.src.ad?' · มาจากโฆษณา '+nf(o.src.ad.V):''),cmp?ddelta(pcv(o.V,o.L),pcv(cmp.V,cmp.L),false,true):'')+
-  K('','ส่งคอร์ส/ราคาแล้ว',nf(qd),pctS(qd,o.L)+' ของแชทสนใจคอร์ส · แอดมินส่งราคา/ยอดชำระแล้ว (รวมที่ปิดได้)',cmp?ddelta(pcv(qd,o.L),pcv(cq,cmp.L),true,true):'')+
-  K('ok','ปิดการขาย',nf(o.W),'สลิป “ตรวจสอบสลิปสำเร็จ” เข้าบัญชี บจก. ไบโอปาล์ม',cmp?ddelta(o.W,cmp.W,true):'')+
-  K('ok','อัตราปิด',pctS(o.W,o.L),'ปิดได้ ÷ แชทสนใจคอร์ส · ปิดได้ ÷ ส่งราคาแล้ว '+pctS(o.W,qd),cmp?ddelta(pcv(o.W,o.L),pcv(cmp.W,cmp.L),true,true):'')+
-  K('ok','ยอดโอน','฿'+nf(o.rev),'รวม “ยอดเงิน” ในสลิปที่ตรวจผ่าน · เฉลี่ย ฿'+nf(o.W?Math.round(o.rev/o.W):0)+' ต่อการปิด',cmp?ddelta(o.rev,cmp.rev,true):'');
+  K('','แชททั้งหมด',nf(o.threads),'สนใจคอร์ส '+nf(o.L)+' · เรื่องอื่น '+nf(oth)+' · แอดมินทักไปแต่ลูกค้าไม่ตอบ '+nf(o.X),dl('threads',null))+
+  course+
+  K('','เรื่องอื่น ๆ',nf(oth),pctS(oth,o.threads)+' ของแชททั้งหมด · ไม่ใช่เรื่องคอร์สเรียน เช่น นักเรียนเดิมถามลิงก์/เข้าเรียน ขอของแถม กิจกรรม',dl('OTH',null))+
+  K('warn','แอดมินไม่ได้ตอบเอง',nf(o.NA),pctS(o.NA,cust)+' ของแชทที่ลูกค้าทักมา · ไม่มีแอดมินพิมพ์ตอบเลย รวมแชทที่มีแต่แชทบอท/ข้อความอัตโนมัติ',cmp?ddelta(pcv(o.NA,cust),pcv(cmp.NA,cmp.threads-cmp.X),false,true):'')+
+  K('ok','ปิดการขาย',nf(o.W),'ยอดโอน ฿'+nf(o.rev)+' · เฉลี่ย ฿'+nf(o.W?Math.round(o.rev/o.W):0)+' · นับจากข้อความ “ชื่อผู้รับ: บจก. ไบโอปาล์ม เอ็ดดูเคชั่น” หรือ “สถานะ: ตรวจสอบสลิปสำเร็จ”',dl('W',true))+
+  K('ok','อัตราปิด · รวมทุกช่องทาง',pctS(aW,aL),'ปิดได้ '+nf(aW)+' ÷ สนใจคอร์ส '+nf(aL)+' · ÷ สนใจจริง '+pctS(aW,aQ)+'<br>'+Object.entries(allc).map(([c,x])=>CHN[c]+' '+pctS(x.W,x.L)).join(' · ')+(CH!=='all'?'<br><b>'+CHN[CH]+' (ช่องทางที่เลือก) '+pctS(o.W,o.L)+'</b>':''),'');
  const notes=[];
  if(p&&!cmp)notes.push(prevLabel()+'มีข้อมูลไม่ครบทุกช่องทาง จึงไม่แสดง ▲▼');
+ notes.push('แชททั้งหมด = สนใจคอร์ส + เรื่องอื่น + แอดมินทักไปแต่ลูกค้าไม่ตอบ');
  if(CH==='all'||CH==='ig')notes.push('Instagram เก็บเฉพาะแชทที่ถามเรื่องคอร์ส');
  if(CH==='all'||CH==='line')notes.push('LINE มีทั้งลูกค้าใหม่และนักเรียนเดิมที่สมัครต่อ');
  notes.push('สลิปเลขอ้างอิงเดียวกันนับครั้งเดียวทุกช่องทาง');
@@ -1665,20 +1675,24 @@ function renderV4MoM(){
 function renderV4Funnel(){
  const el=$('#v4f'),o=v4now();$('#v4fscope').textContent=CHN[CH]+' · '+moLabel();
  if(!o){el.innerHTML='<div class="empty">ไม่มีข้อมูลในช่วงที่เลือก</div>';return;}
- const steps=STG.map(([k,n,c,op])=>`<div class="bk" style="grid-template-columns:minmax(120px,170px) 1fr"><span class="lab2">${sw(c)}${n}</span><span class="tr"><i style="width:${Math.max(1.5,o[k]*100/Math.max(1,o.L))}%;background:${c};opacity:${op}"></i><span class="vv"><b>${nf(o[k])}</b><span class="nsm">${pctS(o[k],o.L)} ของแชทสนใจคอร์ส</span></span></span></div>`).join('');
- const row=(lab,x)=>`<tr><td>${lab}</td><td class="n">${nf(x.L)}</td><td class="n">${nf(x.V)} <span class="nsm">${pctS(x.V,x.L)}</span></td><td class="n">${nf(x.T)} <span class="nsm">${pctS(x.T,x.L)}</span></td><td class="n">${nf(x.Q+x.W)} <span class="nsm">${pctS(x.Q+x.W,x.L)}</span></td><td class="n"><b>${nf(x.W)}</b> <span class="nsm">${pctS(x.W,x.L)}</span></td><td class="n">฿${nf(x.rev)}</td></tr>`;
+ const oth=v4val(o,'OTH');
+ const ROWS=[['สนใจจริง · ปิดการขายแล้ว',o.W,'var(--leaf)',1,true],['สนใจจริง · ส่งราคาแล้ว ยังไม่ปิด',o.Q,'var(--fb)',.85,true],['ทักมาแล้วหาย · คุยแต่ไม่ถึงราคา',o.T,'var(--warn)',.8,true],['ทักมาแล้วหาย · กดปุ่ม/พิมพ์สั้นแล้วเงียบ',o.V,'var(--ink-3)',.6,true],['เรื่องอื่น ๆ (ไม่ใช่คอร์สเรียน)',oth,'var(--line-2)',1,false],['แอดมินทักไป แต่ลูกค้าไม่ตอบ',o.X,'var(--line-2)',.6,false]];
+ const steps=ROWS.map(([n,v,c,op,cs])=>`<div class="bk" style="grid-template-columns:minmax(150px,240px) 1fr"><span class="lab2">${sw(c)}${n}</span><span class="tr"><i style="width:${Math.max(1.5,v*100/Math.max(1,o.threads))}%;background:${c};opacity:${op}"></i><span class="vv"><b>${nf(v)}</b><span class="nsm">${pctS(v,o.threads)} ของแชททั้งหมด${cs?' · '+pctS(v,o.L)+' ของสนใจคอร์ส':''}</span></span></span></div>`).join('');
+ const row=(lab,x)=>`<tr><td>${lab}</td><td class="n">${nf(x.threads)}</td><td class="n">${nf(x.L)} <span class="nsm">${pctS(x.L,x.threads)}</span></td><td class="n">${nf(x.Q+x.W)} <span class="nsm">${pctS(x.Q+x.W,x.L)}</span></td><td class="n">${nf(x.V+x.T)} <span class="nsm">${pctS(x.V+x.T,x.L)}</span></td><td class="n">${nf(v4val(x,'OTH'))}</td><td class="n">${nf(x.NA)} <span class="nsm">${pctS(x.NA,x.threads-x.X)}</span></td><td class="n"><b>${nf(x.W)}</b> <span class="nsm">${pctS(x.W,x.L)}</span></td><td class="n">฿${nf(x.rev)}</td></tr>`;
  let rows='';
  if(CH!=='line'){const SN={ad:'มาจากโฆษณา',organic:'ทักเอง / อื่น ๆ',comment:'จากคอมเมนต์'};
-  rows=['ad','organic','comment'].filter(k=>o.src[k]&&o.src[k].L).map(k=>row(SN[k]+(CH==='all'?' <span class="nsm">FB+IG</span>':''),o.src[k])).join('');
+  rows=['ad','organic','comment'].filter(k=>o.src[k]&&o.src[k].all).map(k=>{const s=o.src[k];return row(SN[k]+(CH==='all'?' <span class="nsm">FB+IG</span>':''),Object.assign({threads:s.all,S:0,G:0},s));}).join('');
   if(CH==='all'){const ln=v4sum(['line'],scopeOf(LINEKEYS));if(ln)rows+=row('LINE OA <span class="nsm">ไม่มีป้ายที่มา</span>',ln);}}
  el.innerHTML=`<div>${steps}</div>
- ${rows?`<div class="tw" style="margin-top:14px"><table><thead><tr><th>ที่มา</th><th class="n">สนใจคอร์ส</th><th class="n">ทักมาแล้วหาย</th><th class="n">คุยแล้ว ยังไม่ได้ราคา</th><th class="n">ส่งราคาแล้ว</th><th class="n">ปิดการขาย</th><th class="n">ยอดโอน</th></tr></thead><tbody>${rows}</tbody></table></div>`:''}
- <details class="fhelp" style="margin-top:12px"><summary>แต่ละขั้นนับอย่างไร</summary><dl>
- <dt>ทักมาแล้วหาย</dt><dd>ลูกค้ามีแค่กดปุ่ม (ปุ่มโฆษณา / เมนูบอท) รูป สติกเกอร์ หรือพิมพ์สั้น เช่น “สนใจค่ะ” “สวัสดีครับ” “ขอบคุณค่ะ” แล้วไม่พิมพ์อะไรต่อ</dd>
- <dt>คุยแล้ว ยังไม่ได้ราคา</dt><dd>ลูกค้าพิมพ์คุยจริง แต่ฝั่งแอดมินยังไม่ได้ส่งข้อความที่มีราคา</dd>
- <dt>ส่งคอร์ส/ราคาแล้ว</dt><dd>แอดมินส่งข้อความที่มีราคา (เช่น “5,700 บาท” “ค่าเรียน …” “ยอดชำระ”) หรือเลขบัญชี BioPalm — นับทั้งพิมพ์เองและข้อความสำเร็จรูป ไม่นับบอท LINE · ถ้าส่งราคาเป็นรูปภาพจะจับไม่ได้</dd>
- <dt>ปิดการขาย</dt><dd>มีข้อความ “สถานะ: ตรวจสอบสลิปสำเร็จ” ที่ “ชื่อผู้รับ: บจก. ไบโอปาล์ม เอ็ดดูเคชั่น” เท่านั้น · ไม่นับ “ตรวจสอบสลิปซ้ำ” · สลิปเลขอ้างอิงเดียวกันนับครั้งเดียวทุกช่องทาง · นับในเดือนที่สลิปเข้า</dd>
- <dt>ไม่นับในกรวย</dt><dd>แชทที่ไม่มีข้อความลูกค้า ${nf(o.X)} · มารับของแถม ${nf(o.G)}${o.S?' · ห้อง LINE ของนักเรียนเดิมที่ถามเรื่องลิงก์/เข้าเรียน '+nf(o.S):''}</dd></dl></details>`;}
+ ${rows?`<div class="tw" style="margin-top:14px"><table><thead><tr><th>ที่มา</th><th class="n">แชททั้งหมด</th><th class="n">สนใจคอร์ส</th><th class="n">สนใจจริง</th><th class="n">ทักมาแล้วหาย</th><th class="n">เรื่องอื่น ๆ</th><th class="n">แอดมินไม่ได้ตอบเอง</th><th class="n">ปิดการขาย</th><th class="n">ยอดโอน</th></tr></thead><tbody>${rows}</tbody></table></div>`:''}
+ <details class="fhelp" style="margin-top:12px"><summary>แต่ละกลุ่มนับอย่างไร</summary><dl>
+ <dt>สนใจคอร์สเรียน</dt><dd>แชทที่ลูกค้าทักเรื่องคอร์ส: มาจากปุ่มโฆษณา/คอมเมนต์ พูดถึงคอร์ส ราคา ชั้นเรียน ตาราง สมัคร หรือแอดมินส่งราคาให้แล้ว · แบ่งเป็น 2 กลุ่มด้านล่าง</dd>
+ <dt>สนใจจริง</dt><dd>คุยจนแอดมินส่งข้อความที่มีราคาคอร์ส (เช่น “5,700 บาท” “ค่าเรียน …” “ยอดชำระ”) หรือเลขบัญชีให้แล้ว — นับทั้งพิมพ์เองและข้อความสำเร็จรูป ไม่นับบอท LINE · ถ้าส่งราคาเป็นรูปภาพจะจับไม่ได้</dd>
+ <dt>ทักมาแล้วหาย (ไม่ได้สนใจจริง)</dt><dd>กดปุ่ม/ส่งรูป/สติกเกอร์ หรือพิมพ์สั้น “สนใจค่ะ / สวัสดี / ขอบคุณ” แล้วเงียบ · หรือคุยแล้วแต่ยังไม่ถึงขั้นได้ราคา</dd>
+ <dt>เรื่องอื่น ๆ</dt><dd>ลูกค้าพิมพ์คุยจริงแต่ไม่ใช่เรื่องคอร์สเรียน เช่น นักเรียนเดิมถามลิงก์/เข้าเรียน/ย้อนหลัง ขอของแถม ส่งการบ้าน กิจกรรม</dd>
+ <dt>แอดมินไม่ได้ตอบเอง</dt><dd>ลูกค้าทักมาแล้วไม่มีแอดมินพิมพ์ตอบเลย รวมแชทที่มีแต่แชทบอทหรือข้อความอัตโนมัติ · กลุ่มนี้ซ้อนกับกลุ่มอื่นได้ จึงไม่อยู่ในแถบด้านบน</dd>
+ <dt>ปิดการขาย</dt><dd>มีข้อความ “ชื่อผู้รับ: บจก. ไบโอปาล์ม เอ็ดดูเคชั่น” (หรือ BIOPALM EDUCATION) หรือ “สถานะ: ตรวจสอบสลิปสำเร็จ” เท่านั้น — ทุกช่องทางรวม LINE · สลิปเลขอ้างอิงเดียวกันนับครั้งเดียว · นับในเดือนที่สลิปเข้า · ปิดการขายนับอยู่ในกลุ่มสนใจจริง</dd>
+ <dt>อัตราปิด</dt><dd>ปิดการขาย ÷ สนใจคอร์สเรียน</dd></dl></details>`;}
 
 function renderV4Intent(){
  const el=$('#v4i');$('#v4iscope').textContent=CHN[CH]+' · '+moLabel();

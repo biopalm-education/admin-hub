@@ -31,17 +31,18 @@ PRICE = re.compile(r'\d{1,3},\d{3}\s*(บาท|฿|\.-)|\d{4,5}\s*(บาท|�
 GRADE = re.compile(r'ม\.?\s?[1-6]|ป\.?\s?[1-6]|ม\.ต้น|ม\.ปลาย|มัธยม|ประถม|ซิ่ว|ปี\s?[1-4]')
 ASK = re.compile(r'คอร์ส|ราคา|ค่าเรียน|สมัคร|เท่าไร|เท่าไหร่|กี่บาท|โปร|ตาราง|ลงเรียน|สอวน|IJSO|A-?Level|สอบเข้า|MWIT|KVIS|เตรียมอุดม|onsite|online|ออนไลน์|เรียนสด|เทป', re.I)
 SUPPORT = re.compile(r'ลิ้ง|ลิงก์|ลิงค์|เข้าเรียน|ย้อนหลัง|e-?mail|อีเมล|ชีท|เอกสาร|เลื่อน|ลาเรียน|ดูคลิป|รหัสผ่าน|password|ใบเสร็จ|ใบกำกับ', re.I)
+TOPIC = re.compile(r'สนใจ|เรียน|รายละเอียด|เตรียมสอบ|โมดูล|module|ตอร์ส|คอส|ครอส|จอง|มต้น|มปลาย|ติว', re.I)
 SEEN = set()
 
 def slips(texts):
     out = {}
     for t in texts:
-        if SLIP.search(t) and RCV.search(t):
+        if SLIP.search(t) or RCV.search(t):
             rf = REF.search(t); a = AMT.search(t)
             out[rf.group(1) if rf else t[:80]] = float(a.group(1).replace(',', '')) if a else 0.0
     return out
 
-def judge(cus, ours, slip_texts):
+def judge(cus, ours, slip_texts, src=None):
     w = {k: v for k, v in slips(slip_texts).items() if k not in SEEN}
     SEEN.update(w.keys())
     sub = [t for t in cus if t and t not in BTN and not LOW.match(t)]
@@ -53,6 +54,11 @@ def judge(cus, ours, slip_texts):
     elif not sub: st = 'V'
     elif quoted: st = 'Q'
     else: st = 'T'
+    if st == 'T' and src not in ('ad', 'comment'):
+        allc = ' '.join(cus)
+        course = ASK.search(allc) or GRADE.search(allc) or TOPIC.search(allc)
+        if not course or (SUPPORT.search(allc) and not ASK.search(allc)):
+            st = 'O'   # typed for real, but not about a course (support, freebies, homework, activity...) -> other topic
     return st, intent, round(sum(w.values()))
 
 EDGES = [1, 2, 3, 5, 10, 15, 20, 30, 45, 60, 90, 120, 180, 240, 360, 480, 720, 1080, 1440, 2880]
@@ -81,22 +87,28 @@ def line_min(t):
         return None
 
 def blank():
-    return {'L': 0, 'V': 0, 'T': 0, 'Q': 0, 'W': 0, 'rev': 0, 'X': 0, 'G': 0, 'S': 0, 'threads': 0,
+    return {'L': 0, 'V': 0, 'T': 0, 'Q': 0, 'W': 0, 'rev': 0, 'X': 0, 'G': 0, 'S': 0, 'O': 0, 'NA': 0, 'threads': 0,
             'I': {'A': [0, 0, 0], 'B': [0, 0, 0], 'C': [0, 0, 0]}, 'src': {},
             'rt': {'bins': [0] * (len(EDGES) + 1), 'b': [0, 0, 0, 0], 'mx': {k: [[0, 0] for _ in range(4)] for k in 'ABC'}}}
 
 def tally(o, st, intent, rev, src=None, fr=None):
     o['threads'] += 1
-    if st in ('X', 'G', 'S'):
-        o[st] += 1; return
+    s = o['src'].setdefault(src, {'all': 0, 'L': 0, 'V': 0, 'T': 0, 'Q': 0, 'W': 0, 'rev': 0, 'O': 0, 'NA': 0, 'X': 0}) if src else None
+    if s: s['all'] += 1
+    if st != 'X' and (fr is None or fr < 0):
+        o['NA'] += 1
+        if s: s['NA'] += 1
+    if st in ('X', 'G', 'S', 'O'):
+        o[st] += 1
+        if s: s['X' if st == 'X' else 'O'] += 1
+        return
     b = bucket(fr); rt = o['rt']; rt['b'][b] += 1
     cell = rt['mx'][intent][b]; cell[0] += 1; cell[1] += st == 'W'
     if b != 3:
         rt['bins'][next((i for i, e in enumerate(EDGES) if fr < e), len(EDGES))] += 1
     o['L'] += 1; o[st] += 1; o['rev'] += rev
     i = o['I'][intent]; i[0] += 1; i[1] += st in ('Q', 'W'); i[2] += st == 'W'
-    if src:
-        s = o['src'].setdefault(src, {'L': 0, 'V': 0, 'T': 0, 'Q': 0, 'W': 0, 'rev': 0})
+    if s:
         s['L'] += 1; s[st] += 1; s['rev'] += rev
 
 def tx_of(d):
@@ -115,11 +127,10 @@ for mo in months:   # chronological, so a slip already counted is never counted 
         tx = tx_of(f['dict']); o = blank()
         for c in f['chats']:
             while len(c) < 40: c.append(None)
-            if c[1] == 'G':
-                c[37], c[38], c[39] = 'G', 'C', 0; tally(o, 'G', 'C', 0); continue
             cus = [str(tx(m[2])).strip() for m in c[18] if m[1] == 0]
             ours = [str(tx(m[2])) for m in c[18] if m[1] in (1, 2)]
-            st, it, rev = judge(cus, ours, ours + cus)
+            st, it, rev = judge(cus, ours, ours + cus, c[26])
+            if c[1] == 'G' and st != 'W': st = 'G'
             fr = first_reply([(m[0], m[1] == 0 and not sysmsg(tx(m[2])), m[1] == 1 and not sysmsg(tx(m[2]))) for m in c[18]])
             c[37], c[38], c[39] = st, it, rev
             while len(c) < 41: c.append(None)
@@ -134,7 +145,7 @@ for mo in months:   # chronological, so a slip already counted is never counted 
             while len(c) < 40: c.append(None)
             cus = [str(tx(m[2])).strip() for m in c[18] if m[1] == 0]
             ours = [str(tx(m[2])) for m in c[18] if m[1] in (1, 2)]
-            st, it, rev = judge(cus, ours, ours + cus)
+            st, it, rev = judge(cus, ours, ours + cus, c[26])
             fr = first_reply([(m[0], m[1] == 0 and not sysmsg(tx(m[2])), m[1] == 1 and not sysmsg(tx(m[2]))) for m in c[18]])
             c[37], c[38], c[39] = st, it, rev
             while len(c) < 41: c.append(None)
