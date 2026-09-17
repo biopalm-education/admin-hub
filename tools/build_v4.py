@@ -13,7 +13,10 @@ Stage per chat (highest reached in that month's file):
   V ทักแล้วหาย   customer only pressed buttons / greetings / stickers
   X G S          not counted: no customer message · giveaway · LINE support for existing students
 Intent: A = stated a grade AND asked about course/price/schedule · B = typed for real · C = neither
-Fields: FB/IG chat rows r[37]=stage r[38]=intent r[39]=baht · LINE rooms sg / it / rv
+First reply (minutes): customer's first message in the month -> first message a human admin TYPED
+after it (FB/IG role 1 · LINE named admin; saved replies and bots never count); -1 = no admin ever typed after.
+Speed buckets: 0 <=5 min · 1 5-60 min · 2 >60 min · 3 no admin reply.
+Fields: FB/IG chat rows r[37]=stage r[38]=intent r[39]=baht r[40]=first reply min · LINE rooms sg / it / rv / fr
 """
 import json, glob, re
 
@@ -52,14 +55,44 @@ def judge(cus, ours, slip_texts):
     else: st = 'T'
     return st, intent, round(sum(w.values()))
 
+EDGES = [1, 2, 3, 5, 10, 15, 20, 30, 45, 60, 90, 120, 180, 240, 360, 480, 720, 1080, 1440, 2880]
+
+def bucket(fr):
+    return 3 if fr is None or fr < 0 else (0 if fr <= 5 else (1 if fr <= 60 else 2))
+
+SYS = re.compile(r'^\x01|คุณกำลังตอบกลับความคิดเห็น|replied to a post|ได้ตอบกลับโพสต์|ตอบกลับโฆษณา$')
+
+def sysmsg(t):
+    return bool(SYS.search(str(t or '')))
+
+def first_reply(seq):
+    """seq: [(minute, is_customer, is_human_admin)] in order"""
+    c0 = next((m for m, c, h in seq if c), None)
+    if c0 is None: return None
+    a = next((m for m, c, h in seq if h and m >= c0), None)
+    return -1 if a is None else int(a - c0)
+
+def line_min(t):
+    import datetime
+    try:
+        d = datetime.datetime.strptime('2026-' + t, '%Y-%m-%d %H:%M')
+        return int(d.timestamp() // 60)
+    except Exception:
+        return None
+
 def blank():
     return {'L': 0, 'V': 0, 'T': 0, 'Q': 0, 'W': 0, 'rev': 0, 'X': 0, 'G': 0, 'S': 0, 'threads': 0,
-            'I': {'A': [0, 0, 0], 'B': [0, 0, 0], 'C': [0, 0, 0]}, 'src': {}}
+            'I': {'A': [0, 0, 0], 'B': [0, 0, 0], 'C': [0, 0, 0]}, 'src': {},
+            'rt': {'bins': [0] * (len(EDGES) + 1), 'b': [0, 0, 0, 0], 'mx': {k: [[0, 0] for _ in range(4)] for k in 'ABC'}}}
 
-def tally(o, st, intent, rev, src=None):
+def tally(o, st, intent, rev, src=None, fr=None):
     o['threads'] += 1
     if st in ('X', 'G', 'S'):
         o[st] += 1; return
+    b = bucket(fr); rt = o['rt']; rt['b'][b] += 1
+    cell = rt['mx'][intent][b]; cell[0] += 1; cell[1] += st == 'W'
+    if b != 3:
+        rt['bins'][next((i for i, e in enumerate(EDGES) if fr < e), len(EDGES))] += 1
     o['L'] += 1; o[st] += 1; o['rev'] += rev
     i = o['I'][intent]; i[0] += 1; i[1] += st in ('Q', 'W'); i[2] += st == 'W'
     if src:
@@ -87,8 +120,11 @@ for mo in months:   # chronological, so a slip already counted is never counted 
             cus = [str(tx(m[2])).strip() for m in c[18] if m[1] == 0]
             ours = [str(tx(m[2])) for m in c[18] if m[1] in (1, 2)]
             st, it, rev = judge(cus, ours, ours + cus)
+            fr = first_reply([(m[0], m[1] == 0 and not sysmsg(tx(m[2])), m[1] == 1 and not sysmsg(tx(m[2]))) for m in c[18]])
             c[37], c[38], c[39] = st, it, rev
-            tally(o, st, it, rev, c[26] or 'organic')
+            while len(c) < 41: c.append(None)
+            c[40] = fr
+            tally(o, st, it, rev, c[26] or 'organic', fr)
         v4['fb'][mo] = o
         json.dump(f, open(p, 'w', encoding='utf-8'), separators=(',', ':'), ensure_ascii=False)
         del f
@@ -99,8 +135,11 @@ for mo in months:   # chronological, so a slip already counted is never counted 
             cus = [str(tx(m[2])).strip() for m in c[18] if m[1] == 0]
             ours = [str(tx(m[2])) for m in c[18] if m[1] in (1, 2)]
             st, it, rev = judge(cus, ours, ours + cus)
+            fr = first_reply([(m[0], m[1] == 0 and not sysmsg(tx(m[2])), m[1] == 1 and not sysmsg(tx(m[2]))) for m in c[18]])
             c[37], c[38], c[39] = st, it, rev
-            tally(o, st, it, rev, c[26] or 'organic')
+            while len(c) < 41: c.append(None)
+            c[40] = fr
+            tally(o, st, it, rev, c[26] or 'organic', fr)
         v4['ig'][mo] = o
     p = 'src/line_%s.json' % mo; f = load(p)
     if f:
@@ -112,8 +151,11 @@ for mo in months:   # chronological, so a slip already counted is never counted 
             st, it, rev = judge(cus, ours, [t for s, t in tr if s != 'C'] + cus)
             if st in ('V', 'T') and SUPPORT.search(' '.join(cus)) and not ASK.search(' '.join(t for t in cus if t not in BTN)):
                 st = 'S'
-            r['sg'], r['it'], r['rv'] = st, it, rev
-            tally(o, st, it, rev)
+            seq = [(line_min(m[0]), m[1] == 'C', m[1] not in ('C', 'B')) for m in r['tr']]
+            seq = [x for x in seq if x[0] is not None]
+            fr = first_reply(seq)
+            r['sg'], r['it'], r['rv'], r['fr'] = st, it, rev, fr
+            tally(o, st, it, rev, None, fr)
             humans = [s for s, t in tr if s not in ('C', 'B')]
             for a in set(humans):
                 adm.setdefault(a, {'rooms': 0, 'Q': 0, 'W': 0, 'rev': 0, 'msgs': 0})['rooms'] += 1
@@ -133,6 +175,9 @@ for mo in months:   # chronological, so a slip already counted is never counted 
 json.dump(ig, open('src/ig_all.json', 'w', encoding='utf-8'), separators=(',', ':'), ensure_ascii=False)
 agg['v4'] = v4
 json.dump(agg, open('src/agg.json', 'w', encoding='utf-8'), separators=(',', ':'), ensure_ascii=False)
+agg['v4edges'] = EDGES
+json.dump(agg, open('src/agg.json', 'w', encoding='utf-8'), separators=(',', ':'), ensure_ascii=False)
 for ch in v4:
     for mo, o in sorted(v4[ch].items()):
+        print(ch, mo, 'speed', o['rt']['b'], 'A', o['rt']['mx']['A'])
         print(ch, mo, 'L', o['L'], 'V', o['V'], 'T', o['T'], 'Q', o['Q'], 'W', o['W'], 'rev', o['rev'], 'X', o['X'], 'S', o['S'], 'G', o['G'], o.get('adm', '')[:3] if ch == 'line' else '')

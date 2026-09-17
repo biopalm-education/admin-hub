@@ -288,6 +288,7 @@ footer{border-top:1px solid var(--line);padding:20px 0 42px;color:var(--ink-3);f
 .gft{font-size:11.5px;line-height:1.6;color:var(--ink-3);margin:18px 0 0;text-align:center}
 @media (prefers-color-scheme:dark){:root:not([data-theme="light"]) .gmark,
  :root:not([data-theme="light"]) #gate button{color:#0F1512}}
+.mxbtn{all:unset;cursor:pointer;display:block;width:100%;text-align:right;border-radius:6px;padding:2px 4px}.mxbtn:hover{outline:1px solid var(--leaf)}.mxbtn:focus-visible{outline:2px solid var(--leaf)}
 </style>
 </head>
 <body>
@@ -332,6 +333,7 @@ footer{border-top:1px solid var(--line);padding:20px 0 42px;color:var(--ink-3);f
  <section id="s-v4k"><div class="shead"><h2>ตัวเลขหลัก</h2><span class="lab" id="v4kscope"></span></div><div class="kpis" id="v4k"></div><p class="note" id="v4knote" style="margin-top:10px"></p></section>
  <section id="s-v4m"><div class="shead"><h2>เทียบเดือนต่อเดือน</h2><span class="lab" id="v4mscope"></span></div><div id="v4m"></div></section>
  <section id="s-v4f"><div class="shead"><h2>กรวยลีด 4 ขั้น</h2><span class="lab" id="v4fscope"></span></div><div id="v4f"></div></section>
+ <section id="s-v4s"><div class="shead"><h2>ความเร็วตอบแชท</h2><span class="lab" id="v4sscope"></span></div><div id="v4s"></div></section>
  <section id="s-v4i"><div class="shead"><h2>ลีดชัดเจนแค่ไหน กับผลที่ได้</h2><span class="lab" id="v4iscope"></span></div><div id="v4i"></div></section>
  <section id="s-v4c"><div class="shead"><h2>เทียบช่องทาง</h2><span class="lab" id="v4cscope"></span></div><div id="v4c"></div></section>
  <section id="s-v4a"><div class="shead"><h2>ผลงานรายแอดมิน · LINE OA</h2><span class="lab" id="v4ascope"></span></div><div id="v4a"></div></section>
@@ -1102,7 +1104,7 @@ const norm=s=>String(s==null?'':s).toLowerCase().replace(/^[@\s]+/,'').replace(/
 const hitName=(r,t)=>norm(r[0]).includes(t);
 const hitBody=(r,t,m)=>(r[18]||[]).some(e=>String(txt(e[2],m)).toLowerCase().includes(t));
 const hitTerm=(r,t,m)=>!t||hitName(r,t)||(DEEP&&hitBody(r,t,m));
-function hitChip(r,f){if(f==='V'||f==='T'||f==='Q'||f==='W')return r[37]===f;if(f==='leadsonly')return isRealLead(r);if(f==='t1')return r[34]==='L1';if(f==='t2')return r[34]==='L2';if(f==='t3')return r[34]==='L3';if(f==='t4')return r[34]==='L4';if(f==='t5')return r[34]==='L5';if(f==='hot')return r[34]==='L5'&&!r[17];if(f==='nohuman')return r[10]<0;if(f==='risk')return r[12]===1;
+function hitChip(r,f){if(f.slice(0,3)==='mx:'){const q=f.split(':');return mxHit(q[1],q[2],r[38],r[37],r[40]);}if(f==='V'||f==='T'||f==='Q'||f==='W')return r[37]===f;if(f==='leadsonly')return isRealLead(r);if(f==='t1')return r[34]==='L1';if(f==='t2')return r[34]==='L2';if(f==='t3')return r[34]==='L3';if(f==='t4')return r[34]==='L4';if(f==='t5')return r[34]==='L5';if(f==='hot')return r[34]==='L5'&&!r[17];if(f==='nohuman')return r[10]<0;if(f==='risk')return r[12]===1;
  if(f==='price')return r[15]===1;if(f==='dup')return r[14]>=2;if(f==='won')return r[17]===1;return true;}
 function filtered(){const t=norm(TERM);return leads().filter(o=>hitTerm(o.r,t,o.m)&&hitChip(o.r,FILTER));}
 function everywhere(t){let n=0;
@@ -1127,7 +1129,7 @@ function igBrowserShell(){
  <div class="pane"><div class="ptop">
   <input id="q" type="search" placeholder="${CH==='fb'?'ค้นหาชื่อลูกค้า Facebook…':'ค้นหาชื่อบัญชี IG (พิมพ์ @ หรือไม่พิมพ์ก็ได้)…'}" aria-label="ค้นหาชื่อบัญชี" value="${esc(TERM)}">
   <div class="chips" id="chips">
-   ${FORDER.map(k=>`<button class="chip" data-f="${k}" aria-pressed="${FILTER===k}">${FNAME[k]}</button>`).join('')}</div>
+   ${(FORDER.includes(FILTER)?FORDER:FORDER.concat([FILTER])).map(k=>`<button class="chip" data-f="${k}" aria-pressed="${FILTER===k}">${FNAME[k]}</button>`).join('')}</div>
   <p class="fdesc"><b>${FNAME[FILTER]||'ทั้งหมด'}</b> — ${fdescOf(FILTER)}</p>
   <details class="fhelp"><summary>คำอธิบายทุกแท็บ</summary><dl>${FORDER.map(k=>'<dt>'+FNAME[k]+'</dt><dd>'+fdescOf(k)+'</dd>').join('')}</dl></details>
   <label class="deeprow"><input type="checkbox" id="deep"${DEEP?' checked':''}> ค้นในเนื้อข้อความด้วย</label>
@@ -1144,7 +1146,7 @@ function renderList(){
   if(r[10]<0)fl.push('<span class="badge risk">ไม่เคยได้คุยกับ Admin</span>');
   if(r[12])fl.push('<span class="badge risk">ลูกค้าพิมพ์ค้าง ยังไม่มีคนตอบ</span>');
   if(r[14]>=2)fl.push('<span class="badge risk">ถามซ้ำ '+r[14]+'</span>');
-  if(STGN[r[37]])fl.push('<span class="badge'+(r[37]==='W'?' ok':'')+'">'+STGN[r[37]]+(r[39]?' · ฿'+nf(r[39]):'')+'</span>');
+  if(STGN[r[37]])fl.push('<span class="badge'+(r[37]==='W'?' ok':'')+'">'+STGN[r[37]]+(r[39]?' · ฿'+nf(r[39]):'')+'</span>');if(['V','T','Q','W'].includes(r[37]))fl.push('<span class="badge">แอดมินพิมพ์ตอบครั้งแรก '+(r[40]==null||r[40]<0?'ไม่มี':minTxt(r[40]))+'</span>');
   if(CH==='fb'&&r[20])fl.push('<span class="badge">จากโฆษณา</span>');
   if(CH==='fb'&&FBU[String(r[19])])fl.push('<span class="badge ok">🔗 ลิงก์ตรง</span>');
   return `<button class="prow" data-i="${gi}" aria-current="${gi===SEL}">
@@ -1177,7 +1179,7 @@ function renderChat(){
  if(r[10]<0)fl.push('<span class="badge risk">ไม่เคยได้คุยกับ Admin</span>');
  if(r[12])fl.push('<span class="badge risk">ลูกค้าพิมพ์ค้าง ยังไม่มีคนตอบ</span>');
  if(r[14]>=2)fl.push('<span class="badge risk">ถูกถามระดับชั้นซ้ำ '+r[14]+' ครั้ง</span>');
- if(STGN[r[37]])fl.push('<span class="badge'+(r[37]==='W'?' ok':'')+'">'+STGN[r[37]]+(r[39]?' · ฿'+nf(r[39]):'')+'</span>');
+ if(STGN[r[37]])fl.push('<span class="badge'+(r[37]==='W'?' ok':'')+'">'+STGN[r[37]]+(r[39]?' · ฿'+nf(r[39]):'')+'</span>');if(['V','T','Q','W'].includes(r[37]))fl.push('<span class="badge">แอดมินพิมพ์ตอบครั้งแรก '+(r[40]==null||r[40]<0?'ไม่มี':minTxt(r[40]))+'</span>');
  $('#chead').innerHTML=`<div class="who">${CH==='fb'?'':'@'}${esc(r[0]||'(ไม่มีชื่อผู้ใช้)')} ${inboxBtn(r)}${CH==='fb'?'':' <a class="inbtn ghost" href="https://instagram.com/'+encodeURIComponent(r[0])+'" target="_blank" rel="noopener">โปรไฟล์ ↗</a>'}</div>
   <div class="mt">${MLABEL[o.m]} · ทัก ${r[3]} เวลา ${String(r[4]).padStart(2,'0')}:00 (${DOWN[r[5]]}) · ลูกค้า ${r[6]} / แอดมินพิมพ์เอง ${r[7]} / สำเร็จรูป ${r[8]} · สลับถาม-ตอบ ${r[9]} ครั้ง</div>
   <div class="mt">แอดมินพิมพ์ตอบครั้งแรก <b>${dur(r[10])}</b> · รอนานสุดในแชทนี้ <b>${dur(r[11])}</b> · ${WHO[r[13]]||r[13]} · สาเหตุ: ${rz}</div>
@@ -1257,7 +1259,7 @@ function lnHit(o,t){if(!t)return true;
  return false;}
 function lnFiltered(){const t=LN_TERM.trim().toLowerCase();
  return lnRooms().filter(o=>{
-  if(LN_F!=='all'&&o.sg!==LN_F)return false;
+  if(LN_F!=='all'&&!(LN_F.slice(0,3)==='mx:'?mxHit(LN_F.split(':')[1],LN_F.split(':')[2],o.it,o.sg,o.fr):o.sg===LN_F))return false;
   if(LN_F==='risk'&&!o.hg)return false;
   if(LN_F==='won'&&o.st!=='สมัครแล้ว')return false;
   if(LN_F==='open'&&o.st!=='ยังไม่สมัคร')return false;
@@ -1265,7 +1267,7 @@ function lnFiltered(){const t=LN_TERM.trim().toLowerCase();
   return lnHit(o,t);});}
 function lnCount(f){const t=LN_TERM.trim().toLowerCase();
  return lnRooms().filter(o=>{
-  if(f!=='all')return o.sg===f&&lnHit(o,t);
+  if(f!=='all')return (f.slice(0,3)==='mx:'?mxHit(f.split(':')[1],f.split(':')[2],o.it,o.sg,o.fr):o.sg===f)&&lnHit(o,t);
   if(f==='risk')return o.hg&&lnHit(o,t);
   if(f==='won')return o.st==='สมัครแล้ว'&&lnHit(o,t);
   if(f==='open')return o.st==='ยังไม่สมัคร'&&lnHit(o,t);
@@ -1276,7 +1278,7 @@ function lnShell(){
  return `<p class="note lnnote">แชท LINE OA <b>${esc(moLabel())}</b> — ${nf(lnRooms().length)} ห้อง พร้อมบทสนทนาเต็มทุกข้อความ${multi?' · <b>โหมดทุกเดือนรวมกัน</b> โหลดข้อมูลทั้ง '+lineMonths().length+' เดือน ครั้งแรกจึงช้ากว่าปกติ · ห้องเดียวกันที่คุยหลายเดือนจะขึ้นหนึ่งรายการต่อหนึ่งเดือน (ดูป้ายเดือนที่แต่ละรายการ)':''} · <b>เขียว</b> = แอดมินตัวจริง (มีชื่อกำกับ) · <b>เทา</b> = บอทตอบอัตโนมัติ · เวลาตอบนับเฉพาะแอดมินตัวจริง · ทุกห้องกดปุ่ม <b>เปิดห้องแชทนี้</b> เข้าห้องจริงใน LINE OA Manager ได้ทันที (ต้องล็อกอิน LINE Business ID อยู่) · <a href="${SHEET_LINE}" target="_blank" rel="noopener">เปิดสเปรดชีตต้นทาง ↗</a></p>
  <div class="md"><div class="pane"><div class="ptop">
   <input id="lnq" type="search" placeholder="ค้นหาชื่อลูกค้า หรือชื่อแอดมิน…" aria-label="ค้นหา" value="${esc(LN_TERM)}">
-  <div class="chips" id="lnchips">${LN_FORDER.map(k=>`<button class="chip" data-f="${k}" aria-pressed="${LN_F===k}">${LN_FNAME[k]} (${nf(lnCount(k))})</button>`).join('')}</div>
+  <div class="chips" id="lnchips">${(LN_FORDER.includes(LN_F)?LN_FORDER:LN_FORDER.concat([LN_F])).map(k=>`<button class="chip" data-f="${k}" aria-pressed="${LN_F===k}">${LN_FNAME[k]} (${nf(lnCount(k))})</button>`).join('')}</div>
   <p class="fdesc"><b>${LN_FNAME[LN_F]}</b> — ${LN_FDESC[LN_F]}</p>
   <details class="fhelp"><summary>คำอธิบายทุกแท็บ</summary><dl>${LN_FORDER.map(k=>'<dt>'+LN_FNAME[k]+'</dt><dd>'+LN_FDESC[k]+'</dd>').join('')}</dl></details>
   <label class="deeprow"><input type="checkbox" id="lndeep"${LN_DEEP?' checked':''}> ค้นในเนื้อข้อความด้วย</label>
@@ -1293,7 +1295,7 @@ function lnRenderList(){
   if(o.hg)fl.push('<span class="badge risk">ลูกค้าพิมพ์ค้าง ยังไม่มีคนตอบ</span>');
   if(STGN[o.sg])fl.push('<span class="badge'+(o.sg==='W'?' ok':'')+'">'+STGN[o.sg]+(o.rv?' · ฿'+nf(o.rv):'')+'</span>');
   if(lineMonths().length>1)fl.push('<span class="badge">'+(MSHORT[o._m]||o._m||'')+'</span>');
-  fl.push('<span class="badge">ตอบครั้งแรก '+dur(o.r1)+'</span>');
+  fl.push('<span class="badge">แอดมินพิมพ์ตอบครั้งแรก '+(o.fr==null||o.fr<0?'ไม่มี':minTxt(o.fr))+'</span>');
   (o.ad||[]).slice(0,3).forEach(a=>fl.push('<span class="badge">👤 '+esc(a)+'</span>'));
   return `<button class="prow" data-i="${gi}" aria-current="${gi===LN_SEL}">
    <span class="nm">${esc(o.n||'(ไม่มีชื่อ)')}</span>
@@ -1719,11 +1721,82 @@ function renderV4Adm(){
  </tbody></table></div>
  <p class="note" style="margin-top:9px">ห้องที่ตอบ = ห้องที่แอดมินคนนั้นพิมพ์อย่างน้อย 1 ข้อความ (ห้องเดียวอาจมีหลายคน) · ส่งราคา = ยกให้คนแรกที่ส่งราคาในห้อง · ปิดได้ / ยอดโอน = ยกให้แอดมินคนสุดท้ายที่พิมพ์ก่อนสลิปเข้า${ks.length>1?' · รวม '+ks.length+' เดือน ห้องที่คุยหลายเดือนนับแยกตามเดือน':''} · Facebook / Instagram แยกรายคนไม่ได้ เพราะ Meta ไม่บอกว่าแอดมินคนไหนตอบ</p>`;}
 
+
+/* ---------- v4: reply speed ---------- */
+const SPB=['ภายใน 5 นาที','5–60 นาที','ช้ากว่า 60 นาที','ไม่มีแอดมินพิมพ์ตอบ'];
+const SPC=['var(--leaf)','var(--fb)','var(--warn)','var(--risk)'];
+const EDG=AGG.v4edges||[];
+const INTN={A:'A · ลีดชัดเจน',B:'B · ลีดทั่วไป',C:'C · ทักมาแล้วหาย'};
+function spBucket(fr){return fr==null||fr<0?3:(fr<=5?0:(fr<=60?1:2));}
+function rtSum(chs,ks){const o={bins:new Array(EDG.length+1).fill(0),b:[0,0,0,0],mx:{A:[[0,0],[0,0],[0,0],[0,0]],B:[[0,0],[0,0],[0,0],[0,0]],C:[[0,0],[0,0],[0,0],[0,0]]},n:0};
+ for(const c of chs)for(const k of ks){const x=((V4[c]||{})[k]||{}).rt;if(!x)continue;o.n++;
+  x.bins.forEach((v,i)=>o.bins[i]+=v);x.b.forEach((v,i)=>o.b[i]+=v);
+  for(const g of 'ABC')for(let i=0;i<4;i++){o.mx[g][i][0]+=x.mx[g][i][0];o.mx[g][i][1]+=x.mx[g][i][1];}}
+ return o.n?o:null;}
+function rtQuant(o,q){const tot=o.bins.reduce((a,b)=>a+b,0);if(!tot)return null;let need=tot*q,acc=0;
+ for(let i=0;i<o.bins.length;i++){if(acc+o.bins[i]>=need){const lo=i?EDG[i-1]:0,hi=i<EDG.length?EDG[i]:EDG[EDG.length-1]*2;return lo+(hi-lo)*((need-acc)/Math.max(1,o.bins[i]));}acc+=o.bins[i];}
+ return EDG[EDG.length-1];}
+function minTxt(m){if(m==null)return '—';if(m<1)return 'ไม่ถึง 1 นาที';if(m<60)return Math.round(m)+' นาที';if(m<1440)return (Math.round(m/6)/10)+' ชม.';return (Math.round(m/144)/10)+' วัน';}
+function spGo(ch,g,b){
+ const key='mx:'+g+':'+b, lab=(INTN[g]||'ทุกกลุ่ม')+' · '+SPB[b];
+ const desc='มาจากตารางความเร็วตอบ: แชทกลุ่ม <b>'+(INTN[g]||'ทุกกลุ่ม')+'</b> ที่แอดมินพิมพ์ตอบครั้งแรก <b>'+SPB[b]+'</b> — '+moLabel();
+ FNAME[key]=lab;STGD[key]=desc;LN_FNAME[key]=lab;LN_FDESC[key]=desc;
+ if(ch==='line'){LN_F=key;LN_PAGE=0;LN_SEL=0;LN_TERM='';}else{FILTER=key;PAGE=0;SEL=0;TERM='';}
+ VIEW='raw';$('#vseg').querySelectorAll('button').forEach(x=>x.setAttribute('aria-pressed',String(x.dataset.v===VIEW)));
+ refresh();window.scrollTo({top:0,behavior:'smooth'});}
+function mxHit(g,b,it,sg,fr){if(!['V','T','Q','W'].includes(sg))return false;if(g!=='*'&&it!==g)return false;return spBucket(fr)===+b;}
+function renderV4Speed(){
+ const el=$('#v4s');$('#v4sscope').textContent=CHN[CH]+' · '+moLabel();
+ const chs=v4chs();
+ /* 1) month table */
+ const ks=Array.from(new Set([].concat(...chs.map(c=>keysOf(c)||[])))).sort();
+ const sel=new Set(M==='all'?[]:scopeMonths());
+ const cols=chs.filter(c=>(keysOf(c)||[]).length);
+ const cellsFor=o=>{if(!o)return '<td class="n">—</td><td class="n">—</td><td class="n">—</td><td class="n">—</td>';const n=o.b.reduce((a,b)=>a+b,0);
+  return `<td class="n"><b>${minTxt(rtQuant(o,.5))}</b></td><td class="n">${pctS(o.b[0],n)}</td><td class="n">${pctS(o.b[2],n)}</td><td class="n">${pctS(o.b[3],n)}<div class="nsm">n=${nf(n)}</div></td>`;};
+ const scopeRow=`<tr style="background:var(--sunk)"><td><b>${esc(moLabel())}</b><div class="nsm">ช่วงที่เลือกด้านบน</div></td>${cols.map(c=>cellsFor(rtSum([c],scopeOf(keysOf(c))))).join('')}</tr>`;
+ const mrows=ks.slice().reverse().map(k=>`<tr${sel.has(k)?' style="background:var(--sunk)"':''}><td>${MLABEL[k]||k}</td>${cols.map(c=>cellsFor((keysOf(c)||[]).includes(k)?rtSum([c],[k]):null)).join('')}</tr>`).join('');
+ const t1=`<div class="tw"><table><thead><tr><th rowspan="2">เดือน</th>${cols.map(c=>`<th colspan="4" style="text-align:center">${CHN[c]}</th>`).join('')}</tr>
+  <tr>${cols.map(()=>'<th class="n">ค่ากลาง</th><th class="n">ภายใน 5 นาที</th><th class="n">ช้ากว่า 60 นาที</th><th class="n">ไม่มีแอดมินพิมพ์ตอบ</th>').join('')}</tr></thead>
+  <tbody>${scopeRow}${mrows}</tbody></table></div>`;
+ /* 2) quality x speed matrix for the selected scope */
+ const all=rtSum(chs,[].concat(...chs.map(c=>scopeOf(keysOf(c)))).filter((v,i,a)=>a.indexOf(v)===i));
+ const one=chs.length===1;
+ let t2='<div class="empty">ไม่มีข้อมูลในช่วงที่เลือก</div>';
+ if(all){
+  const mx=all.mx, rowTot=g=>mx[g].reduce((t,x)=>[t[0]+x[0],t[1]+x[1]],[0,0]);
+  const colTot=i=>['A','B','C'].reduce((t,g)=>[t[0]+mx[g][i][0],t[1]+mx[g][i][1]],[0,0]);
+  const grand=['A','B','C'].reduce((t,g)=>{const r=rowTot(g);return [t[0]+r[0],t[1]+r[1]];},[0,0]);
+  const cell=(x,g,b,base)=>{const [n,w]=x;if(!n)return '<td class="n"><span class="nsm">—</span></td>';
+   const r=w*100/n, low=n<100, best=!low&&base&&r>=base*1.25;
+   const inner=`<div style="font-family:'IBM Plex Mono',monospace;font-size:17px;font-weight:600">${Math.round(r*10)/10}%</div><div class="nsm">ปิด ${nf(w)} จาก ${nf(n)} แชท</div>${low?'<div class="nsm">แชทน้อย อย่าเพิ่งสรุป</div>':''}`;
+   const st=`style="${best?'background:var(--leaf-soft);':''}${low?'opacity:.6;':''}"`;
+   return one&&g?`<td class="n" ${st}><button class="mxbtn" data-g="${g}" data-b="${b}" title="กดเพื่อดูรายชื่อแชทในช่องนี้">${inner}</button></td>`:`<td class="n" ${st}>${inner}</td>`;};
+  const RN={A:['A · ลีดชัดเจน','บอกชั้นเรียนและถามคอร์ส/ราคาเอง'],B:['B · ลีดทั่วไป','พิมพ์คุยเอง แต่ข้อมูลยังไม่ครบ'],C:['C · ทักมาแล้วหาย','กดปุ่ม / พิมพ์สั้นแล้วเงียบ']};
+  const body=['A','B','C'].map(g=>{const rt=rowTot(g),base=rt[0]?rt[1]*100/rt[0]:0;
+   return `<tr><td style="min-width:170px"><b>${RN[g][0]}</b><div class="nsm">${RN[g][1]} · ${pctS(rt[0],grand[0])} ของแชท</div></td>${mx[g].map((x,b)=>cell(x,g,b,base)).join('')}${cell(rt,null,null,0)}</tr>`;}).join('');
+  const foot=`<tr style="background:var(--sunk)"><td><b>รวมทุกกลุ่ม</b></td>${[0,1,2,3].map(i=>cell(colTot(i),null,null,0)).join('')}${cell(grand,null,null,0)}</tr>
+   <tr><td class="nsm">สัดส่วนแชท</td>${[0,1,2,3].map(i=>`<td class="n nsm">${pctS(colTot(i)[0],grand[0])}</td>`).join('')}<td class="n nsm">100%</td></tr>`;
+  t2=`<div class="tw"><table><thead><tr><th>ลีดชัดเจนแค่ไหน × แอดมินพิมพ์ตอบครั้งแรก</th>${SPB.map((s,i)=>`<th class="n" style="color:${SPC[i]}">${s}</th>`).join('')}<th class="n">รวมทั้งแถว</th></tr></thead><tbody>${body}${foot}</tbody></table></div>`;}
+ el.innerHTML=`<div class="warnbox" style="margin-bottom:14px;line-height:1.75">
+  <b>ความเร็วตอบ</b> = เวลาจาก<b>ข้อความแรกของลูกค้า</b>ในเดือนนั้น ถึง<b>ข้อความแรกที่แอดมินพิมพ์เอง</b>หลังจากนั้น — ไม่นับข้อความตอบกลับอัตโนมัติ ข้อความสำเร็จรูป บอท และป้ายระบบของ Meta · ยังไม่หักเวลานอกทำการ<br>
+  <b>ค่ากลาง</b> = ครึ่งหนึ่งของแชทได้คำตอบเร็วกว่านี้ (ใช้แทนค่าเฉลี่ย เพราะแชทที่ค้างข้ามวันไม่กี่แชทจะดึงค่าเฉลี่ยจนเพี้ยน) · คำนวณจากช่วงเวลาที่จัดกลุ่มไว้ จึงเป็นค่าประมาณ<br>
+  <b>n</b> = จำนวนแชทที่ใช้คำนวณตัวเลขช่องนั้น — ยิ่ง n มาก ตัวเลขยิ่งเชื่อถือได้ ช่องที่ n ต่ำกว่า 100 จะเป็นสีจาง<br>
+  <b>ไม่มีแอดมินพิมพ์ตอบ</b> = ลูกค้าได้แค่ข้อความอัตโนมัติ/สำเร็จรูป หรือไม่ได้อะไรเลย</div>
+ <h3 style="font-size:15px;margin:4px 0 8px">1 · ตอบเร็วแค่ไหน รายเดือน แยกช่องทาง</h3>${t1}
+ <p class="note" style="margin-top:8px">นับเฉพาะแชทสนใจคอร์ส (4 ขั้นในกรวย) · แถวบนสุดคือช่วงที่เลือก · Instagram มีแชทน้อย ตัวเลขแกว่งง่าย</p>
+ <h3 style="font-size:15px;margin:20px 0 8px">2 · ตอบเร็วแล้วปิดได้มากขึ้นไหม · ${esc(moLabel())}</h3>
+ <p class="note" style="margin-bottom:8px">ตัวเลขใหญ่ในแต่ละช่อง = <b>% ที่ปิดการขายได้</b> ของแชทในช่องนั้น · ใต้ตัวเลขบอกว่าปิดได้กี่แชทจากทั้งหมดกี่แชท (นี่คือ n) · ช่องสีเขียว = ปิดได้สูงกว่าค่าเฉลี่ยของแถวตัวเองชัดเจน (n ≥ 100) · ${one?'<b>กดที่ตัวเลขเพื่อเปิดรายชื่อแชทในช่องนั้น</b>':'เลือกช่องทางเดียวด้านบนเพื่อกดดูรายชื่อแชทในแต่ละช่อง'}</p>
+ ${t2}
+ <p class="note" style="margin-top:9px"><b>อ่านตามแถว</b> — ในกลุ่มลูกค้าเดียวกัน ถ้าช่องซ้าย (ตอบเร็ว) ปิดได้มากกว่าช่องขวา แปลว่าความเร็วตอบมีผลจริง → แก้ที่การตอบแชท · <b>อ่านแถวรวม “สัดส่วนแชท”</b> — ถ้าช่อง “ไม่มีแอดมินพิมพ์ตอบ” สูง แปลว่ามีลูกค้าจำนวนมากไม่เคยได้คุยกับคนจริง · <b>ดูสัดส่วนแถว C</b> — ถ้าสูง แปลว่าโฆษณาพาคนไม่ตั้งใจเข้ามา → แก้ที่กลุ่มเป้าหมายโฆษณา</p>`;
+ el.querySelectorAll('.mxbtn').forEach(b=>b.addEventListener('click',()=>spGo(CH,b.dataset.g,b.dataset.b)));
+}
+
 /* ---------- orchestration ---------- */
-function renderOverview(){renderV4Cards();renderV4MoM();renderV4Funnel();renderV4Intent();renderV4Cmp();renderV4Adm();}
+function renderOverview(){renderV4Cards();renderV4MoM();renderV4Funnel();renderV4Speed();renderV4Intent();renderV4Cmp();renderV4Adm();}
 function applyView(){
  const ov=VIEW==='ov';
- ['s-v4k','s-v4m','s-v4f','s-v4i','s-v4c','s-v4a'].forEach(id=>{const e=document.getElementById(id);if(e)e.hidden=!ov;});
+ ['s-v4k','s-v4m','s-v4f','s-v4s','s-v4i','s-v4c','s-v4a'].forEach(id=>{const e=document.getElementById(id);if(e)e.hidden=!ov;});
  $('#s-raw').hidden=ov;
  if(ov)renderOverview();else if(CH==='line')lnRenderRaw();else renderRaw();
 }
