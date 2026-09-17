@@ -335,7 +335,9 @@ footer{border-top:1px solid var(--line);padding:20px 0 42px;color:var(--ink-3);f
  <section id="s-v4m"><div class="shead"><h2>เทียบเดือนต่อเดือน</h2><span class="lab" id="v4mscope"></span></div><div id="v4m"></div></section>
  <section id="s-v4f"><div class="shead"><h2>แยกแชททั้งหมด</h2><span class="lab" id="v4fscope"></span></div><div id="v4f"></div></section>
  <section id="s-v4s"><div class="shead"><h2>ความเร็วตอบแชท</h2><span class="lab" id="v4sscope"></span></div><div id="v4s"></div></section>
- <section id="s-v4a"><div class="shead"><h2>ผลงานรายแอดมิน · LINE OA</h2><span class="lab" id="v4ascope"></span></div><div id="v4a"></div></section>
+ <section id="s-v4a"><div class="shead"><h2>ภาระงานรายแอดมิน · LINE OA</h2><span class="lab" id="v4ascope"></span></div><div id="lnwork"></div></section>
+ <section id="s-v4h"><div class="shead"><h2>ช่วงเวลาที่ลูกค้าทักเข้ามา · LINE OA</h2><span class="lab">เวลาไทย</span></div><div id="lnhour"></div></section>
+ <section id="s-v4t"><div class="shead"><h2>แท็กที่ทีมติดไว้ · LINE OA</h2><span class="lab" id="v4tscope"></span></div><div id="lntag"></div></section>
  <section id="s-raw"><div class="shead"><h2>ข้อมูลดิบ</h2><span class="lab" id="rawscope"></span></div><div id="raw"></div></section>
 </div>
 <footer><div class="wrap">
@@ -1353,18 +1355,19 @@ function lnRenderRaw(){
  const lndl=$('#lndlcsv'); if(lndl)lndl.addEventListener('click',exportLine);
  lnRenderList();lnRenderChat();}
 function lnBar(lab,v,max,extra){return `<div class="lnbar"><span>${esc(lab)}</span><span class="track"><span class="t" style="width:${max?Math.max(2,Math.round(v*100/max)):0}%"></span></span><span>${nf(v)}${extra||''}</span></div>`;}
-function lnPanels(a){
+function lnPanels(a,ks){
+ const rl=ks?rangeLabel(ks):moLabel(), dn=(ks?ks.length>1:false)?' · <b>โหมดหลายเดือนรวมกัน</b> นับห้องแยกตามเดือน ห้องเดียวกันที่คุยหลายเดือนจึงถูกนับซ้ำ':lnDupNote();
  const w=$('#lnwork'), hh=$('#lnhour'), tg=$('#lntag');
  if(!a){if(w)w.innerHTML='';if(hh)hh.innerHTML='';if(tg)tg.innerHTML='';return;}
  const adm=a.admins||[], hrs=a.hours||[], tags=a.tags||[];
  const amax=adm.reduce((m,x)=>Math.max(m,x[1]),0);
  const hmax=hrs.reduce((m,x)=>Math.max(m,x[1]),0);
  const tmax=tags.reduce((m,x)=>Math.max(m,x[1]),0);
- if(w)w.innerHTML=`<p class="note">จำนวนห้องที่แอดมินแต่ละคนเข้าไปตอบใน<b>${esc(moLabel())}</b> (ห้องหนึ่งมีได้หลายคน) — ตัวเลขท้ายแถวคือจำนวนข้อความที่พิมพ์เอง${lnDupNote()}</p>
+ if(w)w.innerHTML=`<p class="note">จำนวนห้องที่แอดมินแต่ละคนเข้าไปตอบใน<b>${esc(rl)}</b> (ห้องหนึ่งมีได้หลายคน) — ตัวเลขท้ายแถวคือจำนวนข้อความที่พิมพ์เอง${dn}</p>
   <div class="lnwrap">${adm.map(x=>lnBar(x[0],x[1],amax,' ห้อง · '+nf(x[2])+' ข้อความ')).join('')||'<p class="note">ไม่มีข้อมูล</p>'}</div>`;
  if(hh)hh.innerHTML=`<p class="note">ช่วงเวลาที่ลูกค้าพิมพ์เข้ามาใน LINE OA (เวลาไทย) — ใช้จัดกะแอดมินได้</p>
   <div class="lnwrap">${hrs.filter(x=>x[1]>0).map(x=>lnBar(String(x[0]).padStart(2,'0')+':00',x[1],hmax,' ข้อความ')).join('')||'<p class="note">ไม่มีข้อมูล</p>'}</div>`;
- if(tg)tg.innerHTML=`<p class="note">แท็กที่ทีมติดไว้เองใน LINE OA — ใช้เป็นตัวชี้ความสนใจคอร์สได้เลย ไม่ต้องเดาจากข้อความ${lnDupNote()}</p>
+ if(tg)tg.innerHTML=`<p class="note">แท็กที่ทีมติดไว้เองใน LINE OA — ใช้เป็นตัวชี้ความสนใจคอร์สได้เลย ไม่ต้องเดาจากข้อความ${dn}</p>
   <div class="lnwrap">${tags.map(x=>lnBar(x[0],x[1],tmax,' ห้อง')).join('')||'<p class="note">ไม่มีข้อมูล</p>'}</div>`;
 }
 function lnOverview(){
@@ -1724,16 +1727,12 @@ function renderV4Cmp(){
  <p class="note" style="margin-top:9px">นิยามเดียวกันทั้งสามช่องทาง · ช่องทางที่ไม่มีข้อมูลในช่วงนี้ขึ้น “—” · Instagram เก็บเฉพาะแชทที่ถามคอร์ส · LINE มีนักเรียนเดิมที่สมัครต่อปนอยู่ อัตราปิดจึงสูงกว่าโดยธรรมชาติ · คนเดียวกันที่ทักหลายช่องทางถูกนับแยก</p>`;}
 
 function renderV4Adm(){
- const sec=$('#s-v4a'),el=$('#v4a'),ks=scopeOf(LINEKEYS);
- if(!(CH==='all'||CH==='line')||!ks.length){sec.hidden=true;return;}sec.hidden=false;
- $('#v4ascope').textContent='LINE OA · '+rangeLabel(ks);
- const m={};for(const k of ks)for(const r of ((V4.line[k]||{}).adm||[])){const t=m[r[0]]=m[r[0]]||[r[0],0,0,0,0,0];for(let i=1;i<6;i++)t[i]+=r[i]||0;}
- const rows=Object.values(m).sort((a,b)=>b[4]-a[4]||b[1]-a[1]), mx=Math.max(1,...rows.map(r=>r[4]));
- el.innerHTML=`<div class="tw"><table><thead><tr><th>แอดมิน</th><th class="n">ห้องที่ตอบ</th><th class="n">ข้อความ</th><th class="n">ส่งราคา</th><th class="n">ปิดได้</th><th class="n">ปิด ÷ ห้อง</th><th class="n">ยอดโอน</th><th style="min-width:110px"></th></tr></thead><tbody>
- ${rows.map(r=>`<tr><td><b>${esc(r[0])}</b></td><td class="n">${nf(r[1])}</td><td class="n">${nf(r[5])}</td><td class="n">${nf(r[2])}</td><td class="n"><b>${nf(r[3])}</b></td><td class="n">${r[1]>=30?pctS(r[3],r[1]):'<span class="nsm">ห้องน้อยเกินไป</span>'}</td><td class="n">฿${nf(r[4])}</td><td><span style="display:block;height:8px;border-radius:4px;background:var(--ln);width:${Math.max(1,Math.round(r[4]*100/mx))}%"></span></td></tr>`).join('')}
- </tbody></table></div>
- <p class="note" style="margin-top:9px">ห้องที่ตอบ = ห้องที่แอดมินคนนั้นพิมพ์อย่างน้อย 1 ข้อความ (ห้องเดียวอาจมีหลายคน) · ส่งราคา = ยกให้คนแรกที่ส่งราคาในห้อง · ปิดได้ / ยอดโอน = ยกให้แอดมินคนสุดท้ายที่พิมพ์ก่อนสลิปเข้า${ks.length>1?' · รวม '+ks.length+' เดือน ห้องที่คุยหลายเดือนนับแยกตามเดือน':''} · Facebook / Instagram แยกรายคนไม่ได้ เพราะ Meta ไม่บอกว่าแอดมินคนไหนตอบ</p>`;}
-
+ const ks=scopeOf(LINEKEYS), show=(CH==='all'||CH==='line')&&ks.length>0;
+ ['s-v4a','s-v4h','s-v4t'].forEach(id=>{const e=document.getElementById(id);if(e)e.hidden=!show;});
+ if(!show){lnPanels(null);return;}
+ const lab='LINE OA · '+rangeLabel(ks);
+ $('#v4ascope').textContent=lab;$('#v4tscope').textContent=lab;
+ lnPanels(chSum('line',ks),ks);}
 
 /* ---------- v4: reply speed ---------- */
 const SPB=['น้อยกว่า 15 นาที','15–30 นาที','30–60 นาที','มากกว่า 60 นาที','ไม่มีแอดมินพิมพ์ตอบ'];
@@ -1799,7 +1798,7 @@ function renderV4Speed(){
 function renderOverview(){renderV4Cards();renderV4MoM();renderV4Funnel();renderV4Speed();renderV4Adm();}
 function applyView(){
  const ov=VIEW==='ov';
- ['s-v4k','s-v4m','s-v4f','s-v4s','s-v4a'].forEach(id=>{const e=document.getElementById(id);if(e)e.hidden=!ov;});
+ ['s-v4k','s-v4m','s-v4f','s-v4s','s-v4a','s-v4h','s-v4t'].forEach(id=>{const e=document.getElementById(id);if(e)e.hidden=!ov;});
  $('#s-raw').hidden=ov;
  if(ov)renderOverview();else if(CH==='line')lnRenderRaw();else renderRaw();
 }
