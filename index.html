@@ -1600,6 +1600,7 @@ function v4fmt(v,t){return v==null?'—':(t==='p'?(Math.round(v*10)/10)+'%':(t==
 function v4short(v,t){if(t==='b')return v>=1e6?(Math.round(v/1e5)/10)+'M':(v>=1e3?Math.round(v/1e3)+'k':nf(v));return v4fmt(v,t);}
 const sw=c=>`<i style="display:inline-block;width:10px;height:10px;border-radius:2px;background:${c};vertical-align:-1px;margin-right:6px"></i>`;
 
+function igNote(){const F=AGG.igfull||[],ks=scopeOf(MKEYS),part=ks.filter(k=>!F.includes(k));if(!ks.length)return '';if(!part.length)return 'Instagram เก็บครบทุกแชท';return 'Instagram '+(ks.length-part.length?rangeLabel(ks.filter(k=>F.includes(k)))+' เก็บครบทุกแชท · ':'')+rangeLabel(part)+' เก็บเฉพาะแชทที่ถามเรื่องคอร์ส (กำลังทยอยดึงใหม่)';}
 function renderV4Cards(){
  const el=$('#v4k'),o=v4now(),p=v4prev(),cmp=(p&&o&&p.n===o.n)?p:null;
  $('#v4kscope').textContent=CHN[CH]+' · '+moLabel();
@@ -1624,7 +1625,7 @@ function renderV4Cards(){
  const notes=[];
  if(p&&!cmp)notes.push(prevLabel()+'มีข้อมูลไม่ครบทุกช่องทาง จึงไม่แสดง ▲▼');
  notes.push('แชททั้งหมด = สนใจคอร์ส + เรื่องอื่น + แอดมินทักไปแต่ลูกค้าไม่ตอบ');
- if(CH==='all'||CH==='ig')notes.push('Instagram เก็บเฉพาะแชทที่ถามเรื่องคอร์ส');
+ if(CH==='all'||CH==='ig')notes.push(igNote());
  if(CH==='all'||CH==='line')notes.push('LINE มีทั้งลูกค้าใหม่และนักเรียนเดิมที่สมัครต่อ');
  notes.push('สลิปเลขอ้างอิงเดียวกันนับครั้งเดียวทุกช่องทาง');
  $('#v4knote').innerHTML=notes.join(' · ');}
@@ -1724,7 +1725,7 @@ function renderV4Cmp(){
  ${R('ปิดได้ ÷ ส่งราคาแล้ว',o=>pctS(o.W,o.Q+o.W),'ฝีมือหลังส่งราคา')}
  ${R('ยอดโอน',o=>'฿'+nf(o.rev),'')}
  </tbody></table></div>
- <p class="note" style="margin-top:9px">นิยามเดียวกันทั้งสามช่องทาง · ช่องทางที่ไม่มีข้อมูลในช่วงนี้ขึ้น “—” · Instagram เก็บเฉพาะแชทที่ถามคอร์ส · LINE มีนักเรียนเดิมที่สมัครต่อปนอยู่ อัตราปิดจึงสูงกว่าโดยธรรมชาติ · คนเดียวกันที่ทักหลายช่องทางถูกนับแยก</p>`;}
+ <p class="note" style="margin-top:9px">นิยามเดียวกันทั้งสามช่องทาง · ช่องทางที่ไม่มีข้อมูลในช่วงนี้ขึ้น “—” · ${igNote()} · LINE มีนักเรียนเดิมที่สมัครต่อปนอยู่ อัตราปิดจึงสูงกว่าโดยธรรมชาติ · คนเดียวกันที่ทักหลายช่องทางถูกนับแยก</p>`;}
 
 function renderV4Adm(){
  const ks=scopeOf(LINEKEYS), show=(CH==='all'||CH==='line')&&ks.length>0;
