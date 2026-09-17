@@ -166,7 +166,7 @@ section{margin:0 0 40px}
 .callout.info{border-left-color:var(--fb);background:var(--fb-soft)}
 
 /* kpi */
-.kpis{display:grid;grid-template-columns:repeat(auto-fill,minmax(184px,1fr));gap:11px}.k.wide{grid-column:span 2}.ksplit{display:grid;grid-template-columns:1fr 1fr;gap:10px;margin-top:10px;padding-top:10px;border-top:1px solid var(--line)}.ksplit .v2{font-family:'IBM Plex Mono',monospace;font-size:19px;font-weight:600}.ksplit .v2 small{font-size:12px;color:var(--ink-3);font-weight:500}@media(max-width:560px){.k.wide{grid-column:auto}.ksplit{grid-template-columns:1fr}}
+.kpis{display:grid;grid-template-columns:repeat(auto-fill,minmax(184px,1fr));gap:11px}.k.wide{grid-column:span 2}.ksplit{display:grid;grid-template-columns:1fr;gap:10px;margin-top:8px;padding-top:8px;border-top:1px solid var(--line)}.kdrop{margin-top:8px}.kdrop summary{cursor:pointer;list-style:none;font-size:12px;color:var(--leaf);font-weight:500}.kdrop summary::-webkit-details-marker{display:none}.kdrop summary::before{content:"\25B8 "}.kdrop[open] summary::before{content:"\25BE "}.kdrop summary:focus-visible{outline:2px solid var(--leaf);border-radius:4px}.ksplit .v2{font-family:'IBM Plex Mono',monospace;font-size:19px;font-weight:600}.ksplit .v2 small{font-size:12px;color:var(--ink-3);font-weight:500}@media(max-width:560px){.k.wide{grid-column:auto}.ksplit{grid-template-columns:1fr}}
 .k{background:var(--card);border:1px solid var(--line);border-radius:11px;padding:13px 15px;box-shadow:var(--shadow)}
 .k .lab{display:block;margin-bottom:5px}
 .k .v{font-family:"IBM Plex Mono",monospace;font-size:26px;font-weight:600;line-height:1.15;font-variant-numeric:tabular-nums}
@@ -1608,9 +1608,9 @@ function renderV4Cards(){
  /* all-channel close rate for the same period, regardless of the channel filter */
  const allc={};for(const c of ['fb','line','ig']){const x=v4sum([c],scopeOf(keysOf(c)));if(x)allc[c]=x;}
  const aL=Object.values(allc).reduce((t,x)=>t+x.L,0), aW=Object.values(allc).reduce((t,x)=>t+x.W,0), aQ=Object.values(allc).reduce((t,x)=>t+x.Q+x.W,0);
- const course=`<div class="k wide"><span class="lab">สนใจคอร์สเรียน</span><div class="v">${nf(o.L)}</div>${cmp?'<div class="d">'+ddelta(o.L,cmp.L,true)+' <span class="nsm">เทียบ'+prevLabel()+'</span></div>':''}<div class="s">${pctS(o.L,o.threads)} ของแชททั้งหมด</div>
-  <div class="ksplit"><div><span class="lab" style="color:var(--leaf)">สนใจจริง</span><div class="v2">${nf(o.Q+o.W)} <small>${pctS(o.Q+o.W,o.L)}</small></div><div class="s">คุยจนแอดมินส่งคอร์ส/ราคาให้แล้ว${cmp?' · '+dl('QW',true,true,'L'):''}</div></div>
-  <div><span class="lab" style="color:var(--warn)">ทักมาแล้วหาย</span><div class="v2">${nf(o.V+o.T)} <small>${pctS(o.V+o.T,o.L)}</small></div><div class="s">ไม่ได้สนใจจริง · กดปุ่ม/พิมพ์สั้นแล้วเงียบ ${nf(o.V)} · คุยแต่ไม่ถึงราคา ${nf(o.T)}${cmp?' · '+dl('VT',false,true,'L'):''}</div></div></div></div>`;
+ const course=`<div class="k"><span class="lab">สนใจคอร์สเรียน</span><div class="v">${nf(o.L)}</div>${cmp?'<div class="d">'+ddelta(o.L,cmp.L,true)+' <span class="nsm">เทียบ'+prevLabel()+'</span></div>':''}<div class="s">${pctS(o.L,o.threads)} ของแชททั้งหมด</div>
+  <details class="kdrop"><summary>สนใจจริง ${nf(o.Q+o.W)} · ทักมาแล้วหาย ${nf(o.V+o.T)}</summary><div class="ksplit"><div><span class="lab" style="color:var(--leaf)">สนใจจริง</span><div class="v2">${nf(o.Q+o.W)} <small>${pctS(o.Q+o.W,o.L)}</small></div><div class="s">คุยจนแอดมินส่งคอร์ส/ราคาให้แล้ว${cmp?' · '+dl('QW',true,true,'L'):''}</div></div>
+  <div><span class="lab" style="color:var(--warn)">ทักมาแล้วหาย</span><div class="v2">${nf(o.V+o.T)} <small>${pctS(o.V+o.T,o.L)}</small></div><div class="s">ไม่ได้สนใจจริง · กดปุ่ม/พิมพ์สั้นแล้วเงียบ ${nf(o.V)} · คุยแต่ไม่ถึงราคา ${nf(o.T)}${cmp?' · '+dl('VT',false,true,'L'):''}</div></div></div></details></div>`;
  el.innerHTML=
   K('','แชททั้งหมด',nf(o.threads),'สนใจคอร์ส '+nf(o.L)+' · เรื่องอื่น '+nf(oth)+' · แอดมินทักไปแต่ลูกค้าไม่ตอบ '+nf(o.X),dl('threads',null))+
   course+
