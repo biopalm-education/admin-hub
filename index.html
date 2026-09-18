@@ -265,7 +265,39 @@ footer{border-top:1px solid var(--line);padding:20px 0 42px;color:var(--ink-3);f
  border-radius:8px;padding:8px 11px;margin:0 0 12px}
 .gerr.on{display:block}
 .gft{font-size:11.5px;line-height:1.6;color:var(--ink-3);margin:18px 0 0;text-align:center}
-.spbig{font-family:'IBM Plex Mono',monospace;font-variant-numeric:tabular-nums;font-size:16px;font-weight:600;line-height:1.3}.spsm{font-family:'IBM Plex Mono',monospace;font-size:11px;color:var(--ink-3);white-space:nowrap}.spdim{opacity:.55}.sphot{background:color-mix(in srgb,var(--risk) 16%,transparent)}.spgood{background:var(--leaf-soft)}.sptot td,.sptotc{background:var(--sunk)}.sprk1{background:color-mix(in srgb,var(--risk) 42%,transparent)}.sprk2{background:color-mix(in srgb,var(--risk) 26%,transparent)}.sprk3{background:color-mix(in srgb,var(--risk) 12%,transparent)}.sprank{display:inline-block;font-size:10.5px;font-weight:600;border-radius:999px;padding:0 7px;margin-left:6px;background:var(--risk);color:var(--card);vertical-align:2px;font-family:inherit}tr.spbrk td{border-top:2px solid var(--line-2)}
+/* แท็กปะทะโน้ต */
+.ntnote{font-size:13px;color:var(--ink-2);margin:12px 0 18px}
+.ntblock{margin:0 0 18px}
+.ntmo{font-size:14px;font-weight:600;margin:0 0 9px}
+.ntgrid{display:grid;grid-template-columns:118px 1fr 1fr;gap:8px}
+.nth{font-family:"IBM Plex Mono",monospace;font-size:11px;letter-spacing:.07em;text-transform:uppercase;color:var(--ink-3);display:flex;align-items:flex-end;padding:0 0 4px 2px}
+.ntr{display:flex;align-items:center;justify-content:flex-end;text-align:right;padding-right:9px;font-family:"IBM Plex Mono",monospace;font-size:11px;letter-spacing:.05em;color:var(--ink-3);line-height:1.35}
+.ntc{background:var(--card);border:1px solid var(--line);border-top:3px solid var(--ink-3);border-radius:10px;padding:13px 14px 11px;display:flex;flex-direction:column;min-height:118px}
+.ntc[role=button]{cursor:pointer}
+.ntc[role=button]:hover,.ntc[role=button]:focus-visible{box-shadow:var(--shadow);outline:none;border-color:var(--ink-3)}
+.ntn{font-family:"IBM Plex Mono",monospace;font-weight:600;font-size:30px;line-height:1;font-variant-numeric:tabular-nums}
+.ntt{font-weight:600;font-size:13.5px;margin:8px 0 3px;line-height:1.35}
+.ntd{font-size:12px;color:var(--ink-3);line-height:1.45;margin-top:auto;padding-top:5px}
+.ntgo{font-family:"IBM Plex Mono",monospace;font-size:10.5px;letter-spacing:.05em;color:var(--ink-3);padding-top:6px}
+.ntc.ok{border-top-color:var(--leaf)}.ntc.ok .ntn{color:var(--leaf)}
+.ntc.warn{border-top-color:var(--warn);background:var(--warn-soft)}.ntc.warn .ntn{color:var(--warn)}
+.ntc.crit{border-top-color:var(--risk);background:var(--risk-soft)}.ntc.crit .ntn{color:var(--risk)}
+.ntc.calm{background:var(--sunk)}.ntc.calm .ntn{color:var(--ink-3)}
+.ntdet{border:1px solid var(--line);border-radius:10px;background:var(--card);margin:0 0 12px;padding:0}
+.ntdet>summary{cursor:pointer;padding:12px 15px;font-size:13.5px;list-style:none}
+.ntdet>summary::-webkit-details-marker{display:none}
+.ntdet>summary::before{content:'▸ ';color:var(--ink-3)}
+.ntdet[open]>summary::before{content:'▾ '}
+.ntdet>*:not(summary){margin:0 15px 14px}
+.nthd{font-size:13px;font-weight:600;margin:14px 15px 8px;padding-left:9px;border-left:3px solid var(--line-2)}
+.nthd.crit{border-left-color:var(--risk)}
+.ntcats{display:flex;flex-wrap:wrap;gap:6px;margin:10px 15px 12px}
+.ntq{font-size:12px;color:var(--ink-2);max-width:30ch}
+.ntold{color:var(--ink-3)}
+.ntlink{font-family:"IBM Plex Mono",monospace;font-size:11.5px;white-space:nowrap}
+td.mono{font-family:"IBM Plex Mono",monospace;font-size:12px;white-space:nowrap}
+@media(max-width:700px){.ntgrid{grid-template-columns:1fr}.nth{display:none}.ntr{justify-content:flex-start;text-align:left;padding:12px 0 0}.ntc{min-height:0}}
+ .spbig{font-family:'IBM Plex Mono',monospace;font-variant-numeric:tabular-nums;font-size:16px;font-weight:600;line-height:1.3}.spsm{font-family:'IBM Plex Mono',monospace;font-size:11px;color:var(--ink-3);white-space:nowrap}.spdim{opacity:.55}.sphot{background:color-mix(in srgb,var(--risk) 16%,transparent)}.spgood{background:var(--leaf-soft)}.sptot td,.sptotc{background:var(--sunk)}.sprk1{background:color-mix(in srgb,var(--risk) 42%,transparent)}.sprk2{background:color-mix(in srgb,var(--risk) 26%,transparent)}.sprk3{background:color-mix(in srgb,var(--risk) 12%,transparent)}.sprank{display:inline-block;font-size:10.5px;font-weight:600;border-radius:999px;padding:0 7px;margin-left:6px;background:var(--risk);color:var(--card);vertical-align:2px;font-family:inherit}tr.spbrk td{border-top:2px solid var(--line-2)}
 .mxbtn{all:unset;cursor:pointer;display:block;width:100%;text-align:right;border-radius:6px;padding:2px 4px}.mxbtn:hover{outline:1px solid var(--leaf)}.mxbtn:focus-visible{outline:2px solid var(--leaf)}
 
 /* ---- BioPalm CI theme (light only) ---- */
@@ -350,6 +382,7 @@ body{background:
  <section id="s-v4k"><div class="shead"><h2>Metric</h2><span class="lab" id="v4kscope"></span></div><div class="kpis" id="v4k"></div><p class="note" id="v4knote" style="margin-top:10px"></p></section>
  <section id="s-v4m"><div class="shead"><h2>เทียบเดือนต่อเดือน</h2><span class="lab" id="v4mscope"></span></div><div id="v4m"></div></section>
  <section id="s-v4f"><div class="shead"><h2>แยกแชททั้งหมด</h2><span class="lab" id="v4fscope"></span></div><div id="v4f"></div></section>
+ <section id="s-v4n"><div class="shead"><h2>แท็กปะทะโน้ต · LINE OA</h2><span class="lab" id="v4nscope"></span></div><div id="v4n"></div></section>
  <section id="s-v4s"><div class="shead"><h2>ความเร็วตอบแชท</h2><span class="lab" id="v4sscope"></span></div><div id="v4s"></div></section>
  <section id="s-v4a"><div class="shead"><h2>ภาระงานรายแอดมิน · LINE OA</h2><span class="lab" id="v4ascope"></span></div><div id="lnwork"></div></section>
  <section id="s-v4h"><div class="shead"><h2>ช่วงเวลาที่ลูกค้าทักเข้ามา · LINE OA</h2><span class="lab">เวลาไทย</span></div><div id="lnhour"></div></section>
@@ -1811,11 +1844,123 @@ function renderV4Speed(){
  <details class="fhelp" style="margin-top:10px"><summary>สรุป 3 อันดับที่ตอบช้าที่สุด และหมายเหตุ</summary><div class="note" style="margin-top:8px;display:grid;gap:6px;background:var(--card);border:1px solid var(--line);border-radius:10px;padding:12px 14px">${rkLines}<div><b>หมายเหตุ</b> — จัดอันดับจาก<b>จำนวน</b>แชทที่แอดมินพิมพ์ตอบครั้งแรกช้ากว่า 60 นาที (ไม่ใช่ %) เพื่อให้เห็นชั่วโมงที่ลูกค้ารอนานมากที่สุดจริง · ชั่วโมงที่คนทักน้อยอาจมี % สูงแต่จำนวนน้อย จึงไม่ขึ้นอันดับ · เส้นคั่นหนาที่ 09.00 และ 21.00 = เปลี่ยนช่วงเวลาทำงาน · ยังไม่หักวันหยุด · ข้อความสำเร็จรูปที่แอดมินกดส่งเองนับเป็น “ไม่มีแอดมินพิมพ์ตอบ” เพราะแยกจากข้อความอัตโนมัติไม่ได้</div></div></details>`;
 }
 
+/* ---------- แท็กปะทะโน้ต (LINE OA notes vs tags) ---------- */
+const NT=()=>(AGG.notes||{});
+const ntMonths=()=>scopeOf(LINEKEYS).filter(k=>(NT().months||{})[k]);
+const ntLink=id=>'https://chat.line.biz/'+(NT().bot||LINEBOT)+'/chat/'+id;
+const ntNm=s=>(s==null?'':String(s)).replace(/[&<>"]/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;'}[c]));
+const ntOpen=id=>`<a class="ntlink" href="${ntLink(id)}" target="_blank" rel="noopener">เปิด ↗</a>`;
+const ntAdm=a=>a==='OLD'?'<span class="ntold">แอดมินเก่า</span>':ntNm(a);
+function ntGo(id){const e=document.getElementById(id);if(e){e.open=true;e.scrollIntoView({behavior:'smooth',block:'start'});}}
+
+function renderV4Notes(){
+ const el=$('#v4n'), sec=document.getElementById('s-v4n');
+ const ks=ntMonths(), show=(CH==='all'||CH==='line')&&ks.length>0;
+ if(sec)sec.hidden=!show;
+ if(!show){if(el)el.innerHTML='';return;}
+ $('#v4nscope').textContent=CHN[CH]+' · '+moLabel();
+ const N=NT(), P=N.parse||{};
+
+ /* 1 — monthly registration summary */
+ const sumRow=k=>{const d=N.months[k];
+  return `<tr><td class="name">${MLABEL[k]||k}</td><td class="n">${nf(d.rooms)}</td>`+
+   `<td class="n"><b>${nf(d.reg.rooms)}</b><div class="spsm">${nf(d.reg.notes)} ใบ</div></td>`+
+   `<td class="n">${nf(d.reg.amt)}</td>`+
+   `<td class="n">${nf(d.tagged)}<div class="spsm">ไม่มีวันที่</div></td>`+
+   `<td class="n">${nf(d.slip)}</td>`+
+   `<td class="n">${pctS(d.reg.rooms,d.rooms)}</td>`+
+   `<td class="n">${nf(d.reg.byCreated)}<div class="spsm">${d.reg.byCreated-d.reg.notes>=0?'+':''}${d.reg.byCreated-d.reg.notes}</div></td></tr>`;};
+ const t1=`<div class="tw"><table><thead><tr><th>เดือน</th><th class="n">ห้องทั้งหมด</th>`+
+  `<th class="n">สมัครจากโน้ต<div class="spsm" style="font-weight:400">นับด้วยวันที่ในโน้ต</div></th>`+
+  `<th class="n">ยอดรวมในโน้ต (บาท)</th><th class="n">ติดแท็กสมัครแล้ว</th>`+
+  `<th class="n">ปิดการขายจากสลิป</th><th class="n">อัตราสมัคร</th>`+
+  `<th class="n">ถ้านับด้วย createdAt</th></tr></thead><tbody>${ks.map(sumRow).join('')}</tbody></table></div>`;
+
+ /* 2 — the 2x2, one block per month in scope */
+ const cross=k=>{const d=N.months[k], c=d.cross, rs=d.redsum;
+  const cell=(cls,n,t,dd,go)=>`<div class="ntc ${cls}"${go?` role="button" tabindex="0" data-go="${go}"`:''}>`+
+   `<span class="ntn">${nf(n)}</span><span class="ntt">${t}</span><span class="ntd">${dd}</span>`+
+   (go?'<span class="ntgo">ดูรายห้อง ↓</span>':'')+`</div>`;
+  return `<div class="ntblock"><div class="ntmo">${MLABEL[k]||k} · ${nf(d.rooms)} ห้อง · สมัครจริง (แท็ก ∪ โน้ต) <b>${nf(d.realreg)}</b> ห้อง</div>`+
+  `<div class="ntgrid"><div class="nth"></div><div class="nth">มีโน้ตลงทะเบียน</div><div class="nth">ไม่มีโน้ตลงทะเบียน</div>`+
+  `<div class="ntr">ติดแท็ก<br>Q-สมัครแล้ว</div>`+
+  cell('ok',c.sr,'ยืนยันได้สองทาง','แท็กและโน้ตตรงกัน เชื่อได้',0)+
+  cell('warn',c.sx,'แท็กว่าสมัคร แต่ไม่มีใบลงทะเบียน','ส่วนใหญ่มีโน้ตแบบย่อ ไม่ใช่ความผิดพลาดทุกแถว','ntY-'+k)+
+  `<div class="ntr">ไม่ได้ติดแท็ก</div>`+
+  cell('crit',c.nr,'มีใบลงทะเบียน แต่แท็กตกหล่น',`ในนี้เป็นยอดของ ${MSHORT[k]||k} จริง ${rs.A1.n} ห้อง`,'ntR-'+k)+
+  cell('calm',c.nx,'ยังไม่สมัครจริง','ไม่มีทั้งแท็กและโน้ต — ตามต่อได้',0)+
+  `</div></div>`;};
+
+ /* 3 — red, split three ways */
+ const redTbl=rows=>rows.length?`<div class="tw"><table><thead><tr><th>ลูกค้า</th><th>แท็กที่ติดอยู่</th><th>รหัสคอร์ส</th>`+
+   `<th class="n">ยอดชำระ</th><th class="n">วันที่ในโน้ต</th><th class="n">โน้ตถูกเขียน</th><th>คนเขียนโน้ต</th><th>แอดมินที่ดูแล</th><th></th></tr></thead><tbody>`+
+   rows.map(r=>`<tr><td class="name">${ntNm(r.name)||'<span class="ntold">(ไม่มีชื่อ)</span>'}</td>`+
+    `<td><span class="badge">${ntNm(r.lead||'ไม่ติดแท็ก')}</span></td><td class="mono">${ntNm(r.g)}${r.mode?` <span class="spsm">${r.mode}</span>`:''}</td>`+
+    `<td class="n"><b>${nf(r.amt)}</b></td><td class="n">${r.td||'<span class="ntold">—</span>'}</td><td class="n">${r.ca}</td>`+
+    `<td>${ntAdm(r.by)}</td><td>${ntNm(r.owner)}</td><td>${ntOpen(r.cid)}</td></tr>`).join('')+
+   `</tbody></table></div>`:'<div class="empty">ไม่มีห้องในกลุ่มนี้</div>';
+ const redBlock=k=>{const d=N.months[k], rs=d.redsum;
+  const head=(t,n,amt,cls)=>`<div class="nthd ${cls||''}">${t} — <b>${nf(n)}</b> ห้อง · ${nf(amt)} บาท</div>`;
+  return `<details class="ntdet" id="ntR-${k}" open><summary><b>🔴 ${MLABEL[k]||k}</b> · ไม่ได้ติดแท็ก แต่มีใบลงทะเบียน ${nf(d.cross.nr)} ห้อง</summary>`+
+   head(`A1 · โน้ตลงวันที่ใน ${MSHORT[k]||k} = ยอดของเดือนนี้ที่หายไป`,rs.A1.n,rs.A1.amt,'crit')+redTbl(d.red.A1)+
+   head(`A2 · โน้ตลงวันที่ก่อน ${MSHORT[k]||k} = ยอดของเดือนก่อน (ติดแท็กได้ แต่ห้ามนับซ้ำ)`,rs.A2.n,rs.A2.amt)+redTbl(d.red.A2)+
+   head(`B · โน้ตถูกเขียนหลัง ${MSHORT[k]||k} = ยอดของเดือนถัดไป`,rs.B.n,rs.B.amt)+redTbl(d.red.B)+
+   `</details>`;};
+
+ /* 4 — yellow */
+ const yelBlock=k=>{const d=N.months[k];
+  const cats=Object.entries(d.ycat).sort((a,b)=>b[1]-a[1]);
+  return `<details class="ntdet" id="ntY-${k}"><summary><b>⚠️ ${MLABEL[k]||k}</b> · ติดแท็กสมัครแล้ว แต่ไม่มีใบลงทะเบียน ${nf(d.cross.sx)} ห้อง</summary>`+
+   `<div class="ntcats">${cats.map(([c,n])=>`<span class="badge${c==='ไม่มีโน้ตเลย'?' risk':''}">${ntNm(c)} <b>${n}</b></span>`).join(' ')}</div>`+
+   (d.yellow.length?`<div class="tw"><table><thead><tr><th>ลูกค้า</th><th>วินิจฉัย</th><th>โน้ตที่มี</th><th>แท็กทั้งหมด</th><th>แอดมินที่ดูแล</th><th></th></tr></thead><tbody>`+
+    d.yellow.map(r=>`<tr><td class="name">${ntNm(r.name)||'<span class="ntold">(ไม่มีชื่อ)</span>'}</td>`+
+     `<td><span class="badge${r.cat==='ไม่มีโน้ตเลย'?' risk':(r.cat==='โน้ตยืนยันสมัคร ไม่ลงยอด'?' ok':'')}">${ntNm(r.cat)}</span></td>`+
+     `<td class="ntq">${ntNm(r.note)||'<span class="ntold">—</span>'}</td><td class="ntq">${ntNm(r.tags)}</td>`+
+     `<td>${ntNm(r.owner)}</td><td>${ntOpen(r.cid)}</td></tr>`).join('')+`</tbody></table></div>`:'<div class="empty">ไม่มีห้องในกลุ่มนี้</div>')+
+   `</details>`;};
+
+ /* 5 — two discipline panels */
+ const discBlock=k=>{const d=N.months[k];
+  const t=`<div class="tw"><table><thead><tr><th>แอดมินที่ดูแล</th><th class="n">ห้องที่ดูแล</th><th class="n">สมัครจริง</th><th class="n">ลืมติดแท็ก</th><th class="n">ความครบถ้วน</th></tr></thead><tbody>`+
+   d.tagd.filter(r=>r.reg>0).map(r=>`<tr><td class="name">${ntNm(r.adm)}</td><td class="n">${nf(r.rooms)}</td><td class="n">${nf(r.reg)}</td>`+
+    `<td class="n${r.miss?' sphot':''}">${nf(r.miss)}</td><td class="n"><b>${r.pct}%</b></td></tr>`).join('')+`</tbody></table></div>`;
+  const w=`<div class="tw"><table><thead><tr><th>คนเขียนโน้ต</th><th class="n">ใบลงทะเบียนที่เขียนในเดือนนี้</th><th class="n">ยอดรวมที่จดไว้ (บาท)</th></tr></thead><tbody>`+
+   (d.noted.length?d.noted.map(r=>`<tr><td class="name">${ntAdm(r.adm)}</td><td class="n"><b>${nf(r.notes)}</b></td><td class="n">${nf(r.amt)}</td></tr>`).join('')
+    :'<tr><td colspan="3" class="ntold">ไม่มีใบลงทะเบียนที่เขียนในเดือนนี้</td></tr>')+`</tbody></table></div>`;
+  const wrote=new Set(d.noted.map(r=>r.adm));
+  const silent=d.tagd.filter(r=>r.rooms>=20&&!wrote.has(r.adm)).map(r=>r.adm);
+  return `<details class="ntdet" id="ntD-${k}"><summary><b>${MLABEL[k]||k}</b> · วินัยการบันทึก</summary>`+
+   `<div class="nthd">วินัยการติดแท็ก — นับตาม <b>แอดมินที่ดูแลห้อง</b></div>${t}`+
+   `<div class="nthd">วินัยการเขียนโน้ต — นับตาม <b>คนที่พิมพ์โน้ต</b> (คนละเรื่องกับตารางบน)</div>${w}`+
+   (silent.length?`<p class="note" style="margin-top:10px">⚠️ ดูแลห้องตั้งแต่ 20 ห้องขึ้นไป แต่ไม่ได้เขียนใบลงทะเบียนเลยในเดือนนี้: <b>${silent.map(ntNm).join(' · ')}</b></p>`:'')+
+   `</details>`;};
+
+ const help=`<details class="fhelp"><summary>ส่วนนี้อ่านอย่างไร</summary><dl>`+
+  `<dt>ทำไมต้องเทียบแท็กกับโน้ต</dt><dd>ทีมบันทึกการสมัครไว้สองที่ — แท็ก <code>Q-สมัครแล้ว</code> ในระบบ LINE และโน้ตที่แอดมินพิมพ์เองในห้องแชท แท็กไม่มีวันที่ ส่วนโน้ตมี <code>createdAt</code> ของตัวเองและมักมีวันที่ที่แอดมินพิมพ์ไว้ด้วย จึงเป็นครั้งแรกที่ LINE มีตัวเลข “สมัครในเดือนนี้” ที่วางข้าง Facebook ได้</dd>`+
+  `<dt>“โน้ตลงทะเบียน” นับแบบไหน</dt><dd>นิยามเข้ม — โน้ตต้องมีทั้ง <b>รหัสคอร์ส G-number</b> และ <b>จำนวนเงินพร้อมหน่วยบาท</b> โน้ตที่จดแค่รหัสคอร์สโดยไม่มียอด (เช่น <code>G186 Module 1</code>) ไม่นับเป็นใบลงทะเบียน แต่ยังโชว์อยู่ในช่องเหลืองว่ามีโน้ตอะไร</dd>`+
+  `<dt>ยอดชำระเอามาจากไหน</dt><dd>ตัวเลขสุดท้ายที่ตามด้วยคำว่า “บาท” ในโน้ตใบนั้น เพราะใบที่ลงหลายคอร์สจะไล่ยอดแต่ละคอร์สก่อนแล้วสรุปยอดสุทธิท้ายสุด</dd>`+
+  `<dt>ทำไมช่องแดงต้องแยก A1 / A2 / B</dt><dd>โน้ตและแท็กผูกกับ “ห้อง” ไม่มีวันหมดอายุ ห้องที่สมัครแล้วไม่มีใครไปติดแท็กจะโผล่ในช่องแดงของ <b>ทุกเดือนถัดไป</b> ถ้าไม่แยกกลุ่มจะนับซ้ำ — A1 คือโน้ตที่ลงวันที่ในเดือนที่กำลังดู (ยอดของเดือนนี้ที่หายไป เอาไปบวกได้) · A2 คือโน้ตลงวันที่ก่อนหน้า (เป็นยอดของเดือนนั้น) · B คือโน้ตที่เพิ่งถูกเขียนหลังเดือนนี้ (เป็นยอดของเดือนถัดไป) ทั้งสามกลุ่มควรไปติดแท็กย้อนหลังเหมือนกัน แต่คนละเดือน</dd>`+
+  `<dt>ช่องเหลืองไม่ใช่ความผิดพลาดทุกแถว</dt><dd>ส่วนใหญ่มีโน้ตยืนยันการสมัครอยู่แล้ว แค่ไม่ได้ลงยอดเงิน หรือสมัครผ่าน Facebook/Messenger ซึ่งใบลงทะเบียนไปอยู่ช่องทางนั้น แถวที่ควรตามจริงคือ <b>ไม่มีโน้ตเลย</b></dd>`+
+  `<dt>สองตารางวินัยต่างกันอย่างไร</dt><dd>“วินัยการติดแท็ก” นับตามแอดมินที่ดูแลห้องนั้น ส่วน “วินัยการเขียนโน้ต” นับตามคนที่พิมพ์โน้ต — คนละคนกันได้ และในทางปฏิบัติมีแอดมินไม่กี่คนที่เขียนโน้ตให้ทั้งทีม ถ้าดูรวมกันตัวเลขจะทำให้เข้าใจผิด</dd>`+
+  `<dt>ยังไม่แตะนิยาม “ปิดการขาย”</dt><dd>คอลัมน์ “ปิดการขายจากสลิป” คือนิยามที่แดชบอร์ดใช้อยู่ (ข้อความ <code>สถานะ: ตรวจสอบสลิปสำเร็จ</code> หรือผู้รับ <code>บจก. ไบโอปาล์ม เอ็ดดูเคชั่น</code>) วางไว้ข้างกันเพื่อเทียบว่าสัญญาณไหนจับได้มากกว่า ยังไม่ได้รวมกัน</dd>`+
+  `<dt>คุณภาพการอ่านโน้ต</dt><dd>ดึงจาก ${nf(P.roomsPulled||0)} ห้อง · โน้ตทั้งหมด ${nf((P.regNotes||0)+(P.nonReg||0))} ใบ · เป็นใบลงทะเบียน ${nf(P.regNotes||0)} ใบ · ยอดเงินที่อ่านไม่ชัด ${nf(P.ambiguous||0)} ใบ (${pctS(P.ambiguous||0,P.regNotes||1)}) · ไม่มีวันที่พิมพ์ในโน้ต ${nf(P.noTypedDate||0)} ใบ (${pctS(P.noTypedDate||0,P.regNotes||1)}) จะใช้ <code>createdAt</code> แทน · ไม่มีตัวเลขที่เดา</dd>`+
+  `<dt>เรื่องส่งตัวอย่างข้อสอบ</dt><dd>สแกนโน้ตทุกใบแล้ว <b>ไม่พบการบันทึกเรื่องส่งตัวอย่างข้อสอบเลย</b> (คำว่า “ข้อสอบ” ปรากฏ 0 ครั้ง) มีเทมเพลตเก่าที่มีช่อง “ส่งตัวอย่างคอร์สเรียน” แต่ปล่อยว่างทุกใบ จึงไม่มีตัวชี้วัดนี้ในส่วนนี้</dd>`+
+  `</dl></details>`;
+
+ el.innerHTML=t1+`<div class="ntnote">คลิกช่อง <b>เหลือง</b> หรือ <b>แดง</b> ในตารางกากบาทเพื่อเลื่อนไปดูรายห้อง</div>`+
+   ks.map(cross).join('')+ks.map(redBlock).join('')+ks.map(yelBlock).join('')+ks.map(discBlock).join('')+help;
+ el.querySelectorAll('[data-go]').forEach(b=>{
+   const go=()=>ntGo(b.dataset.go);
+   b.addEventListener('click',go);
+   b.addEventListener('keydown',e=>{if(e.key==='Enter'||e.key===' '){e.preventDefault();go();}});
+ });
+}
+
 /* ---------- orchestration ---------- */
-function renderOverview(){renderV4Cards();renderV4MoM();renderV4Funnel();renderV4Speed();renderV4Adm();}
+function renderOverview(){renderV4Cards();renderV4MoM();renderV4Funnel();renderV4Notes();renderV4Speed();renderV4Adm();}
 function applyView(){
  const ov=VIEW==='ov';
- ['s-v4k','s-v4m','s-v4f','s-v4s','s-v4a','s-v4h','s-v4t'].forEach(id=>{const e=document.getElementById(id);if(e)e.hidden=!ov;});
+ ['s-v4k','s-v4m','s-v4f','s-v4n','s-v4s','s-v4a','s-v4h','s-v4t'].forEach(id=>{const e=document.getElementById(id);if(e)e.hidden=!ov;});
  $('#s-raw').hidden=ov;
  if(ov)renderOverview();else if(CH==='line')lnRenderRaw();else renderRaw();
 }
