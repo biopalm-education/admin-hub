@@ -511,7 +511,7 @@ function exportChats(){
 function exportLine(){
  const rows=lnFiltered();
  const head=['เดือน','ชื่อลูกค้า','สถานะแท็ก','แท็กทั้งหมด','แอดมินที่เข้าไปตอบ','ข้อความลูกค้า','ข้อความแอดมิน','ข้อความบอท',
-  'ตอบครั้งแรก(วินาที)','ค่ากลางการตอบ(วินาที)','รอนานสุด(วินาที)','ไม่เคยได้คุยกับ Admin','ทักมาแล้วหาย','ลิงก์ห้องแชท'];
+  'ตอบเร็วสุด(วินาที)','ค่ากลางการตอบ(วินาที)','รอนานสุด(วินาที)','ไม่เคยได้คุยกับ Admin','ทักมาแล้วหาย','ลิงก์ห้องแชท'];
  const out=[head];
  for(const o of rows){
   out.push([MLABEL[o._m]||o._m,o.n,o.st,(o.tg||[]).join(' | '),(o.ad||[]).join(' | '),o.c,o.h,o.b,
@@ -1372,7 +1372,7 @@ function lnRenderChat(){
  const rows=lnFiltered(), o=rows[LN_SEL];
  if(!o){$('#lnhead').innerHTML='';$('#lnthread').innerHTML='<div class="empty">เลือกห้องแชททางซ้ายเพื่ออ่านบทสนทนา</div>';return;}
  $('#lnhead').innerHTML=`<h3>${esc(o.n||'(ไม่มีชื่อ)')}<a class="inbtn" href="${lnLink(o.id,o._m)}" target="_blank" rel="noopener">เปิดห้องแชทนี้ ↗</a></h3>
-  <p class="lab">${MLABEL[o._m]||''} · ${esc(o.f)} → ${esc(o.t)} · ${o.tr.length} ข้อความ · ตอบครั้งแรก ${dur(o.r1)} · ตอบกลาง ${dur(o.rm)} · นานสุด ${dur(o.rw)}</p>
+  <p class="lab">${MLABEL[o._m]||''} · ${esc(o.f)} → ${esc(o.t)} · ${o.tr.length} ข้อความ · ตอบเร็วสุด ${dur(o.r1)} · ตอบกลาง ${dur(o.rm)} · นานสุด ${dur(o.rw)}</p>
   <p class="lab">ดูแลโดย ${esc(o.ow||'-')}${(o.ad||[]).length?' · ตอบจริง '+o.ad.map(esc).join(', '):''}${(o.tg||[]).length?'<br>แท็ก: '+o.tg.map(esc).join(' · '):''}</p>`;
  let html='',lastDay='';
  for(const e of o.tr){

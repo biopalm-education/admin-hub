@@ -42,8 +42,19 @@ json.dump(data, open('src/line_%s.json' % month, 'w', encoding='utf-8'),
           separators=(',', ':'), ensure_ascii=False)
 
 # ---------------- aggregate ----------------
-firsts = [secs(r['first']) for r in rooms]
-firsts = sorted(x for x in firsts if x is not None)
+# 'first' in the pull is each room's FASTEST reply wait, not the chronological first one.
+fasts = sorted(x for x in (secs(r['first']) for r in rooms) if x is not None)
+# true first reply = first customer line -> first admin-typed line at or after it (minute
+# resolution, same definition as build_v4 first_reply / Facebook / Instagram ftMed)
+import datetime as _dt
+def _mn(t): return int(_dt.datetime.strptime('2026-' + t, '%Y-%m-%d %H:%M').timestamp() // 60)
+firsts = []
+for r in rooms:
+    c0 = next((_mn(t) for t, w, _ in r['tr'] if w == 'C'), None)
+    if c0 is None: continue
+    h = next((_mn(t) for t, w, _ in r['tr'] if w not in ('C', 'B') and _mn(t) >= c0), None)
+    if h is not None: firsts.append((h - c0) * 60)
+firsts.sort()
 meds = sorted(x for x in (secs(r['med']) for r in rooms) if x is not None)
 admin_rooms, admin_msgs = collections.Counter(), collections.Counter()
 tags = collections.Counter()
@@ -74,6 +85,8 @@ agg_entry = {
     'unans': sum(1 for r in rooms if r['hanging']),
     'first_med': firsts[len(firsts) // 2] if firsts else None,
     'first_p90': firsts[int(len(firsts) * .9)] if firsts else None,
+    'fast_med': fasts[len(fasts) // 2] if fasts else None,
+    'fast_p90': fasts[int(len(fasts) * .9)] if fasts else None,
     'med_med': meds[len(meds) // 2] if meds else None,
     'admins': [[a, admin_rooms[a], admin_msgs.get(a, 0)] for a, _ in admin_rooms.most_common()],
     'tags': tags.most_common(),
