@@ -17,6 +17,7 @@ Dashboard สรุปแชท Instagram / Facebook ของ BioPalm — เ�
 | `app.html` | ต้นฉบับของ `index.html` — แก้โค้ด dashboard ที่ไฟล์นี้ |
 | `build_v4.py` | คำนวณกรวย 4 ขั้น ความเร็วตอบ และยอดปิดจากสลิป — รันหลัง `unpack.py` |
 | `build_v5.py` | แยก “ทักมาแล้วหาย” ใหม่: เฉพาะคนที่กดปุ่มจากโฆษณาอย่างเดียวแล้วเงียบครบหน้าต่าง (14 หรือ 30 วัน) ยืนยันด้วยป้าย Meta “ตอบกลับโฆษณา” — **รันหลัง `build_v4.py` ก่อน `build.py`** |
+| `post_v5_speed.py` | คำนวณตาราง “ความเร็วตอบแชท” (sp) ใหม่ทั้งหน้าต่าง 14 และ 30 วัน — `build_v5.py` เขียนทับ agg จนตารางนี้หาย **รันหลัง `build_v5.py` ก่อน `build.py` ทุกครั้ง** |
 | `build.py` | เข้ารหัส `src/*.json` เป็น `data/*` + `manifest.json` แล้วคัดลอก `app.html` เป็น `index.html` |
 | `deploy.sh` | build แล้ว push ขึ้น GitHub Pages (อ่าน token จาก `gh_token.txt` ที่ไม่ได้อยู่ในรีโป) |
 | `extract.py` | สคริปต์ครั้งเดียว ใช้ตอนแตกข้อมูลออกจาก HTML ก้อนเดิม |
@@ -27,6 +28,7 @@ Dashboard สรุปแชท Instagram / Facebook ของ BioPalm — เ�
 python3 unpack.py      # ถอดรหัส data/*.json กลับเป็น src/
 python3 build_v4.py    # กรวย 4 ขั้น + ความเร็วตอบ
 python3 build_v5.py    # แยก "ทักมาแล้วหาย" แบบเข้ม (14 / 30 วัน)
+python3 post_v5_speed.py  # คืนตารางความเร็วตอบให้ทั้ง 14 และ 30 วัน
 python3 build.py       # เข้ารหัสใหม่ทั้งหมดลง pages/
 ```
 

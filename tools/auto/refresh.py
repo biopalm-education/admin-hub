@@ -472,6 +472,12 @@ def run_refresh(months, push=True):
     json.dump(AGG,open(f'{REPO}/src/agg.json','w',encoding='utf-8'),separators=(',',':'),ensure_ascii=False)
     r=subprocess.run(['bash','-lc',f'cd {REPO} && python3 build_v4.py 2>&1|tail -3'],capture_output=True,text=True)
     log('build_v4',r.stdout.strip()[-300:])
+    # build_v5 re-applies the strict "ทักมาแล้วหาย" split (14 + 30 day); post_v5_speed restores the
+    # reply-speed tables that build_v5 drops. Skipping these reverted the live 14-day view every morning.
+    for step in ('build_v5.py','post_v5_speed.py'):
+        r=subprocess.run(['bash','-lc',f'cd {REPO} && python3 {step} 2>&1|tail -3'],capture_output=True,text=True)
+        log(step,r.stdout.strip()[-300:])
+        if r.returncode!=0 or 'Traceback' in r.stdout: raise RuntimeError(step+' failed: '+r.stdout[-400:])
     if not push: return done
     msg='อัปเดตอัตโนมัติ %s (%s)'%(dt.datetime.now(TH).strftime('%d/%m %H:%M'),', '.join(done))
     r=subprocess.run(['bash','-lc',f'cd {REPO} && sh deploy.sh "{msg}" 2>&1|tail -3'],capture_output=True,text=True)
