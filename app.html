@@ -375,7 +375,7 @@ body{background:
    <button data-ch="line" aria-pressed="false"><i class="dot line"></i>LINE OA</button>
   </div></div>
  <div class="ctl"><span class="lab">เดือน</span><select id="msel" aria-label="เลือกเดือน"></select></div>
- <div class="ctl" id="winctl"><span class="lab">หน้าต่างรอ</span>
+ <div class="ctl" id="winctl" hidden><span class="lab">หน้าต่างรอ</span>
   <div class="seg" id="wseg" role="group" aria-label="เลือกหน้าต่างรอ">
    <button data-w="14" aria-pressed="true">14 วัน</button>
    <button data-w="30" aria-pressed="false">30 วัน</button>
@@ -1632,6 +1632,7 @@ function legacyDeep(el,scat,chn){
 let WIN=AGG.v4win||14;
 const V4WSRC={14:AGG.v4||{fb:{},ig:{},line:{}},30:AGG.v4w30||AGG.v4||{fb:{},ig:{},line:{}}};
 const HASW30=!!AGG.v4w30;
+const SHOW_WIN=false; // ซ่อนปุ่มสลับ 14/30 วันไว้ก่อน — เปลี่ยนเป็น true เพื่อเปิดกลับ
 let V4=V4WSRC[WIN]||V4WSRC[14];
 const V4END=AGG.v4end||null;
 function winLabel(){return 'รอ '+WIN+' วัน';}
@@ -1694,7 +1695,7 @@ function renderV4Cards(){
  notes.push('แชททั้งหมด = สนใจคอร์ส + เรื่องอื่น + แอดมินทักไปแต่ลูกค้าไม่ตอบ');
  notes.push('“ทักมาแล้วหาย” = กดปุ่มจากโฆษณาอย่างเดียวแล้วเงียบครบ <b>'+WIN+' วัน</b> ยืนยันด้วยป้าย Meta “ตอบกลับโฆษณา” ทุกแชท'+(o.P?' · ยังรอครบหน้าต่างอีก '+nf(o.P)+' แชท ตัวเลขยังขยับได้':''));
  if(!HASV(CH))notes.push('<b>'+CHN[CH]+'ไม่มีป้ายโฆษณาจาก Meta</b> ช่อง “ทักมาแล้วหาย” จึงแสดงเป็น “—” — แชทกลุ่มนั้นไปรวมอยู่ใน “ทักทาย/กดเมนู”');
- if(HASW30)notes.push('สลับหน้าต่างรอ 14 / 30 วันได้ที่แถบด้านบน — 14 วันไว้ดูเดือนล่าสุด 30 วันไว้ปิดตัวเลขย้อนหลัง');
+ if(HASW30&&SHOW_WIN)notes.push('สลับหน้าต่างรอ 14 / 30 วันได้ที่แถบด้านบน — 14 วันไว้ดูเดือนล่าสุด 30 วันไว้ปิดตัวเลขย้อนหลัง');
  if(CH==='all'||CH==='ig')notes.push(igNote());
  if(CH==='all'||CH==='line')notes.push('LINE มีทั้งลูกค้าใหม่และนักเรียนเดิมที่สมัครต่อ');
  notes.push('สลิปเลขอ้างอิงเดียวกันนับครั้งเดียวทุกช่องทาง');
@@ -2002,7 +2003,9 @@ $('#vseg').querySelectorAll('button').forEach(b=>b.addEventListener('click',()=>
  $('#vseg').querySelectorAll('button').forEach(x=>x.setAttribute('aria-pressed',String(x.dataset.v===VIEW)));
  refresh();}));
 (function(){const ws=$('#wseg');if(!ws)return;
- if(!HASW30){const wc=$('#winctl');if(wc)wc.hidden=true;return;}
+ const wc=$('#winctl');
+ if(!HASW30||!SHOW_WIN){if(wc)wc.hidden=true;return;}
+ if(wc)wc.hidden=false;
  ws.querySelectorAll('button').forEach(b=>b.addEventListener('click',()=>{
   WIN=+b.dataset.w;V4=V4WSRC[WIN]||V4WSRC[14];
   ws.querySelectorAll('button').forEach(x=>x.setAttribute('aria-pressed',String(+x.dataset.w===WIN)));
