@@ -389,6 +389,10 @@ body{background:
 .whochips{align-items:center;padding-top:7px;border-top:1px dashed var(--line)}
 .whochips>.lab{margin-right:4px}
 .whochips .chip[aria-pressed="true"]{background:var(--teal-ink);border-color:var(--teal-ink);color:#fff}
+.thrline{display:flex;flex-wrap:wrap;gap:5px;align-items:center;margin-top:8px;padding-top:8px;border-top:1px dashed var(--line)}
+.thrline>.lab{margin-right:4px}
+.thrm{font:inherit;font-size:11.5px;padding:2px 9px;border-radius:999px;border:1px solid var(--line-2);background:var(--card);color:var(--leaf);cursor:pointer}
+.thrm:hover{background:var(--leaf-soft)} .thrm.on{background:var(--leaf);color:#fff;border-color:var(--leaf);cursor:default}
 </style>
 </head>
 <body>
@@ -1226,6 +1230,12 @@ const whoOk=(w)=>RWHO==='all'||w===RWHO;
 function whoRow(counts){return `<div class="chips whochips" id="whochips"><span class="lab">ใครตอบ</span>${RWHO_ORD.map(k=>`<button class="chip" data-w="${k}" aria-pressed="${RWHO===k}">${RWHO_N[k]} (${nf(counts[k]||0)})</button>`).join('')}</div>`+
  (RWHO!=='all'?`<p class="fdesc"><b>${RWHO_N[RWHO]}</b> — ${RWHO_D[RWHO]}</p>`:'');}
 
+/* ---------- one chat across months (Sep 22 2026) ---------- */
+let THR=null, THR_LOADING=false, JUMP_TID=null;
+function thrOf(r){if(!THR){if(!THR_LOADING&&MAN&&MAN.files&&MAN.files.threads){THR_LOADING=true;getFile('threads').then(d=>{THR=d;renderChat();}).catch(()=>{});}return null;}
+ const a=(THR[CH]||{})[String(r[19])];return a&&a.length>1?a:null;}
+function thrJump(mo,tid,nm){M=mo;const ms=$('#msel');if(ms)ms.value=mo;TERM=nm||'';FILTER='all';RWHO='all';PAGE=0;SEL=0;JUMP_TID=tid;refresh();}
+
 /* ---------- raw: IG chat browser ---------- */
 function leads(){const o=[];
  if(CH==='fb'){for(const k of fbMonths()){const d=FBFULL[k];if(d)for(const r of d.chats)o.push({m:k,r});}return o;}
@@ -1278,7 +1288,7 @@ function renderList(){
  const slice=rows.slice(PAGE*PER,PAGE*PER+PER);
  $('#plist').innerHTML=slice.map((o,i)=>{
   const gi=PAGE*PER+i,r=o.r,fl=[];
-  if(r[10]<0)fl.push('<span class="badge risk">ไม่เคยได้คุยกับ Admin</span>');
+  if(r[10]<0)fl.push('<span class="badge risk">เดือนนี้ไม่มีแอดมินตอบ</span>');
   if(r[12])fl.push('<span class="badge risk">ลูกค้าพิมพ์ค้าง ยังไม่มีคนตอบ</span>');
   if(r[14]>=2)fl.push('<span class="badge risk">ถามซ้ำ '+r[14]+'</span>');
   if(STGN[r[37]])fl.push('<span class="badge'+(r[37]==='W'?' ok':'')+'">'+STGN[r[37]]+(r[39]?' · ฿'+nf(r[39]):'')+'</span>');if(r[37]!=='X')fl.push('<span class="badge">แอดมินตอบครั้งแรก '+(r[40]==null||r[40]<0?'ไม่มี':minTxt(r[40]))+'</span>');
@@ -1311,14 +1321,18 @@ function renderChat(){
  const o=rows[Math.min(SEL,rows.length-1)],r=o.r;
  const rz=r[17]?('ปิดการขายแล้ว ('+(WONK[r[35]]||'ข้อความยืนยัน')+')'):(CH==='fb'?(r[21]?'มีคุณสมบัติ (ป้าย Meta)':'—'):(RZ[r[2]]?RZ[r[2]][0]:'—'));
  const fl=[];
- if(r[10]<0)fl.push('<span class="badge risk">ไม่เคยได้คุยกับ Admin</span>');
+ const thr=thrOf(r);
+ const othAdm=thr?thr.filter(x=>x[0]!==o.m&&x[1]>0).map(x=>MSHORT[x[0]]||x[0]):[];
+ if(r[10]<0)fl.push('<span class="badge risk">เดือนนี้ไม่มีแอดมินตอบ</span>');
+ if(r[10]<0&&othAdm.length)fl.push('<span class="badge ok">แอดมินตอบในเดือนอื่น · '+othAdm.join(', ')+'</span>');
  if(r[12])fl.push('<span class="badge risk">ลูกค้าพิมพ์ค้าง ยังไม่มีคนตอบ</span>');
  if(r[14]>=2)fl.push('<span class="badge risk">ถูกถามระดับชั้นซ้ำ '+r[14]+' ครั้ง</span>');
  if(STGN[r[37]])fl.push('<span class="badge'+(r[37]==='W'?' ok':'')+'">'+STGN[r[37]]+(r[39]?' · ฿'+nf(r[39]):'')+'</span>');if(r[37]!=='X')fl.push('<span class="badge">แอดมินตอบครั้งแรก '+(r[40]==null||r[40]<0?'ไม่มี':minTxt(r[40]))+'</span>');
  $('#chead').innerHTML=`<div class="who">${CH==='fb'?'':'@'}${esc(r[0]||'(ไม่มีชื่อผู้ใช้)')} ${inboxBtn(r)}${CH==='fb'?'':' <a class="inbtn ghost" href="https://instagram.com/'+encodeURIComponent(r[0])+'" target="_blank" rel="noopener">โปรไฟล์ ↗</a>'}</div>
   <div class="mt">${MLABEL[o.m]} · ทัก ${r[3]} เวลา ${String(r[4]).padStart(2,'0')}:00 (${DOWN[r[5]]}) · ลูกค้า ${r[6]} / แอดมินตอบเอง ${r[7]} / อัตโนมัติ ${r[8]} · สลับถาม-ตอบ ${r[9]} ครั้ง</div>
   <div class="mt">แอดมินตอบครั้งแรก <b>${dur(r[10])}</b> · รอนานสุดในแชทนี้ <b>${dur(r[11])}</b> · ${WHO[r[13]]||r[13]} · สาเหตุ: ${rz}</div>
-  <div class="fl">${fl.join('')}</div>`;
+  <div class="fl">${fl.join('')}</div>${thr?`<div class="thrline"><span class="lab">แชทนี้มีต่อหลายเดือน</span>${thr.map(x=>`<button class="thrm${x[0]===o.m?' on':''}" data-thrm="${x[0]}" data-tid="${esc(String(r[19]))}" data-nm="${esc(r[0]||'')}"${x[0]===o.m?' disabled':''}>${MSHORT[x[0]]||x[0]} · แอดมิน ${x[1]} · ลูกค้า ${x[2]}</button>`).join('')}</div>`:''}`;
+ $('#chead').querySelectorAll('[data-thrm]').forEach(b=>b.addEventListener('click',()=>thrJump(b.dataset.thrm,b.dataset.tid,b.dataset.nm)));
  let html='',lastDay=null;
  for(const e of r[18]){
   const s=stamp(e[0],o.m);
@@ -1363,6 +1377,7 @@ function renderRaw(){
    FILTER=c.dataset.f;PAGE=0;SEL=0;renderRaw();}));
   el.querySelectorAll('#whochips .chip').forEach(c=>c.addEventListener('click',()=>{RWHO=c.dataset.w;PAGE=0;SEL=0;renderRaw();}));
   const dl=$('#dlcsv'); if(dl)dl.addEventListener('click',exportChats);
+  if(JUMP_TID){const L=filtered(),i=L.findIndex(x=>String(x.r[19])===JUMP_TID);if(i>=0){SEL=i;PAGE=Math.floor(i/PER);}JUMP_TID=null;}
   renderList();renderChat();
   return;
  }
@@ -1431,7 +1446,7 @@ function lnRenderList(){
  const slice=rows.slice(LN_PAGE*LN_PER,LN_PAGE*LN_PER+LN_PER);
  $('#lnlist').innerHTML=slice.length?slice.map((o,i)=>{
   const gi=LN_PAGE*LN_PER+i,fl=[];
-  if(o.nh)fl.push('<span class="badge risk">ไม่เคยได้คุยกับ Admin</span>');
+  if(o.nh)fl.push('<span class="badge risk">เดือนนี้ไม่มีแอดมินตอบ</span>');
   if(o.hg)fl.push('<span class="badge risk">ลูกค้าพิมพ์ค้าง ยังไม่มีคนตอบ</span>');
   if(STGN[o.sg])fl.push('<span class="badge'+(o.sg==='W'?' ok':'')+'">'+STGN[o.sg]+(o.rv?' · ฿'+nf(o.rv):'')+'</span>');
   if(lineMonths().length>1)fl.push('<span class="badge">'+(MSHORT[o._m]||o._m||'')+'</span>');
