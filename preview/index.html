@@ -560,20 +560,20 @@ function downloadCSV(fname,rows){
 function exportChats(){
  const rows=filtered();
  const head=['เดือน','ชื่อลูกค้า','ขั้น','วัน','ชั่วโมง','วันในสัปดาห์','ข้อความลูกค้า','แอดมินตอบเอง','อัตโนมัติ','สลับถาม-ตอบ',
-  'ตอบครั้งแรก(วินาที)','รอนานสุด(วินาที)','ทักมาแล้วหาย','ทีม','ถามระดับชั้นซ้ำ','ได้ราคาแล้ว','ส่งหลักฐานจ่าย','ปิดการขาย','จากโฆษณา','ป้ายมีคุณสมบัติ','ระดับลีด','หลักฐานปิดการขาย','ใครตอบ'];
+  'ตอบครั้งแรก(วินาที)','รอนานสุด(วินาที)','ทักมาแล้วหาย','ทีม','ถามระดับชั้นซ้ำ','ได้ราคาแล้ว','ส่งหลักฐานจ่าย','ปิดการขาย','จากโฆษณา','ป้ายมีคุณสมบัติ','ระดับลีด','หลักฐานปิดการขาย'];
  const out=[head];
  for(const o of rows){const r=o.r;
   out.push([MLABEL[o.m]||o.m,r[0],r[1],r[3],r[4],DOWN[r[5]],r[6],r[7],r[8],r[9],
-   (r[10]<0?'':r[10]),(r[11]==null?'':r[11]),r[12]?'Y':'',WHO[r[13]]||r[13],r[14]||'',r[15]?'Y':'',r[16]?'Y':'',r[17]?'Y':'',r[20]?'Y':'',r[21]?'Y':'',r[34]?r[34]+' '+TIERN[r[34]]:'',WONK[r[35]]||'',RWHO_N[whoOf(r,o.m)]||'ลูกค้าไม่ได้ทัก']);}
+   (r[10]<0?'':r[10]),(r[11]==null?'':r[11]),r[12]?'Y':'',WHO[r[13]]||r[13],r[14]||'',r[15]?'Y':'',r[16]?'Y':'',r[17]?'Y':'',r[20]?'Y':'',r[21]?'Y':'',r[34]?r[34]+' '+TIERN[r[34]]:'',WONK[r[35]]||'']);}
  downloadCSV('chat-'+(CH==='fb'?'facebook':'instagram')+'-'+(M==='all'?'ทุกเดือน':M)+'-'+(FNAME[FILTER]||FILTER)+'.csv',out);}
 function exportLine(){
  const rows=lnFiltered();
  const head=['เดือน','ชื่อลูกค้า','สถานะแท็ก','แท็กทั้งหมด','แอดมินที่เข้าไปตอบ','ข้อความลูกค้า','ข้อความแอดมิน','ข้อความบอท',
-  'ตอบเร็วสุด(วินาที)','ค่ากลางการตอบ(วินาที)','รอนานสุด(วินาที)','ไม่เคยได้คุยกับ Admin','ทักมาแล้วหาย','ลิงก์ห้องแชท','ใครตอบ'];
+  'ตอบเร็วสุด(วินาที)','ค่ากลางการตอบ(วินาที)','รอนานสุด(วินาที)','ไม่เคยได้คุยกับ Admin','ทักมาแล้วหาย','ลิงก์ห้องแชท'];
  const out=[head];
  for(const o of rows){
   out.push([MLABEL[o._m]||o._m,o.n,o.st,(o.tg||[]).join(' | '),(o.ad||[]).join(' | '),o.c,o.h,o.b,
-   (o.r1==null?'':o.r1),(o.rm==null?'':o.rm),(o.rw==null?'':o.rw),o.nh?'Y':'',o.hg?'Y':'',lnLink(o.id,o._m),RWHO_N[lnWho(o)]||'ลูกค้าไม่ได้ทัก']);}
+   (o.r1==null?'':o.r1),(o.rm==null?'':o.rm),(o.rw==null?'':o.rw),o.nh?'Y':'',o.hg?'Y':'',lnLink(o.id,o._m)]);}
  downloadCSV('chat-line-'+(M==='all'?'ทุกเดือน':M)+'-'+(LN_FNAME[LN_F]||LN_F)+'.csv',out);}
 function toast(m){let t=document.getElementById('bp-toast');
  if(!t){t=document.createElement('div');t.id='bp-toast';document.body.appendChild(t);
@@ -1230,7 +1230,8 @@ function lnWho(o){if(o._who)return o._who;const tr=o.tr||[];const c0=tr.findInde
  else w=tr.some(m=>m[1]==='B')?'bot':'none';
  o._who=w;return w;}
 const whoOk=(w)=>RWHO==='all'||w===RWHO;
-function whoRow(counts){return `<div class="chips whochips" id="whochips"><span class="lab">ใครตอบ</span>${RWHO_ORD.map(k=>`<button class="chip" data-w="${k}" aria-pressed="${RWHO===k}">${RWHO_N[k]} (${nf(counts[k]||0)})</button>`).join('')}</div>`+
+const SHOW_WHO=false;
+function whoRow(counts){if(!SHOW_WHO)return '';return `<div class="chips whochips" id="whochips"><span class="lab">ใครตอบ</span>${RWHO_ORD.map(k=>`<button class="chip" data-w="${k}" aria-pressed="${RWHO===k}">${RWHO_N[k]} (${nf(counts[k]||0)})</button>`).join('')}</div>`+
  (RWHO!=='all'?`<p class="fdesc"><b>${RWHO_N[RWHO]}</b> — ${RWHO_D[RWHO]}</p>`:'');}
 
 /* ---------- one chat across months (Sep 22 2026) ---------- */
@@ -1278,7 +1279,7 @@ function igBrowserShell(){
   <div class="chips" id="chips">
    ${(FORDER.includes(FILTER)?FORDER:FORDER.concat([FILTER])).map(k=>`<button class="chip" data-f="${k}" aria-pressed="${FILTER===k}">${FNAME[k]}</button>`).join('')}</div>
   <p class="fdesc"><b>${FNAME[FILTER]||'ทั้งหมด'}</b> — ${fdescOf(FILTER)}</p>
-  ${whoRow(whoCounts())}
+  ${SHOW_WHO?whoRow(whoCounts()):''}
   <details class="fhelp"><summary>คำอธิบายทุกแท็บ</summary><dl>${FORDER.map(k=>'<dt>'+FNAME[k]+'</dt><dd>'+fdescOf(k)+'</dd>').join('')}</dl></details>
   <label class="deeprow"><input type="checkbox" id="deep"${DEEP?' checked':''}> ค้นในเนื้อข้อความด้วย</label>
  </div><div class="plist" id="plist"></div>
@@ -1437,7 +1438,7 @@ function lnShell(){
   <input id="lnq" type="search" placeholder="ค้นหาชื่อลูกค้า หรือชื่อแอดมิน…" aria-label="ค้นหา" value="${esc(LN_TERM)}">
   <div class="chips" id="lnchips">${(LN_FORDER.includes(LN_F)?LN_FORDER:LN_FORDER.concat([LN_F])).map(k=>`<button class="chip" data-f="${k}" aria-pressed="${LN_F===k}">${LN_FNAME[k]} (${nf(lnCount(k))})</button>`).join('')}</div>
   <p class="fdesc"><b>${LN_FNAME[LN_F]}</b> — ${LN_FDESC[LN_F]}</p>
-  ${whoRow(lnWhoCounts())}
+  ${SHOW_WHO?whoRow(lnWhoCounts()):''}
   <details class="fhelp"><summary>คำอธิบายทุกแท็บ</summary><dl>${LN_FORDER.map(k=>'<dt>'+LN_FNAME[k]+'</dt><dd>'+LN_FDESC[k]+'</dd>').join('')}</dl></details>
   <label class="deeprow"><input type="checkbox" id="lndeep"${LN_DEEP?' checked':''}> ค้นในเนื้อข้อความด้วย</label>
  </div><div class="plist" id="lnlist"></div>
