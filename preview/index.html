@@ -404,6 +404,15 @@ body{background:
 .fuovs{font:inherit;font-size:11.5px;padding:3px 6px;border-radius:7px;max-width:170px;color:var(--ink-2)}
 .fuovb{font:inherit;font-size:11px;margin-left:6px;padding:1px 8px;border-radius:999px;border:1px solid var(--line-2);background:var(--card);color:var(--leaf);cursor:pointer}
 .fuovnote{margin:0;padding:7px 13px;border-top:1px solid var(--line);background:var(--sunk)}
+.ovdlg-bg{position:fixed;inset:0;background:rgba(0,0,0,.38);z-index:9999;display:flex;align-items:center;justify-content:center;padding:16px}
+.ovdlg{background:var(--card);color:var(--ink);border-radius:14px;padding:18px;width:100%;max-width:420px;box-shadow:0 12px 40px rgba(0,0,0,.25)}
+.ovdlg h4{margin:0 0 6px;font-size:16px}.ovdlg p{margin:0 0 10px}
+.ovin{width:100%;box-sizing:border-box;font:inherit;font-size:15px;padding:9px 11px;border:1.5px solid var(--line-2);border-radius:9px;background:var(--card);color:var(--ink);resize:vertical}
+.ovin:focus{outline:none;border-color:var(--leaf)}
+.ovcnt{margin:6px 0 12px;color:#c0392b}.ovcnt.ok{color:var(--leaf)}
+.ovbtns{display:flex;gap:8px;justify-content:flex-end}
+.ovbtns button{font:inherit;padding:7px 16px;border-radius:999px;border:1px solid var(--line-2);background:var(--card);color:var(--ink-2);cursor:pointer}
+.ovbtns .ovok{background:var(--leaf);border-color:var(--leaf);color:#fff}.ovbtns .ovok:disabled{opacity:.4;cursor:not-allowed}
 </style>
 </head>
 <body>
@@ -2111,11 +2120,23 @@ const OV_WHY=['ถามกวน / มาปั่น','ไม่ใช่ล�
 const ovKey=(ch,tid,last)=>ch+'|'+tid+'|'+last;
 function ovName(){try{return localStorage.getItem('bp_admin_name')||'';}catch(e){return '';}}
 /* the admin name is required before any move (Sep 22 2026): cancelling aborts the move */
-function ovAsk(msg,min,def){let v=def||'';
- for(;;){const r=prompt(msg,v);if(r===null)return '';v=r.trim();if(v.length>=min)return v;
-  msg=msg.split('\n⚠️')[0]+'\n⚠️ ต้องกรอกอย่างน้อย '+min+' ตัวอักษร';}}
-function ovNeedName(force){const cur=ovName();if(cur&&!force)return cur;
- const n=ovAsk('กรอกชื่อแอดมินของคุณ (จำเป็น — ใช้บันทึกว่าใครเป็นคนย้ายแชท)',2,cur);
+function ovAsk(title,sub,min,def,multi){return new Promise(res=>{
+ const bg=document.createElement('div');bg.className='ovdlg-bg';
+ bg.innerHTML=`<div class="ovdlg" role="dialog" aria-modal="true"><h4>${esc(title)}</h4><p class="nsm">${esc(sub)}</p>
+  ${multi?'<textarea rows="3" class="ovin"></textarea>':'<input type="text" class="ovin">'}
+  <div class="ovcnt nsm"></div><div class="ovbtns"><button type="button" class="ovcx">ยกเลิก</button><button type="button" class="ovok">บันทึก</button></div></div>`;
+ document.body.appendChild(bg);const i=bg.querySelector('.ovin'),ok=bg.querySelector('.ovok'),cnt=bg.querySelector('.ovcnt');
+ i.value=def||'';
+ const upd=()=>{const n=i.value.trim().length;ok.disabled=n<min;cnt.textContent=n<min?('พิมพ์อีก '+(min-n)+' ตัวอักษร (อย่างน้อย '+min+')'):'✓ ครบแล้ว';cnt.classList.toggle('ok',n>=min);};
+ const done=v=>{bg.remove();res(v);};
+ i.addEventListener('input',upd);
+ i.addEventListener('keydown',e=>{if(e.key==='Enter'&&(!multi||e.ctrlKey||e.metaKey)&&!ok.disabled){e.preventDefault();done(i.value.trim());}if(e.key==='Escape')done('');});
+ ok.addEventListener('click',()=>{if(!ok.disabled)done(i.value.trim());});
+ bg.querySelector('.ovcx').addEventListener('click',()=>done(''));
+ bg.addEventListener('click',e=>{if(e.target===bg)done('');});
+ upd();setTimeout(()=>i.focus(),30);});}
+async function ovNeedName(force){const cur=ovName();if(cur&&!force)return cur;
+ const n=await ovAsk('ชื่อแอดมินของคุณ','จำเป็นต้องกรอก — ใช้บันทึกว่าใครเป็นคนย้ายแชท (ระบบจำไว้ในเครื่องนี้)',2,cur,false);
  if(!n){if(!force)toast('ยังไม่ได้ย้าย — ต้องกรอกชื่อแอดมินก่อน');return cur&&force?cur:'';}
  try{localStorage.setItem('bp_admin_name',n);}catch(e){}return n;}
 async function ovLoad(){OVURL=(AGG&&AGG.ovurl)||null;OV={};
@@ -2254,14 +2275,14 @@ async function renderFU(){
  const fc=$('#fuc');if(fc)fc.addEventListener('change',()=>{FU_C=fc.checked;if(!FU_C&&FU_K==='C')FU_K='all';FU_PAGE=0;renderFU();});
  const q=$('#fuq');if(q){q.addEventListener('input',()=>{FU_Q=q.value;FU_PAGE=0;clearTimeout(q._t);q._t=setTimeout(()=>{renderFU();const n=$('#fuq');if(n){n.focus();n.setSelectionRange(n.value.length,n.value.length);}},250);});}
  const dl=$('#fudl');if(dl)dl.addEventListener('click',fuExport);
- el.querySelectorAll('.fuovs').forEach(sv=>sv.addEventListener('change',()=>{const why=sv.value;if(!why)return;
-  if(!ovNeedName()){sv.value='';return;}
+ el.querySelectorAll('.fuovs').forEach(sv=>sv.addEventListener('change',async()=>{const why=sv.value;if(!why)return;
+  if(!(await ovNeedName())){sv.value='';return;}
   let w=why;
-  if(why==='อื่น ๆ'){const d=ovAsk('อธิบายเหตุผลที่ย้ายแชทนี้ไป “ไม่ต้องตาม”\n(จำเป็นต้องกรอก อย่างน้อย 5 ตัวอักษร)',5);
+  if(why==='อื่น ๆ'){const o0=FU_L[+sv.dataset.ovi];const d=await ovAsk('อธิบายเหตุผลที่ย้ายไป “ไม่ต้องตาม”','แชท: '+(o0&&o0.name||'')+' — จำเป็นต้องพิมพ์อย่างน้อย 5 ตัวอักษร ถ้ากดยกเลิก แชทจะไม่ถูกย้าย',5,'',true);
    if(!d){sv.value='';toast('ยังไม่ได้ย้าย — เลือก “อื่น ๆ” ต้องพิมพ์อธิบายเหตุผล');return;}w='อื่น ๆ: '+d;}
   ovSet(FU_L[+sv.dataset.ovi],'skip',w);}));
- el.querySelectorAll('.fuovb').forEach(b=>b.addEventListener('click',()=>{if(!ovNeedName())return;ovSet(FU_L[+b.dataset.ovi],b.dataset.ovst);}));
- const onb=$('#ovname');if(onb)onb.addEventListener('click',()=>{if(ovNeedName(true))renderFU();});
+ el.querySelectorAll('.fuovb').forEach(b=>b.addEventListener('click',async()=>{if(!(await ovNeedName()))return;ovSet(FU_L[+b.dataset.ovi],b.dataset.ovst);}));
+ const onb=$('#ovname');if(onb)onb.addEventListener('click',async()=>{if(await ovNeedName(true))renderFU();});
 }
 
 /* ---------- orchestration ---------- */
