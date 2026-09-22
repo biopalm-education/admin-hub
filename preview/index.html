@@ -399,6 +399,11 @@ body{background:
 .fuk-A{color:var(--risk);background:var(--risk-soft);border-color:transparent}
 .fuk-B{color:var(--fb);background:var(--fb-soft);border-color:transparent}
 .fuk-C{color:var(--ink-3);background:var(--sunk)}
+.fuov{margin-top:6px;font-size:11.5px;color:var(--ink-2);line-height:1.4}
+.fuov.on{color:var(--ink-3)}
+.fuovs{font:inherit;font-size:11.5px;padding:3px 6px;border-radius:7px;max-width:170px;color:var(--ink-2)}
+.fuovb{font:inherit;font-size:11px;margin-left:6px;padding:1px 8px;border-radius:999px;border:1px solid var(--line-2);background:var(--card);color:var(--leaf);cursor:pointer}
+.fuovnote{margin:0;padding:7px 13px;border-top:1px solid var(--line);background:var(--sunk)}
 </style>
 </head>
 <body>
@@ -2097,8 +2102,31 @@ function fuD(s){const d=new Date(s.slice(0,10)+'T00:00:00');return d;}
 function fuDay(s){const d=fuD(s);return d.getDate()+' '+FU_TH_M[d.getMonth()];}
 function fuWeek(w){const a=fuD(w),b=new Date(a);b.setDate(a.getDate()+6);
  return a.getDate()+(a.getMonth()===b.getMonth()?'':' '+FU_TH_M[a.getMonth()])+'–'+b.getDate()+' '+FU_TH_M[b.getMonth()];}
+/* ---- manual move (Sep 22 2026): an admin can move a chat to / from "ไม่ต้องตาม" ----
+   Shared through a Google Apps Script web app when AGG.ovurl is set (everyone sees it), otherwise kept
+   in this browser only. Keyed by the customer's latest message time, so a NEW message from the same
+   customer brings the chat back automatically. Latest record per key wins; st 'clear' = back to auto. */
+let OV={}, OVURL=null, OVREADY=false, OVERR='';
+const OV_WHY=['ถามกวน / มาปั่น','ไม่ใช่ลูกค้า / ส่งผิด / สแปม','คุยต่อทางช่องทางอื่นแล้ว (LINE / โทร)','แอดมินตอบแล้วแต่ระบบจับไม่ได้','อื่น ๆ'];
+const ovKey=(ch,tid,last)=>ch+'|'+tid+'|'+last;
+function ovName(){try{return localStorage.getItem('bp_admin_name')||'';}catch(e){return '';}}
+async function ovLoad(){OVURL=(AGG&&AGG.ovurl)||null;OV={};
+ if(!OVURL){try{OV=JSON.parse(localStorage.getItem('bp_ov')||'{}')||{};}catch(e){OV={};}OVREADY=true;return;}
+ try{const r=await fetch(OVURL+'?t='+encodeURIComponent(window.OVT||''),{cache:'no-store'});const j=await r.json();
+  if(j.error)throw new Error(j.error);
+  for(const x of (j.rows||[])){const k=ovKey(x[0],x[1],x[2]);if(x[3]==='clear')delete OV[k];else OV[k]={st:x[3],why:x[4],by:x[5],at:x[6]};}
+  OVERR='';}catch(e){OVERR=String(e.message||e);}
+ OVREADY=true;}
+function ovSet(o,st,why){const k=ovKey(CH,o.tid,o.last);
+ if(st==='clear')delete OV[k];else OV[k]={st,why:why||'',by:ovName(),at:new Date().toISOString()};
+ if(OVURL){fetch(OVURL,{method:'POST',headers:{'Content-Type':'text/plain;charset=utf-8'},body:JSON.stringify({t:window.OVT,ch:CH,tid:o.tid,last:o.last,st,why:why||'',name:o.name,by:ovName()})})
+   .then(r=>r.json()).then(j=>{if(!j.ok)toast('บันทึกไม่สำเร็จ ('+(j.error||'?')+')');}).catch(()=>toast('บันทึกไม่สำเร็จ — ตรวจอินเทอร์เน็ตแล้วลองใหม่'));}
+ else{try{localStorage.setItem('bp_ov',JSON.stringify(OV));}catch(e){}}
+ toast(st==='skip'?'ย้ายไป “ไม่ต้องตาม” แล้ว':(st==='follow'?'ย้ายกลับมาในรายการที่ต้องตามแล้ว':'คืนค่าเป็นแบบอัตโนมัติแล้ว'));
+ renderFU();}
 function fuRows(){ if(!FU)return [];
- return (FU[CH]||[]).map(r=>({tid:r[0],name:r[1],type:r[2],kind:r[15]||'A',wait:r[3],first:r[4],last:r[5],week:r[6],n:r[7],said:r[8],tags:r[9]||[],auto:r[10],nauto:r[11],prior:r[12],src:r[13],mo:r[14]}));}
+ return (FU[CH]||[]).map(r=>{const o={tid:r[0],name:r[1],type:r[2],kind:r[15]||'A',auto0:r[15]||'A',wait:r[3],first:r[4],last:r[5],week:r[6],n:r[7],said:r[8],tags:r[9]||[],auto:r[10],nauto:r[11],prior:r[12],src:r[13],mo:r[14]};
+  const ov=OV[ovKey(CH,o.tid,o.last)];if(ov){o.ov=ov;if(ov.st==='skip')o.kind='C';else if(ov.st==='follow'&&o.kind==='C')o.kind='A';}return o;});}
 function fuInB(o,b){return b==='7'?(o.wait>=7&&o.wait<30):(b==='30'?o.wait>=30:o.wait<7);}
 function fuBase(){return fuRows().filter(o=>o.type!=='give'&&(FU_C||o.kind!=='C')&&(FU_P||!o.prior));}
 function fuFilt(skipWeek){const q=FU_Q.trim().toLowerCase();
@@ -2112,13 +2140,19 @@ function fuBtn(o){const dl=fuLink(o);
  return '<a class="inbtn" href="'+(CH==='ig'?INBOX:INBOXFB)+'" target="_blank" rel="noopener"'+(nm?' data-copy="'+esc(nm).replace(/"/g,'&quot;')+'"':'')+'>เปิด Inbox'+(nm?' + คัดลอกชื่อ':'')+' ↗</a>';}
 function fuExport(){const rows=fuFilt(false);
  const head=['ช่องทาง','ชื่อลูกค้า','ค้างมาแล้ว (วัน)','กลุ่ม','สัปดาห์ที่ลูกค้าทักล่าสุด','ลูกค้าเริ่มทักรอบนี้','ลูกค้าทักล่าสุด','จำนวนข้อความลูกค้า',
-  'ลูกค้าพิมพ์/กดอะไร','หัวข้อที่สนใจ','ประเภท','Auto reply ล่าสุดที่ลูกค้าได้','เคยคุยกับแอดมินมาก่อน','มาจาก','ลิงก์ตรงห้องแชท (ถ้ามี)','ผู้ติดตาม','วันที่ติดตาม','ผลการติดตาม'];
+  'ลูกค้าพิมพ์/กดอะไร','หัวข้อที่สนใจ','ประเภท','Auto reply ล่าสุดที่ลูกค้าได้','เคยคุยกับแอดมินมาก่อน','มาจาก','ลิงก์ตรงห้องแชท (ถ้ามี)','แอดมินย้ายเอง','ผู้ติดตาม','วันที่ติดตาม','ผลการติดตาม'];
  const out=[head];
  for(const o of rows)out.push([CH==='ig'?'Instagram':'Facebook',o.name,o.wait,o.wait>=30?'30 วันขึ้นไป':(o.wait>=7?'7–29 วัน':'ไม่ถึง 7 วัน'),
   fuWeek(o.week),o.first,o.last,o.n,o.said,o.tags.join(' · '),FU_KN[o.kind]||o.kind,String(o.auto||'').replace(/\n+/g,' '),o.prior?'Y':'',
-  o.src==='ad'?'โฆษณา':(o.src==='comment'?'คอมเมนต์':'ทักเอง'),fuLink(o)||'','','','']);
+  o.src==='ad'?'โฆษณา':(o.src==='comment'?'คอมเมนต์':'ทักเอง'),fuLink(o)||'',o.ov?((o.ov.st==='skip'?'ไม่ต้องตาม':'กลับมาตาม')+(o.ov.why?' · '+o.ov.why:'')+(o.ov.by?' · '+o.ov.by:'')):'','','','']);
  const end=FU?FU.end.slice(0,10):'';
  downloadCSV('followup-'+(CH==='ig'?'instagram':'facebook')+'-'+(FU_B==='30'?'ค้าง30วันขึ้นไป':'ค้าง7-29วัน')+(FU_W?'-สัปดาห์'+FU_W:'')+(FU_K!=='all'?'-'+FU_KN[FU_K]:'')+'-'+end+'.csv',out);}
+let FU_L=[];
+function fuOvCtl(o,i){
+ if(o.ov&&o.ov.st==='skip')return `<div class="fuov on">ย้ายเป็นไม่ต้องตาม${o.ov.by?' โดย '+esc(o.ov.by):''}${o.ov.why?'<br><span class="nsm">'+esc(o.ov.why)+'</span>':''}<button class="fuovb" data-ovi="${i}" data-ovst="clear">ยกเลิก</button></div>`;
+ if(o.ov&&o.ov.st==='follow')return `<div class="fuov">ย้ายกลับมาตาม${o.ov.by?' โดย '+esc(o.ov.by):''}<button class="fuovb" data-ovi="${i}" data-ovst="clear">ยกเลิก</button></div>`;
+ if(o.kind==='C')return `<div class="fuov"><button class="fuovb" data-ovi="${i}" data-ovst="follow">ย้ายกลับมาตาม</button></div>`;
+ return `<div class="fuov"><select class="fuovs" data-ovi="${i}" aria-label="ย้ายไปไม่ต้องตาม"><option value="">ย้ายไป “ไม่ต้องตาม”…</option>${OV_WHY.map(w=>`<option>${esc(w)}</option>`).join('')}</select></div>`;}
 function fuStatus(){const S=((FU||{}).status||{})[CH];if(!S)return '';
  const tot=Object.values(S).reduce((a,b)=>a+b,0);
  const it=(k,lab,cls)=>`<span class="fust ${cls||''}"><b>${nf(S[k]||0)}</b> ${lab}</span>`;
@@ -2129,6 +2163,7 @@ async function renderFU(){
  const el=$('#fu'), sc=$('#fuscope');
  if(!FU){el.innerHTML='<p class="note">กำลังโหลดรายการแชท…</p>';
   try{FU=await getFile('followup');}catch(e){el.innerHTML='<p class="note">ยังไม่มีข้อมูลรายการนี้ในชุดข้อมูล ('+esc(e.message)+')</p>';return;}}
+ if(!OVREADY){el.innerHTML='<p class="note">กำลังโหลดรายการที่แอดมินย้ายเอง…</p>';await ovLoad();}
  if(VIEW!=='fu')return;
  const chn=CH==='ig'?'Instagram':'Facebook';
  const endT=FU.end?fuDay(FU.end)+' '+FU.end.slice(11,16)+' น.':'';
@@ -2168,12 +2203,13 @@ async function renderFU(){
  const L=fuFilt(false).sort((a,b)=>(QR[a.kind]-QR[b.kind])||(b.last<a.last?-1:1));
  const PER=50, pages=Math.max(1,Math.ceil(L.length/PER)); if(FU_PAGE>=pages)FU_PAGE=0;
  const kb=k=>`<span class="badge fuk-${k}">${FU_KN[k]||k}</span>`;
+ FU_L=[];
  const lrows=L.slice(FU_PAGE*PER,FU_PAGE*PER+PER).map(o=>`<tr>
    <td><b>${CH==='ig'?'@':''}${esc(o.name||'(ไม่มีชื่อ)')}</b><div class="nsm">${o.src==='ad'?'มาจากโฆษณา':(o.src==='comment'?'มาจากคอมเมนต์':'ทักเข้ามาเอง')}${o.prior?' · เคยคุยกับแอดมิน':''}</div></td>
    <td class="n"><b class="${o.wait>=30?'furisk':'fuwarn'}">${Math.floor(o.wait)}</b> วัน<div class="nsm">${fuDay(o.last)} ${o.last.slice(11,16)}</div></td>
    <td class="w fusaid">${kb(o.kind)} ${o.tags.map(t=>'<span class="badge">'+esc(t)+'</span>').join(' ')}<div>${esc(o.said||'(ส่งรูป/สติกเกอร์อย่างเดียว)')}</div></td>
    <td class="w fuauto">${o.auto?esc(o.auto).replace(/\\n|\n/g,' '):'<span class="nsm">ไม่มีข้อความตอบกลับเลย</span>'}<div class="nsm">ข้อความอัตโนมัติ ${o.nauto} ข้อความ</div></td>
-   <td>${fuBtn(o)}</td></tr>`).join('');
+   <td>${fuBtn(o)}${fuOvCtl(o,FU_L.push(o)-1)}</td></tr>`).join('');
  const pager=pages>1?Array.from({length:pages},(_,i)=>i).filter(i=>i<3||i>pages-3||Math.abs(i-FU_PAGE)<2).map((i,j,a)=>(j&&i-a[j-1]>1?'<span class="nsm">…</span>':'')+`<button data-fup="${i}" aria-current="${i===FU_PAGE}">${i+1}</button>`).join(''):'';
  const list=`<div class="fuhd"><b>รายชื่อแชทที่ต้องตาม</b> <span class="nsm">ถามจริงขึ้นก่อน แล้วเรียงจากลูกค้าทักล่าสุด</span></div>
   <div class="tw"><div class="ptop"><input type="search" id="fuq" placeholder="ค้นชื่อลูกค้า หรือข้อความที่ลูกค้าพิมพ์" value="${esc(FU_Q)}">
@@ -2181,6 +2217,7 @@ async function renderFU(){
     <label class="fuprior"><input type="checkbox" id="fuprior" ${FU_P?'checked':''}> รวมแชทที่เคยคุยกับแอดมินแล้ว แต่ลูกค้าถามรอบใหม่ยังไม่มีคนตอบ</label>
     <label class="fuprior"><input type="checkbox" id="fuc" ${FU_C?'checked':''}> แสดงแชทที่ไม่ต้องตาม (${nf(nC)})</label></div></div>
   <table class="fulist"><thead><tr><th>ลูกค้า</th><th class="n">ค้างมาแล้ว</th><th>ลูกค้าพิมพ์/กดอะไร</th><th>Auto reply ล่าสุดที่ลูกค้าได้</th><th></th></tr></thead><tbody>${lrows||'<tr><td colspan="5">ไม่มีแชทตามตัวกรองนี้ 🎉</td></tr>'}</tbody></table>
+  <p class="nsm fuovnote">${OVURL?(OVERR?'⚠️ โหลดรายการที่แอดมินย้ายเองไม่สำเร็จ ('+esc(OVERR)+') — การย้ายตอนนี้ยังไม่ถูกบันทึกส่วนกลาง':'การย้ายแชทบันทึกส่วนกลาง ทุกคนในทีมเห็นเหมือนกัน · ย้ายไปแล้ว '+nf(Object.keys(OV).filter(k=>k.startsWith(CH+'|')).length)+' แชท'):'การย้ายแชทตอนนี้บันทึกเฉพาะเครื่องนี้ (ยังไม่ได้เชื่อมที่เก็บส่วนกลาง)'} · ถ้าลูกค้าส่งข้อความใหม่ แชทจะกลับเข้ารายการเอง</p>
   <div class="pfoot"><span class="nsm">${nf(L.length)} แชท${FU_T?' · หัวข้อ '+esc(FU_T):''}${FU_W?' · สัปดาห์ '+fuWeek(FU_W):''}</span>
    <button class="dlbtn fudl" id="fudl" type="button">⤓ ดาวน์โหลดรายการนี้ (CSV) · ${nf(L.length)} แชท</button><span class="fupager">${pager}</span></div></div>`;
 
@@ -2189,6 +2226,7 @@ async function renderFU(){
 
  const help=`<details class="fhelp"><summary>รายการนี้นับอย่างไร</summary><dl>
   <dt>อ่านทั้งห้อง ไม่ใช่รายเดือน</dt><dd>รายการนี้ต่อข้อความทุกเดือนของห้องเดียวกันแล้วดูว่า <b>ตอนนี้</b> ห้องอยู่สถานะไหน — ถ้าแอดมินตอบหลังข้อความล่าสุดของลูกค้าแล้ว (แม้จะคนละเดือน) ห้องนั้นไม่อยู่ในรายการ · ถ้าลูกค้าพิมพ์แค่ขอบคุณ/โอเค/สติกเกอร์หลังจากแอดมินคุยไปแล้ว ถือว่าจบบทสนทนา ไม่ต้องตาม · “เคยคุยกับแอดมิน” นับย้อนไปถึงก่อนปี 2026 ด้วย (Facebook)</dd>
+  <dt>ย้ายแชทเอง</dt><dd>ถ้าเปิดดูแล้วไม่ควรตาม (ถามกวน มาปั่น ไม่ใช่ลูกค้า คุยต่อทางอื่นแล้ว) เลือกเหตุผลในช่อง “ย้ายไป ไม่ต้องตาม” ท้ายแถว แชทจะหายจากรายการและตัวเลขทันที · กดยกเลิกเพื่อคืนค่าได้ · ถ้าลูกค้าส่งข้อความใหม่ในภายหลัง แชทจะกลับเข้ารายการเองเพราะเป็นรอบใหม่ · แชทที่ระบบซ่อนไว้ผิด เปิด “แสดงแชทที่ไม่ต้องตาม” แล้วกด “ย้ายกลับมาตาม”</dd>
   <dt>แชทแบบไหนเข้ารายการ</dt><dd>ลูกค้าทักมาแล้วได้รับแต่ <b>ข้อความอัตโนมัติ</b> (ข้อความต้อนรับ ปุ่มคำถามที่ตั้งไว้ ข้อความตอบตามคีย์เวิร์ด ข้อความติดตามที่ตั้งเวลาส่ง) และ <b>ไม่มีแอดมินตอบเลย</b> นับจากข้อความล่าสุดของลูกค้า</dd>
   <dt>แยกแอดมินกับข้อความอัตโนมัติอย่างไร</dt><dd><b>Facebook</b> — Meta ติดป้ายทุกข้อความว่าส่งมาจากไหน ข้อความที่ส่งจากแอปมือถือ (Business Suite) = มีคนกดส่ง นับเป็นแอดมินตอบ ทั้งที่พิมพ์เองและกดส่งข้อความที่บันทึกไว้ · ข้อความที่ระบบส่งเอง (ข้อความต้อนรับ ปุ่มคำถาม ตอบตามคีย์เวิร์ด ข้อความติดตามที่ตั้งเวลา บอทตรวจสลิป) = อัตโนมัติ · <b>Instagram</b> — API ไม่มีป้ายนี้ จึงเทียบจากข้อความเดียวกันบน Facebook (แอดมินใช้ข้อความชุดเดียวกัน) ข้อความที่ไม่เคยเจอบน Facebook ใช้จังหวะเวลา: ส่งหลังลูกค้าทัก 2 นาทีขึ้นไป = แอดมิน · <b>LINE OA</b> — ระบบ LINE บอกชื่อแอดมินที่ส่งทุกข้อความอยู่แล้ว</dd>
   <dt>“ค้างมาแล้ว” นับจากไหน</dt><dd>จากข้อความล่าสุดของลูกค้า ถึงเวลาที่ดึงข้อมูลชุดนี้ (${endT}) · 7–29 วัน = ยังตามได้ทัน · 30 วันขึ้นไป = กองค้างที่ควรเคลียร์ให้เป็น 0</dd>
@@ -2208,6 +2246,10 @@ async function renderFU(){
  const fc=$('#fuc');if(fc)fc.addEventListener('change',()=>{FU_C=fc.checked;if(!FU_C&&FU_K==='C')FU_K='all';FU_PAGE=0;renderFU();});
  const q=$('#fuq');if(q){q.addEventListener('input',()=>{FU_Q=q.value;FU_PAGE=0;clearTimeout(q._t);q._t=setTimeout(()=>{renderFU();const n=$('#fuq');if(n){n.focus();n.setSelectionRange(n.value.length,n.value.length);}},250);});}
  const dl=$('#fudl');if(dl)dl.addEventListener('click',fuExport);
+ el.querySelectorAll('.fuovs').forEach(sv=>sv.addEventListener('change',()=>{if(!sv.value)return;
+  if(!ovName()){const n=(prompt('ชื่อแอดมิน (บันทึกว่าใครเป็นคนย้าย)','')||'').trim();if(n){try{localStorage.setItem('bp_admin_name',n);}catch(e){}}}
+  ovSet(FU_L[+sv.dataset.ovi],'skip',sv.value);}));
+ el.querySelectorAll('.fuovb').forEach(b=>b.addEventListener('click',()=>ovSet(FU_L[+b.dataset.ovi],b.dataset.ovst)));
 }
 
 /* ---------- orchestration ---------- */
@@ -2332,6 +2374,7 @@ G('gform').addEventListener('submit',async ev=>{
   MAN=await MANP;
   if(!MAN||MAN.__err||!MAN.kdf)throw new Error('nomanifest');
   const secret=G('gu').value.trim()+':'+G('gp').value;
+  try{window.OVT=[...new Uint8Array(await crypto.subtle.digest('SHA-256',new TextEncoder().encode('bp-ov|'+secret)))].map(x=>x.toString(16).padStart(2,'0')).join('');}catch(e){}
   const base=await crypto.subtle.importKey('raw',new TextEncoder().encode(secret),'PBKDF2',false,['deriveKey']);
   KEY=await crypto.subtle.deriveKey({name:'PBKDF2',salt:B64(MAN.kdf.s),iterations:MAN.kdf.n,hash:'SHA-256'},
        base,{name:'AES-GCM',length:256},false,['decrypt']);
