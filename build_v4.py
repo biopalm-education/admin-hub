@@ -132,6 +132,7 @@ for mo in months:   # chronological, so a slip already counted is never counted 
             st, it, rev = judge(cus, ours, ours + cus, c[26])
             if c[1] == 'G' and st != 'W': st = 'G'
             fr = first_reply([(m[0], m[1] == 0 and not sysmsg(tx(m[2])), m[1] == 1 and not sysmsg(tx(m[2]))) for m in c[18]])
+            if (fr is None or fr < 0) and len(c) > 44 and c[44] is not None: fr = c[44]   # admin replied next month (stitch.py)
             c[37], c[38], c[39] = st, it, rev
             while len(c) < 41: c.append(None)
             c[40] = fr
@@ -148,6 +149,7 @@ for mo in months:   # chronological, so a slip already counted is never counted 
             st, it, rev = judge(cus, ours, ours + cus, c[26])
             if c[1] == 'G' and st != 'W': st = 'G'
             fr = first_reply([(m[0], m[1] == 0 and not sysmsg(tx(m[2])), m[1] == 1 and not sysmsg(tx(m[2]))) for m in c[18]])
+            if (fr is None or fr < 0) and len(c) > 44 and c[44] is not None: fr = c[44]   # admin replied next month (stitch.py)
             c[37], c[38], c[39] = st, it, rev
             while len(c) < 41: c.append(None)
             c[40] = fr

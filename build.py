@@ -39,6 +39,10 @@ def emit(name, src):
 
 emit('agg', 'src/agg.json')
 emit('ig-all', 'src/ig_all.json')
+if os.path.exists('src/followup.json'):   # FB/IG follow-up list (build_fu.py)
+    emit('followup', 'src/followup.json')
+if os.path.exists('src/threads.json'):    # one chat across months (build_fu.py)
+    emit('threads', 'src/threads.json')
 for p in sorted(glob.glob('src/fb_*.json')):
     emit('fb-' + re.search(r'fb_(.+)\.json$', p).group(1), p)
 for p in sorted(glob.glob('src/line_*.json')):

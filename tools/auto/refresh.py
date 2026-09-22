@@ -44,6 +44,9 @@ IG_PAY=re.compile(r'จ่าย|ชำระ|โอน')
 IG_ASKC=re.compile(r'สนใจ|คอร์ส|ราคา|ตาราง|รายละเอียด|สมัคร|สอวน|สสวท|[Mm]odule|ติว|[Mm][Ww][Ii][Tt]')
 IG_GWC=re.compile(r'[Gg]iveaway|แจกฟรี|ขอชีท|ชีท|ของแถม')
 IG_GW=re.compile(r'ร่วมกิจกรรม|[Gg]iveaway|รีวิว')
+# sender rule (Sep 22 2026, fix_roles.py): FB uses Meta's source tag; IG reuses how the same text behaves on FB
+WEBBOT=re.compile(r'สถานะ\s*[:：]\s*ตรวจสอบสลิป|เราช่วยติวชีวะ|ยินดีให้คำปรึกษา|ติวชีวะ A-Level กับพี่|เพิ่งติดตามเพจ|ตอบกลับโฆษณา|กำหนดการสนทนา|transfer request|responding to a user comment|ตอบกลับความคิดเห็น')
+ATT_FB=('[รูป/ไฟล์แนบ]',)
 
 def bounds(mo):
     y,m=int(mo[:4]),int(mo[5:7])
@@ -119,7 +122,8 @@ def fb_pull(mo,tok):
             msgs+=j2['data']; nx=(j2.get('paging') or {}).get('next'); g+=1
         keep=[{'t':x['created_time'],'f':(x.get('from') or {}).get('id'),'fn':(x.get('from') or {}).get('name'),
                'to':[y.get('name') for y in ((x.get('to') or {}).get('data') or [])],'m':x.get('message') or '',
-               'a':1 if ((x.get('attachments') or {}).get('data')) else 0}
+               'a':1 if ((x.get('attachments') or {}).get('data')) else 0,
+               's':next((q['name'][7:] for q in ((x.get('tags') or {}).get('data') or []) if q['name'].startswith('source:')),'')}
               for x in msgs if A0<=pdt(x['created_time'])<A1]
         rec={'id':cid,'nm':nm,'msgs':keep,'pre':bool(msgs and pdt(msgs[-1]['created_time'])<A0)}
         with lock: out.append(rec)
@@ -149,7 +153,7 @@ def fb_columns(mo,recs):
         for m in sorted(r['msgs'],key=lambda x:x['t']):
             tx=(m.get('m') or '').strip() or ('[รูป/ไฟล์แนบ]' if m.get('a') else '')
             side='ธุรกิจ' if str(m.get('f'))==PAGE else 'ลูกค้า'
-            out.append({'t':pdt(m['t']).astimezone(TH),'side':side,'tx':tx,
+            out.append({'t':pdt(m['t']).astimezone(TH),'side':side,'tx':tx,'s':m.get('s') or '',
                         'to':[x for x in (m.get('to') or []) if x],'fn':m.get('fn') or ''})
         if not name:
             for m in out:
@@ -158,7 +162,17 @@ def fb_columns(mo,recs):
                         if n2 and n2!='BioPalm': name=n2; break
                 elif m['fn']: name=m['fn']
                 if name: break
-        types=[mtype(m) for m in out]
+        # Sep 22 2026: who sent it comes from Meta's own tag (see fix_roles.py) — mobile = a person;
+        # web / private_reply = automation unless it is a one-off text sent 2+ min after the customer
+        def mtype2(i):
+            m=out[i]; t0=mtype(m)
+            if m['side']!='ธุรกิจ' or t0=='ระบบ Meta' or not m['s']: return t0
+            if m['s']=='mobile': return 'แอดมินพิมพ์เอง'
+            if t0=='แอดมินพิมพ์เอง' and m['tx'] not in ATT_FB and not WEBBOT.search(m['tx']):
+                lc=next((out[j]['t'] for j in range(i-1,-1,-1) if out[j]['side']=='ลูกค้า'),None)
+                if lc is not None and (m['t']-lc).total_seconds()>=120: return t0
+            return 'สำเร็จรูป'
+        types=[mtype2(i) for i in range(len(out))]
         conv=[(m,t) for m,t in zip(out,types) if t!='ระบบ Meta']
         biz=[m['tx'] for m,t in zip(out,types) if m['side']=='ธุรกิจ' and t!='ระบบ Meta']
         cus=[m['tx'] for m in out if m['side']=='ลูกค้า']
@@ -373,7 +387,24 @@ def ig_build(mo,convs,MS,IG):
             if IG_GW.search(t) and rep(t)>=5: out.append(3)
             elif rep(t)>=3 and len(t)>12: out.append(2)
             else: out.append(1)
-        return out
+        return fix_ig(x['ev'],out)
+    try: CLS=json.load(open(f'{REPO}/src/agg.json',encoding='utf-8')).get('txtclass') or {}
+    except Exception: CLS={}
+    def fix_ig(ev,rr):
+        # Sep 22 2026 (fix_roles.py): a saved-reply text is an admin reply if Facebook shows the same
+        # text sent from mobile; unknown texts: 2+ min after the customer's last message = admin
+        new=list(rr); lc=None
+        for i,e in enumerate(ev):
+            if rr[i]==0: lc=e['t']; continue
+            if rr[i]==3 or e['tx'].startswith('['): continue
+            k=e['tx'][:30]
+            if k in CLS: new[i]=1 if CLS[k] else 2
+            elif rr[i]==2: new[i]=1 if (lc is not None and (e['t']-lc).total_seconds()>=120) else 2
+        for i,e in enumerate(ev):
+            if rr[i] in (1,2) and e['tx'].startswith('['):
+                nb=[j for j in range(len(ev)) if rr[j] in (1,2) and not ev[j]['tx'].startswith('[') and abs((ev[j]['t']-e['t']).total_seconds())<=180]
+                if nb: new[i]=new[min(nb,key=lambda j:abs(j-i))]
+        return new
     rows=[]; fa=[]
     for x in chs:
         rr=roles(x); ev=[dict(e,r=r) for e,r in zip(x['ev'],rr)]
@@ -470,11 +501,15 @@ def run_refresh(months, push=True):
         done.append(mo)
     json.dump(IG,open(f'{REPO}/src/ig_all.json','w',encoding='utf-8'),separators=(',',':'),ensure_ascii=False)
     json.dump(AGG,open(f'{REPO}/src/agg.json','w',encoding='utf-8'),separators=(',',':'),ensure_ascii=False)
+    # stitch.py: an admin reply that lands in the NEXT month (within 7 days) still counts for this month
+    r=subprocess.run(['bash','-lc',f'cd {REPO} && python3 stitch.py 2>&1|tail -2'],capture_output=True,text=True)
+    log('stitch',r.stdout.strip()[-200:])
     r=subprocess.run(['bash','-lc',f'cd {REPO} && python3 build_v4.py 2>&1|tail -3'],capture_output=True,text=True)
     log('build_v4',r.stdout.strip()[-300:])
     # build_v5 re-applies the strict "ทักมาแล้วหาย" split (14 + 30 day); post_v5_speed restores the
     # reply-speed tables that build_v5 drops. Skipping these reverted the live 14-day view every morning.
-    for step in ('build_v5.py','post_v5_speed.py'):
+    # build_fu rebuilds the FB/IG "ตามแชท Auto reply" list and appends today's counts to its history.
+    for step in ('build_v5.py','post_v5_speed.py','build_fu.py'):
         r=subprocess.run(['bash','-lc',f'cd {REPO} && python3 {step} 2>&1|tail -3'],capture_output=True,text=True)
         log(step,r.stdout.strip()[-300:])
         if r.returncode!=0 or 'Traceback' in r.stdout: raise RuntimeError(step+' failed: '+r.stdout[-400:])
