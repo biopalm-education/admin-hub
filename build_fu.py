@@ -25,7 +25,7 @@ Memory-lean on purpose: one month file in memory at a time (the Composio sandbox
 import json, glob, re, datetime, collections, gc
 
 SYS = re.compile(r'^\x01|Facebook สร้างแชทนี้ขึ้น|คุณกำลังตอบกลับความคิดเห็น|replied to a post|ได้ตอบกลับโพสต์|ตอบกลับโฆษณา$|^ตั้งระยะข้อมูลลูกค้า')
-NOISE = set(['[รูป/ไฟล์แนบ]', '[รูปภาพ]', '[สติกเกอร์]', '(emoji)', '[ไฟล์]', '[ไฟล์แนบ]', '[ตอบกลับสตอรี่]',
+NOISE = set(['▶ กดปุ่ม', 'เมนูหลัก', 'You received a message', '[รูป/ไฟล์แนบ]', '[รูปภาพ]', '[สติกเกอร์]', '(emoji)', '[ไฟล์]', '[ไฟล์แนบ]', '[ตอบกลับสตอรี่]',
              '[ข้อความที่ IG ไม่รองรับ]', '[วิดีโอ]', '[เสียง]', ''])
 TAGS = [('ม.ต้น', r'ม\.?\s?ต้น|มต้น|ม\.\s?[1-3](?!\d)|ม[1-3](?!\d)'),
         ('ม.ปลาย', r'ม\.?\s?ปลาย|มปลาย|ม\.\s?[4-6](?!\d)|ม[4-6](?!\d)'),
@@ -50,7 +50,12 @@ BTN_COURSE = set(['สนใจลงเรียน ม.ต้น', 'สนใ�
     'หลักสูตรเรียนชีววิทยามีราคาเท่าไร?', 'คอร์สเรียนมีราคาเท่าไร', 'มีคอร์สเรียนอะไรบ้าง', 'ช่วยแนะนำคอร์สเรียน',
     'รายละเอียดคอร์ส', 'รายละเอียด', 'สมัครเรียน', 'คอร์ส ม.ต้น', 'คอร์ส ม.ปลาย', 'คอร์สม.ต้น', 'คอร์สม.ปลาย', 'ยืนยันการลงทะเบียน',
     'เทป RERUN', 'คอร์สทั้งหมด', 'คอร์สเรียนทั้งหมด', 'คอร์ส ONLINE', 'Onsite สด', 'Onsite', 'Online', 'Online : Google meet',
-    'วิธีการสมัครเรียน', 'แผนการเรียน ม.ต้น', 'สอบถามรายละเอียด', 'โปรโมชั่น', 'ติดต่อแอดมิน', 'ต้องการติดต่อแอดมิน'])
+    'วิธีการสมัครเรียน', 'แผนการเรียน ม.ต้น', 'สอบถามรายละเอียด', 'โปรโมชั่น', 'ติดต่อแอดมิน', 'ต้องการติดต่อแอดมิน',
+    # LINE OA rich-menu / card buttons (Sep 22 2026)
+    'แผนการเรียน ม.ปลาย', 'คอร์ส RERUN', 'ตัวอย่างคอร์สเรียน', 'รีวิวคอร์สเรียน', 'เงื่อนไข และอายุคอร์สเรียน', 'ขั้นตอนการเข้าเรียน',
+    'วิธีการเข้าเรียนย้อนหลัง', 'ไม่ได้รับลิ้งค์เข้าเรียนผ่าน E-mail', 'ยืนยันข้อมูลถูกต้อง'])
+# LINE buttons that are an existing student's real problem -> treated like a typed request (tier A)
+BTN_NEED = set(['ไม่ได้รับลิ้งค์เข้าเรียนผ่าน E-mail', 'วิธีการเข้าเรียนย้อนหลัง', 'ขั้นตอนการเข้าเรียน', 'ติดต่อแอดมิน', 'ต้องการติดต่อแอดมิน'])
 COURSE = re.compile(r'สนใจ|ซิ่ว|ชีวะ|ชีววิทยา|คอร์ส|คอส|ครอส|ราคา|ค่าเรียน|สมัคร|เท่าไ|กี่บาท|โปร|ตาราง|ลงเรียน|เรียน|สอวน|IJSO|A-?Level|สอบ|MWIT|KVIS|เตรียมอุดม|onsite|online|ออนไลน์|เทป|ติว|โมดูล|module|ม\.?\s?[1-6]|ม\.?\s?ต้น|ม\.?\s?ปลาย|ป\.?\s?[1-6]|ลิ้ง|ลิงก์|ลิงค์|รหัสผ่าน|ชีท|เอกสาร|ใบเสร็จ|เลื่อน|โอน|ชำระ|จ่าย', re.I)
 QUEST = re.compile(r'\?|ไหม|มั้ย|มั๊ย|หรือเปล่า|ยังไง|อย่างไร|อะไร|เมื่อไ|ที่ไหน|ได้บ้าง|สอบถาม|ขอทราบ|อยาก|ต้องการ|แนะนำ|รบกวน', re.I)
 DECLINE = re.compile(r'ไม่มีอะไร|ไม่สนใจ|ไม่เอา|ไม่ต้องส่ง|ไม่ต้องการ|ยกเลิก|หยุดส่ง|เลิกส่ง|ส่งผิด|ทักผิด|กดผิด')
@@ -58,6 +63,7 @@ def quality(said):
     if any(DECLINE.search(x) for x in said): return 'C'     # the customer said no -> nothing to follow up
     real = [x for x in said if x not in BTN_COURSE and not LOW.match(x) and len(x.strip()) >= 4 and not x.startswith('[')]
     if any(COURSE.search(x) or QUEST.search(x) for x in real): return 'A'
+    if any(x in BTN_NEED for x in said): return 'A'
     if any(x in BTN_COURSE for x in said): return 'B'
     return 'C'
 
@@ -72,7 +78,7 @@ agg = json.load(open('src/agg.json', encoding='utf-8'))
 END = agg.get('v4end') or 0
 try: OLD = json.load(open('src/followup.json', encoding='utf-8'))
 except Exception: OLD = {}
-PRE = {'fb': set((OLD.get('pre') or {}).get('fb', [])), 'ig': set((OLD.get('pre') or {}).get('ig', []))}
+PRE = {'fb': set((OLD.get('pre') or {}).get('fb', [])), 'ig': set((OLD.get('pre') or {}).get('ig', [])), 'line': set()}
 try:
     for k, v in json.load(open('pre2026.json', encoding='utf-8')).items(): PRE[k] |= set(v)
 except Exception: pass
@@ -152,6 +158,49 @@ del th
 json.dump(THR, open('src/threads.json', 'w', encoding='utf-8'), separators=(',', ':'), ensure_ascii=False)
 print('multi-month threads', {k: len(v) for k, v in THR.items()}, 'status', STATUS)
 
+# ---- LINE OA (Sep 22 2026) -------------------------------------------------------------------
+# LINE is pulled by hand once a month (src/line_YYYY-MM.json, rooms[].tr = [["MM-DD HH:MM", who, text]]),
+# who = 'C' customer · 'B' bot / auto-response · anything else = the admin's own name (LINE says who sent it).
+# Same whole-thread logic as Facebook/Instagram, stitched by room id across months. "wait" is counted to the
+# END OF THE LATEST LINE MONTH (not to today), because nothing after that month has been pulled yet.
+LN = []; LEND = None; LBOT = ''
+lfiles = sorted(glob.glob('src/line_*.json'))
+if lfiles:
+    th = collections.OrderedDict(); ADM = {}
+    for pth in lfiles:
+        mo = pth[-12:-5]; f = json.load(open(pth, encoding='utf-8')); t = tx_of(f['dict']); LBOT = f.get('bot') or LBOT
+        y = int(mo[:4])
+        for r in f['rooms']:
+            e = th.setdefault(r['id'], {'name': '', 'm': [], 'st': None, 'src': 'line', 'mo': mo})
+            e['name'] = r.get('n') or e['name']; e['st'] = r.get('sg'); e['mo'] = mo
+            e['ow'] = r.get('ow') or ''; e['reg'] = 1 if any('สมัครแล้ว' in x for x in (r.get('tg') or [])) else 0
+            e['tg'] = r.get('tg') or []
+            nh = 0; nc = 0
+            for m in r['tr']:
+                try: ts = int((datetime.datetime(y, int(m[0][:2]), int(m[0][3:5]), int(m[0][6:8]), int(m[0][9:11])) - T0).total_seconds() // 60)
+                except Exception: continue
+                sx = str(t(m[2])).strip(); who = m[1]
+                if who == 'C': e['m'].append((ts, 0, sx)); nc += 1
+                elif who == 'B':
+                    if sx not in NOISE: e['m'].append((ts, 2, sx[:160]))
+                else:
+                    e['m'].append((ts, 1, '')); nh += 1; ADM.setdefault(r['id'], collections.Counter())[who] += 1
+            e.setdefault('per', []).append([mo, nh, nc])
+        del f; gc.collect()
+    lm = lfiles[-1][-12:-5]; ly, lmn = int(lm[:4]), int(lm[5:7])
+    nxt = datetime.datetime(ly + (lmn == 12), lmn % 12 + 1, 1)
+    LEND = int((nxt - T0).total_seconds() // 60) - 1                     # 23:59 on the last day of that month
+    END_SAVE = END; END = LEND
+    LN = finish(th, 'line')
+    END = END_SAVE
+    for r in LN:
+        e = th[r[0]]
+        r += [e.get('ow') or '', e.get('reg') or 0, [a for a, _ in ADM.get(r[0], collections.Counter()).most_common()]]
+    THR['line'] = {k: e['per'] for k, e in th.items() if len(e['per']) > 1}
+    json.dump(THR, open('src/threads.json', 'w', encoding='utf-8'), separators=(',', ':'), ensure_ascii=False)
+    del th; gc.collect()
+    print('line', len(LN), 'end', stamp(LEND), 'status', STATUS.get('line'))
+
 # weekly history of the headline counts (never-admin chats only), carried over from the
 # previously published followup.json that unpack.py restores — one point per data-end date
 def heads(L):
@@ -159,13 +208,17 @@ def heads(L):
     return [sum(1 for r in z if 7 <= r[3] < 30), sum(1 for r in z if r[3] >= 30)]
 hist = OLD.get('hist', [])
 day = stamp(END)[:10]
-hist = [h for h in hist if h[0] != day] + [[day] + heads(FB) + heads(IG)]
+def heads_ln(L):   # LINE: almost every room has met an admin, so the headline counts include those rooms
+    z = [r for r in L if r[15] != 'C']
+    return [sum(1 for r in z if 7 <= r[3] < 30), sum(1 for r in z if r[3] >= 30)]
+hist = [h for h in hist if h[0] != day] + [[day] + heads(FB) + heads(IG) + heads_ln(LN)]
 hist = sorted(hist)[-120:]
 
-COLS = ['tid', 'name', 'kind', 'wait', 'first', 'last', 'week', 'n', 'said', 'tags', 'auto', 'nauto', 'prior', 'src', 'mo', 'q']
+COLS = ['tid', 'name', 'kind', 'wait', 'first', 'last', 'week', 'n', 'said', 'tags', 'auto', 'nauto', 'prior', 'src', 'mo', 'q',
+        'owner', 'reg', 'admins']   # last three: LINE only
 json.dump({'end': stamp(END), 'hist': hist, 'status': STATUS, 'pre': {k: sorted(v) for k, v in PRE.items()},
-           'cols': COLS, 'fb': FB, 'ig': IG},
+           'cols': COLS, 'fb': FB, 'ig': IG, 'line': LN, 'lend': stamp(LEND) if LEND else None, 'lbot': LBOT},
           open('src/followup.json', 'w', encoding='utf-8'), separators=(',', ':'), ensure_ascii=False)
-for ch, L in (('fb', FB), ('ig', IG)):
+for ch, L in (('fb', FB), ('ig', IG), ('line', LN)):
     c = collections.Counter(('<7' if r[3] < 7 else ('7-29' if r[3] < 30 else '30+'), r[12], r[15]) for r in L if r[2] != 'give')
     print(ch, len(L), sorted(c.items()))
