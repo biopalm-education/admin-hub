@@ -413,6 +413,11 @@ body{background:
 .ovbtns{display:flex;gap:8px;justify-content:flex-end}
 .ovbtns button{font:inherit;padding:7px 16px;border-radius:999px;border:1px solid var(--line-2);background:var(--card);color:var(--ink-2);cursor:pointer}
 .ovbtns .ovok{background:var(--leaf);border-color:var(--leaf);color:#fff}.ovbtns .ovok:disabled{opacity:.4;cursor:not-allowed}
+.ovlab{display:block;font-weight:600;font-size:13px;margin:10px 0 6px}
+.ovadm{display:flex;flex-wrap:wrap;gap:6px}
+.ovad{font:inherit;font-size:14px;padding:6px 12px;border-radius:999px;border:1.5px solid var(--line-2);background:var(--card);color:var(--ink);cursor:pointer}
+.ovad span{font-size:11px;color:var(--ink-3)}
+.ovad.on{background:var(--leaf);border-color:var(--leaf);color:#fff}.ovad.on span{color:#dfe9f0}
 </style>
 </head>
 <body>
@@ -2135,10 +2140,33 @@ function ovAsk(title,sub,min,def,multi){return new Promise(res=>{
  bg.querySelector('.ovcx').addEventListener('click',()=>done(''));
  bg.addEventListener('click',e=>{if(e.target===bg)done('');});
  upd();setTimeout(()=>i.focus(),30);});}
-async function ovNeedName(force){const cur=ovName();if(cur&&!force)return cur;
- const n=await ovAsk('ชื่อแอดมินของคุณ','จำเป็นต้องกรอก — ใช้บันทึกว่าใครเป็นคนย้ายแชท (ระบบจำไว้ในเครื่องนี้)',2,cur,false);
- if(!n){if(!force)toast('ยังไม่ได้ย้าย — ต้องกรอกชื่อแอดมินก่อน');return cur&&force?cur:'';}
- try{localStorage.setItem('bp_admin_name',n);}catch(e){}return n;}
+const OV_ADMINS=[['pat',''],['Gambumm',''],['ARM',''],['🚲',''],['🌙',''],['PPALM','owner'],['khing','operator'],['Pball','operator']];
+function ovMove(o,st,why){return new Promise(res=>{
+ const other=st==='skip'&&why==='อื่น ๆ';
+ const ttl=st==='skip'?'ย้ายไป “ไม่ต้องตาม”':(st==='follow'?'ย้ายกลับมาในรายการที่ต้องตาม':'ยกเลิกการย้าย (คืนค่าอัตโนมัติ)');
+ const bg=document.createElement('div');bg.className='ovdlg-bg';
+ bg.innerHTML=`<div class="ovdlg" role="dialog" aria-modal="true"><h4>${ttl}</h4>
+  <p class="nsm">แชท: <b>${esc(o&&o.name||'')}</b>${st==='skip'?'<br>เหตุผล: <b>'+esc(why)+'</b>':''}</p>
+  ${other?'<label class="ovlab">อธิบายเหตุผล <span class="nsm">(จำเป็น อย่างน้อย 5 ตัวอักษร)</span></label><textarea rows="3" class="ovin"></textarea><div class="ovcnt nsm"></div>':''}
+  <label class="ovlab">แอดมินที่ปรับ <span class="nsm">(จำเป็น)</span></label>
+  <div class="ovadm">${OV_ADMINS.map(([n,r])=>`<button type="button" class="ovad" data-n="${esc(n)}">${esc(n)}${r?' <span>'+r+'</span>':''}</button>`).join('')}</div>
+  <div class="ovcnt nsm ovcnt2"></div>
+  <div class="ovbtns"><button type="button" class="ovcx">ยกเลิก</button><button type="button" class="ovok">บันทึก</button></div></div>`;
+ document.body.appendChild(bg);
+ const i=bg.querySelector('.ovin'),ok=bg.querySelector('.ovok'),cnt=bg.querySelector('.ovcnt'),c2=bg.querySelector('.ovcnt2');let by='';
+ const txt=()=>i?i.value.trim():'';
+ const upd=()=>{const n=txt().length,tOk=!other||n>=5;
+  if(other){cnt.textContent=tOk?'✓ ครบแล้ว':('พิมพ์อีก '+(5-n)+' ตัวอักษร');cnt.classList.toggle('ok',tOk);}
+  c2.textContent=by?'✓ '+by:'เลือกชื่อแอดมิน 1 คน';c2.classList.toggle('ok',!!by);
+  ok.disabled=!(tOk&&by);};
+ const done=v=>{bg.remove();res(v);};
+ bg.querySelectorAll('.ovad').forEach(x=>x.addEventListener('click',()=>{by=x.dataset.n;bg.querySelectorAll('.ovad').forEach(y=>y.classList.toggle('on',y===x));upd();}));
+ if(i)i.addEventListener('input',upd);
+ bg.addEventListener('keydown',e=>{if(e.key==='Escape')done(null);});
+ ok.addEventListener('click',()=>{if(!ok.disabled)done({why:other?'อื่น ๆ: '+txt():(why||''),by});});
+ bg.querySelector('.ovcx').addEventListener('click',()=>done(null));
+ bg.addEventListener('click',e=>{if(e.target===bg)done(null);});
+ upd();setTimeout(()=>(i||bg.querySelector('.ovad')).focus(),30);});}
 async function ovLoad(){OVURL=(AGG&&AGG.ovurl)||null;OV={};
  if(!OVURL){try{OV=JSON.parse(localStorage.getItem('bp_ov')||'{}')||{};}catch(e){OV={};}OVREADY=true;return;}
  try{const r=await fetch(OVURL+'?t='+encodeURIComponent(window.OVT||''),{cache:'no-store'});const j=await r.json();
@@ -2146,9 +2174,9 @@ async function ovLoad(){OVURL=(AGG&&AGG.ovurl)||null;OV={};
   for(const x of (j.rows||[])){const k=ovKey(x[0],x[1],x[2]);if(x[3]==='clear')delete OV[k];else OV[k]={st:x[3],why:x[4],by:x[5],at:x[6]};}
   OVERR='';}catch(e){OVERR=String(e.message||e);}
  OVREADY=true;}
-function ovSet(o,st,why){const k=ovKey(CH,o.tid,o.last);
- if(st==='clear')delete OV[k];else OV[k]={st,why:why||'',by:ovName(),at:new Date().toISOString()};
- if(OVURL){fetch(OVURL,{method:'POST',headers:{'Content-Type':'text/plain;charset=utf-8'},body:JSON.stringify({t:window.OVT,ch:CH,tid:o.tid,last:o.last,st,why:why||'',name:o.name,by:ovName()})})
+function ovSet(o,st,why,by){const k=ovKey(CH,o.tid,o.last);
+ if(st==='clear')delete OV[k];else OV[k]={st,why:why||'',by:by||'',at:new Date().toISOString()};
+ if(OVURL){fetch(OVURL,{method:'POST',headers:{'Content-Type':'text/plain;charset=utf-8'},body:JSON.stringify({t:window.OVT,ch:CH,tid:o.tid,last:o.last,st,why:why||'',name:o.name,by:by||''})})
    .then(r=>r.json()).then(j=>{if(!j.ok)toast('บันทึกไม่สำเร็จ ('+(j.error||'?')+')');}).catch(()=>toast('บันทึกไม่สำเร็จ — ตรวจอินเทอร์เน็ตแล้วลองใหม่'));}
  else{try{localStorage.setItem('bp_ov',JSON.stringify(OV));}catch(e){}}
  toast(st==='skip'?'ย้ายไป “ไม่ต้องตาม” แล้ว':(st==='follow'?'ย้ายกลับมาในรายการที่ต้องตามแล้ว':'คืนค่าเป็นแบบอัตโนมัติแล้ว'));
@@ -2246,7 +2274,7 @@ async function renderFU(){
     <label class="fuprior"><input type="checkbox" id="fuprior" ${FU_P?'checked':''}> รวมแชทที่เคยคุยกับแอดมินแล้ว แต่ลูกค้าถามรอบใหม่ยังไม่มีคนตอบ</label>
     <label class="fuprior"><input type="checkbox" id="fuc" ${FU_C?'checked':''}> แสดงแชทที่ไม่ต้องตาม (${nf(nC)})</label></div></div>
   <table class="fulist"><thead><tr><th>ลูกค้า</th><th class="n">ค้างมาแล้ว</th><th>ลูกค้าพิมพ์/กดอะไร</th><th>Auto reply ล่าสุดที่ลูกค้าได้</th><th></th></tr></thead><tbody>${lrows||'<tr><td colspan="5">ไม่มีแชทตามตัวกรองนี้ 🎉</td></tr>'}</tbody></table>
-  <p class="nsm fuovnote">ชื่อแอดมินที่ใช้ย้าย: <b>${esc(ovName()||'ยังไม่ได้กรอก')}</b> <button class="fuovb" id="ovname" type="button">${ovName()?'เปลี่ยนชื่อ':'กรอกชื่อ'}</button> · ${OVURL?(OVERR?'⚠️ โหลดรายการที่แอดมินย้ายเองไม่สำเร็จ ('+esc(OVERR)+') — การย้ายตอนนี้ยังไม่ถูกบันทึกส่วนกลาง':'การย้ายแชทบันทึกส่วนกลาง ทุกคนในทีมเห็นเหมือนกัน · ย้ายไปแล้ว '+nf(Object.keys(OV).filter(k=>k.startsWith(CH+'|')).length)+' แชท'):'การย้ายแชทตอนนี้บันทึกเฉพาะเครื่องนี้ (ยังไม่ได้เชื่อมที่เก็บส่วนกลาง)'} · ถ้าลูกค้าส่งข้อความใหม่ แชทจะกลับเข้ารายการเอง</p>
+  <p class="nsm fuovnote">ทุกครั้งที่ย้ายต้องเลือกชื่อแอดมินที่ปรับ · ${OVURL?(OVERR?'⚠️ โหลดรายการที่แอดมินย้ายเองไม่สำเร็จ ('+esc(OVERR)+') — การย้ายตอนนี้ยังไม่ถูกบันทึกส่วนกลาง':'การย้ายแชทบันทึกส่วนกลาง ทุกคนในทีมเห็นเหมือนกัน · ย้ายไปแล้ว '+nf(Object.keys(OV).filter(k=>k.startsWith(CH+'|')).length)+' แชท'):'การย้ายแชทตอนนี้บันทึกเฉพาะเครื่องนี้ (ยังไม่ได้เชื่อมที่เก็บส่วนกลาง)'} · ถ้าลูกค้าส่งข้อความใหม่ แชทจะกลับเข้ารายการเอง</p>
   <div class="pfoot"><span class="nsm">${nf(L.length)} แชท${FU_T?' · หัวข้อ '+esc(FU_T):''}${FU_W?' · สัปดาห์ '+fuWeek(FU_W):''}</span>
    <button class="dlbtn fudl" id="fudl" type="button">⤓ ดาวน์โหลดรายการนี้ (CSV) · ${nf(L.length)} แชท</button><span class="fupager">${pager}</span></div></div>`;
 
@@ -2255,7 +2283,7 @@ async function renderFU(){
 
  const help=`<details class="fhelp"><summary>รายการนี้นับอย่างไร</summary><dl>
   <dt>อ่านทั้งห้อง ไม่ใช่รายเดือน</dt><dd>รายการนี้ต่อข้อความทุกเดือนของห้องเดียวกันแล้วดูว่า <b>ตอนนี้</b> ห้องอยู่สถานะไหน — ถ้าแอดมินตอบหลังข้อความล่าสุดของลูกค้าแล้ว (แม้จะคนละเดือน) ห้องนั้นไม่อยู่ในรายการ · ถ้าลูกค้าพิมพ์แค่ขอบคุณ/โอเค/สติกเกอร์หลังจากแอดมินคุยไปแล้ว ถือว่าจบบทสนทนา ไม่ต้องตาม · “เคยคุยกับแอดมิน” นับย้อนไปถึงก่อนปี 2026 ด้วย (Facebook)</dd>
-  <dt>ย้ายแชทเอง</dt><dd>ถ้าเปิดดูแล้วไม่ควรตาม (ถามกวน มาปั่น ไม่ใช่ลูกค้า คุยต่อทางอื่นแล้ว) เลือกเหตุผลในช่อง “ย้ายไป ไม่ต้องตาม” ท้ายแถว (ต้องมีชื่อแอดมินก่อนย้าย — ระบบจำชื่อไว้ในเครื่องนี้ เปลี่ยนได้ที่ท้ายรายการ · ถ้าเลือก “อื่น ๆ” ต้องพิมพ์อธิบายเหตุผล ข้ามไม่ได้) แชทจะหายจากรายการและตัวเลขทันที · กดยกเลิกเพื่อคืนค่าได้ · ถ้าลูกค้าส่งข้อความใหม่ในภายหลัง แชทจะกลับเข้ารายการเองเพราะเป็นรอบใหม่ · แชทที่ระบบซ่อนไว้ผิด เปิด “แสดงแชทที่ไม่ต้องตาม” แล้วกด “ย้ายกลับมาตาม”</dd>
+  <dt>ย้ายแชทเอง</dt><dd>ถ้าเปิดดูแล้วไม่ควรตาม (ถามกวน มาปั่น ไม่ใช่ลูกค้า คุยต่อทางอื่นแล้ว) เลือกเหตุผลในช่อง “ย้ายไป ไม่ต้องตาม” ท้ายแถว (ทุกครั้งต้องเลือกชื่อแอดมินที่ปรับ และถ้าเลือก “อื่น ๆ” ต้องพิมพ์อธิบายเหตุผลอย่างน้อย 5 ตัวอักษร) แชทจะหายจากรายการและตัวเลขทันที · กดยกเลิกเพื่อคืนค่าได้ · ถ้าลูกค้าส่งข้อความใหม่ในภายหลัง แชทจะกลับเข้ารายการเองเพราะเป็นรอบใหม่ · แชทที่ระบบซ่อนไว้ผิด เปิด “แสดงแชทที่ไม่ต้องตาม” แล้วกด “ย้ายกลับมาตาม”</dd>
   <dt>แชทแบบไหนเข้ารายการ</dt><dd>ลูกค้าทักมาแล้วได้รับแต่ <b>ข้อความอัตโนมัติ</b> (ข้อความต้อนรับ ปุ่มคำถามที่ตั้งไว้ ข้อความตอบตามคีย์เวิร์ด ข้อความติดตามที่ตั้งเวลาส่ง) และ <b>ไม่มีแอดมินตอบเลย</b> นับจากข้อความล่าสุดของลูกค้า</dd>
   <dt>แยกแอดมินกับข้อความอัตโนมัติอย่างไร</dt><dd><b>Facebook</b> — Meta ติดป้ายทุกข้อความว่าส่งมาจากไหน ข้อความที่ส่งจากแอปมือถือ (Business Suite) = มีคนกดส่ง นับเป็นแอดมินตอบ ทั้งที่พิมพ์เองและกดส่งข้อความที่บันทึกไว้ · ข้อความที่ระบบส่งเอง (ข้อความต้อนรับ ปุ่มคำถาม ตอบตามคีย์เวิร์ด ข้อความติดตามที่ตั้งเวลา บอทตรวจสลิป) = อัตโนมัติ · <b>Instagram</b> — API ไม่มีป้ายนี้ จึงเทียบจากข้อความเดียวกันบน Facebook (แอดมินใช้ข้อความชุดเดียวกัน) ข้อความที่ไม่เคยเจอบน Facebook ใช้จังหวะเวลา: ส่งหลังลูกค้าทัก 2 นาทีขึ้นไป = แอดมิน · <b>LINE OA</b> — ระบบ LINE บอกชื่อแอดมินที่ส่งทุกข้อความอยู่แล้ว</dd>
   <dt>“ค้างมาแล้ว” นับจากไหน</dt><dd>จากข้อความล่าสุดของลูกค้า ถึงเวลาที่ดึงข้อมูลชุดนี้ (${endT}) · 7–29 วัน = ยังตามได้ทัน · 30 วันขึ้นไป = กองค้างที่ควรเคลียร์ให้เป็น 0</dd>
@@ -2276,13 +2304,11 @@ async function renderFU(){
  const q=$('#fuq');if(q){q.addEventListener('input',()=>{FU_Q=q.value;FU_PAGE=0;clearTimeout(q._t);q._t=setTimeout(()=>{renderFU();const n=$('#fuq');if(n){n.focus();n.setSelectionRange(n.value.length,n.value.length);}},250);});}
  const dl=$('#fudl');if(dl)dl.addEventListener('click',fuExport);
  el.querySelectorAll('.fuovs').forEach(sv=>sv.addEventListener('change',async()=>{const why=sv.value;if(!why)return;
-  if(!(await ovNeedName())){sv.value='';return;}
-  let w=why;
-  if(why==='อื่น ๆ'){const o0=FU_L[+sv.dataset.ovi];const d=await ovAsk('อธิบายเหตุผลที่ย้ายไป “ไม่ต้องตาม”','แชท: '+(o0&&o0.name||'')+' — จำเป็นต้องพิมพ์อย่างน้อย 5 ตัวอักษร ถ้ากดยกเลิก แชทจะไม่ถูกย้าย',5,'',true);
-   if(!d){sv.value='';toast('ยังไม่ได้ย้าย — เลือก “อื่น ๆ” ต้องพิมพ์อธิบายเหตุผล');return;}w='อื่น ๆ: '+d;}
-  ovSet(FU_L[+sv.dataset.ovi],'skip',w);}));
- el.querySelectorAll('.fuovb').forEach(b=>b.addEventListener('click',async()=>{if(!(await ovNeedName()))return;ovSet(FU_L[+b.dataset.ovi],b.dataset.ovst);}));
- const onb=$('#ovname');if(onb)onb.addEventListener('click',async()=>{if(await ovNeedName(true))renderFU();});
+  const o=FU_L[+sv.dataset.ovi];const r=await ovMove(o,'skip',why);
+  if(!r){sv.value='';toast('ยังไม่ได้ย้าย');return;}
+  ovSet(o,'skip',r.why,r.by);}));
+ el.querySelectorAll('.fuovb').forEach(b=>b.addEventListener('click',async()=>{const o=FU_L[+b.dataset.ovi],st=b.dataset.ovst;
+  const r=await ovMove(o,st,'');if(!r){toast('ยังไม่ได้เปลี่ยน');return;}ovSet(o,st,'',r.by);}));
 }
 
 /* ---------- orchestration ---------- */
