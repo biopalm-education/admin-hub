@@ -2110,6 +2110,14 @@ let OV={}, OVURL=null, OVREADY=false, OVERR='';
 const OV_WHY=['ถามกวน / มาปั่น','ไม่ใช่ลูกค้า / ส่งผิด / สแปม','คุยต่อทางช่องทางอื่นแล้ว (LINE / โทร)','แอดมินตอบแล้วแต่ระบบจับไม่ได้','อื่น ๆ'];
 const ovKey=(ch,tid,last)=>ch+'|'+tid+'|'+last;
 function ovName(){try{return localStorage.getItem('bp_admin_name')||'';}catch(e){return '';}}
+/* the admin name is required before any move (Sep 22 2026): cancelling aborts the move */
+function ovAsk(msg,min,def){let v=def||'';
+ for(;;){const r=prompt(msg,v);if(r===null)return '';v=r.trim();if(v.length>=min)return v;
+  msg=msg.split('\n⚠️')[0]+'\n⚠️ ต้องกรอกอย่างน้อย '+min+' ตัวอักษร';}}
+function ovNeedName(force){const cur=ovName();if(cur&&!force)return cur;
+ const n=ovAsk('กรอกชื่อแอดมินของคุณ (จำเป็น — ใช้บันทึกว่าใครเป็นคนย้ายแชท)',2,cur);
+ if(!n){if(!force)toast('ยังไม่ได้ย้าย — ต้องกรอกชื่อแอดมินก่อน');return cur&&force?cur:'';}
+ try{localStorage.setItem('bp_admin_name',n);}catch(e){}return n;}
 async function ovLoad(){OVURL=(AGG&&AGG.ovurl)||null;OV={};
  if(!OVURL){try{OV=JSON.parse(localStorage.getItem('bp_ov')||'{}')||{};}catch(e){OV={};}OVREADY=true;return;}
  try{const r=await fetch(OVURL+'?t='+encodeURIComponent(window.OVT||''),{cache:'no-store'});const j=await r.json();
@@ -2217,7 +2225,7 @@ async function renderFU(){
     <label class="fuprior"><input type="checkbox" id="fuprior" ${FU_P?'checked':''}> รวมแชทที่เคยคุยกับแอดมินแล้ว แต่ลูกค้าถามรอบใหม่ยังไม่มีคนตอบ</label>
     <label class="fuprior"><input type="checkbox" id="fuc" ${FU_C?'checked':''}> แสดงแชทที่ไม่ต้องตาม (${nf(nC)})</label></div></div>
   <table class="fulist"><thead><tr><th>ลูกค้า</th><th class="n">ค้างมาแล้ว</th><th>ลูกค้าพิมพ์/กดอะไร</th><th>Auto reply ล่าสุดที่ลูกค้าได้</th><th></th></tr></thead><tbody>${lrows||'<tr><td colspan="5">ไม่มีแชทตามตัวกรองนี้ 🎉</td></tr>'}</tbody></table>
-  <p class="nsm fuovnote">${OVURL?(OVERR?'⚠️ โหลดรายการที่แอดมินย้ายเองไม่สำเร็จ ('+esc(OVERR)+') — การย้ายตอนนี้ยังไม่ถูกบันทึกส่วนกลาง':'การย้ายแชทบันทึกส่วนกลาง ทุกคนในทีมเห็นเหมือนกัน · ย้ายไปแล้ว '+nf(Object.keys(OV).filter(k=>k.startsWith(CH+'|')).length)+' แชท'):'การย้ายแชทตอนนี้บันทึกเฉพาะเครื่องนี้ (ยังไม่ได้เชื่อมที่เก็บส่วนกลาง)'} · ถ้าลูกค้าส่งข้อความใหม่ แชทจะกลับเข้ารายการเอง</p>
+  <p class="nsm fuovnote">ชื่อแอดมินที่ใช้ย้าย: <b>${esc(ovName()||'ยังไม่ได้กรอก')}</b> <button class="fuovb" id="ovname" type="button">${ovName()?'เปลี่ยนชื่อ':'กรอกชื่อ'}</button> · ${OVURL?(OVERR?'⚠️ โหลดรายการที่แอดมินย้ายเองไม่สำเร็จ ('+esc(OVERR)+') — การย้ายตอนนี้ยังไม่ถูกบันทึกส่วนกลาง':'การย้ายแชทบันทึกส่วนกลาง ทุกคนในทีมเห็นเหมือนกัน · ย้ายไปแล้ว '+nf(Object.keys(OV).filter(k=>k.startsWith(CH+'|')).length)+' แชท'):'การย้ายแชทตอนนี้บันทึกเฉพาะเครื่องนี้ (ยังไม่ได้เชื่อมที่เก็บส่วนกลาง)'} · ถ้าลูกค้าส่งข้อความใหม่ แชทจะกลับเข้ารายการเอง</p>
   <div class="pfoot"><span class="nsm">${nf(L.length)} แชท${FU_T?' · หัวข้อ '+esc(FU_T):''}${FU_W?' · สัปดาห์ '+fuWeek(FU_W):''}</span>
    <button class="dlbtn fudl" id="fudl" type="button">⤓ ดาวน์โหลดรายการนี้ (CSV) · ${nf(L.length)} แชท</button><span class="fupager">${pager}</span></div></div>`;
 
@@ -2226,7 +2234,7 @@ async function renderFU(){
 
  const help=`<details class="fhelp"><summary>รายการนี้นับอย่างไร</summary><dl>
   <dt>อ่านทั้งห้อง ไม่ใช่รายเดือน</dt><dd>รายการนี้ต่อข้อความทุกเดือนของห้องเดียวกันแล้วดูว่า <b>ตอนนี้</b> ห้องอยู่สถานะไหน — ถ้าแอดมินตอบหลังข้อความล่าสุดของลูกค้าแล้ว (แม้จะคนละเดือน) ห้องนั้นไม่อยู่ในรายการ · ถ้าลูกค้าพิมพ์แค่ขอบคุณ/โอเค/สติกเกอร์หลังจากแอดมินคุยไปแล้ว ถือว่าจบบทสนทนา ไม่ต้องตาม · “เคยคุยกับแอดมิน” นับย้อนไปถึงก่อนปี 2026 ด้วย (Facebook)</dd>
-  <dt>ย้ายแชทเอง</dt><dd>ถ้าเปิดดูแล้วไม่ควรตาม (ถามกวน มาปั่น ไม่ใช่ลูกค้า คุยต่อทางอื่นแล้ว) เลือกเหตุผลในช่อง “ย้ายไป ไม่ต้องตาม” ท้ายแถว แชทจะหายจากรายการและตัวเลขทันที · กดยกเลิกเพื่อคืนค่าได้ · ถ้าลูกค้าส่งข้อความใหม่ในภายหลัง แชทจะกลับเข้ารายการเองเพราะเป็นรอบใหม่ · แชทที่ระบบซ่อนไว้ผิด เปิด “แสดงแชทที่ไม่ต้องตาม” แล้วกด “ย้ายกลับมาตาม”</dd>
+  <dt>ย้ายแชทเอง</dt><dd>ถ้าเปิดดูแล้วไม่ควรตาม (ถามกวน มาปั่น ไม่ใช่ลูกค้า คุยต่อทางอื่นแล้ว) เลือกเหตุผลในช่อง “ย้ายไป ไม่ต้องตาม” ท้ายแถว (ต้องมีชื่อแอดมินก่อนย้าย — ระบบจำชื่อไว้ในเครื่องนี้ เปลี่ยนได้ที่ท้ายรายการ · ถ้าเลือก “อื่น ๆ” ต้องพิมพ์อธิบายเหตุผล ข้ามไม่ได้) แชทจะหายจากรายการและตัวเลขทันที · กดยกเลิกเพื่อคืนค่าได้ · ถ้าลูกค้าส่งข้อความใหม่ในภายหลัง แชทจะกลับเข้ารายการเองเพราะเป็นรอบใหม่ · แชทที่ระบบซ่อนไว้ผิด เปิด “แสดงแชทที่ไม่ต้องตาม” แล้วกด “ย้ายกลับมาตาม”</dd>
   <dt>แชทแบบไหนเข้ารายการ</dt><dd>ลูกค้าทักมาแล้วได้รับแต่ <b>ข้อความอัตโนมัติ</b> (ข้อความต้อนรับ ปุ่มคำถามที่ตั้งไว้ ข้อความตอบตามคีย์เวิร์ด ข้อความติดตามที่ตั้งเวลาส่ง) และ <b>ไม่มีแอดมินตอบเลย</b> นับจากข้อความล่าสุดของลูกค้า</dd>
   <dt>แยกแอดมินกับข้อความอัตโนมัติอย่างไร</dt><dd><b>Facebook</b> — Meta ติดป้ายทุกข้อความว่าส่งมาจากไหน ข้อความที่ส่งจากแอปมือถือ (Business Suite) = มีคนกดส่ง นับเป็นแอดมินตอบ ทั้งที่พิมพ์เองและกดส่งข้อความที่บันทึกไว้ · ข้อความที่ระบบส่งเอง (ข้อความต้อนรับ ปุ่มคำถาม ตอบตามคีย์เวิร์ด ข้อความติดตามที่ตั้งเวลา บอทตรวจสลิป) = อัตโนมัติ · <b>Instagram</b> — API ไม่มีป้ายนี้ จึงเทียบจากข้อความเดียวกันบน Facebook (แอดมินใช้ข้อความชุดเดียวกัน) ข้อความที่ไม่เคยเจอบน Facebook ใช้จังหวะเวลา: ส่งหลังลูกค้าทัก 2 นาทีขึ้นไป = แอดมิน · <b>LINE OA</b> — ระบบ LINE บอกชื่อแอดมินที่ส่งทุกข้อความอยู่แล้ว</dd>
   <dt>“ค้างมาแล้ว” นับจากไหน</dt><dd>จากข้อความล่าสุดของลูกค้า ถึงเวลาที่ดึงข้อมูลชุดนี้ (${endT}) · 7–29 วัน = ยังตามได้ทัน · 30 วันขึ้นไป = กองค้างที่ควรเคลียร์ให้เป็น 0</dd>
@@ -2246,10 +2254,14 @@ async function renderFU(){
  const fc=$('#fuc');if(fc)fc.addEventListener('change',()=>{FU_C=fc.checked;if(!FU_C&&FU_K==='C')FU_K='all';FU_PAGE=0;renderFU();});
  const q=$('#fuq');if(q){q.addEventListener('input',()=>{FU_Q=q.value;FU_PAGE=0;clearTimeout(q._t);q._t=setTimeout(()=>{renderFU();const n=$('#fuq');if(n){n.focus();n.setSelectionRange(n.value.length,n.value.length);}},250);});}
  const dl=$('#fudl');if(dl)dl.addEventListener('click',fuExport);
- el.querySelectorAll('.fuovs').forEach(sv=>sv.addEventListener('change',()=>{if(!sv.value)return;
-  if(!ovName()){const n=(prompt('ชื่อแอดมิน (บันทึกว่าใครเป็นคนย้าย)','')||'').trim();if(n){try{localStorage.setItem('bp_admin_name',n);}catch(e){}}}
-  ovSet(FU_L[+sv.dataset.ovi],'skip',sv.value);}));
- el.querySelectorAll('.fuovb').forEach(b=>b.addEventListener('click',()=>ovSet(FU_L[+b.dataset.ovi],b.dataset.ovst)));
+ el.querySelectorAll('.fuovs').forEach(sv=>sv.addEventListener('change',()=>{const why=sv.value;if(!why)return;
+  if(!ovNeedName()){sv.value='';return;}
+  let w=why;
+  if(why==='อื่น ๆ'){const d=ovAsk('อธิบายเหตุผลที่ย้ายแชทนี้ไป “ไม่ต้องตาม”\n(จำเป็นต้องกรอก อย่างน้อย 5 ตัวอักษร)',5);
+   if(!d){sv.value='';toast('ยังไม่ได้ย้าย — เลือก “อื่น ๆ” ต้องพิมพ์อธิบายเหตุผล');return;}w='อื่น ๆ: '+d;}
+  ovSet(FU_L[+sv.dataset.ovi],'skip',w);}));
+ el.querySelectorAll('.fuovb').forEach(b=>b.addEventListener('click',()=>{if(!ovNeedName())return;ovSet(FU_L[+b.dataset.ovi],b.dataset.ovst);}));
+ const onb=$('#ovname');if(onb)onb.addEventListener('click',()=>{if(ovNeedName(true))renderFU();});
 }
 
 /* ---------- orchestration ---------- */
