@@ -557,7 +557,7 @@ function exportChats(){
  const out=[head];
  for(const o of rows){const r=o.r;
   out.push([MLABEL[o.m]||o.m,r[0],r[1],r[3],r[4],DOWN[r[5]],r[6],r[7],r[8],r[9],
-   (r[10]<0?'':r[10]),(r[11]==null?'':r[11]),r[12]?'Y':'',WHO[r[13]]||r[13],r[14]||'',r[15]?'Y':'',r[16]?'Y':'',r[17]?'Y':'',r[20]?'Y':'',r[21]?'Y':'',r[34]?r[34]+' '+TIERN[r[34]]:'',WONK[r[35]]||'',RWHO_N[whoOf(r)]||'ลูกค้าไม่ได้ทัก']);}
+   (r[10]<0?'':r[10]),(r[11]==null?'':r[11]),r[12]?'Y':'',WHO[r[13]]||r[13],r[14]||'',r[15]?'Y':'',r[16]?'Y':'',r[17]?'Y':'',r[20]?'Y':'',r[21]?'Y':'',r[34]?r[34]+' '+TIERN[r[34]]:'',WONK[r[35]]||'',RWHO_N[whoOf(r,o.m)]||'ลูกค้าไม่ได้ทัก']);}
  downloadCSV('chat-'+(CH==='fb'?'facebook':'instagram')+'-'+(M==='all'?'ทุกเดือน':M)+'-'+(FNAME[FILTER]||FILTER)+'.csv',out);}
 function exportLine(){
  const rows=lnFiltered();
@@ -1207,19 +1207,20 @@ function renderHours(){
 
 /* ---------- second filter row: who answered (Sep 22 2026) ---------- */
 let RWHO='all';
-const RWHO_N={all:'ทุกแชท',adm:'แอดมินตอบแล้ว',bot:'มีแต่ bot ตอบ',none:'ไม่มีใครตอบเลย'};
+const RWHO_N={all:'ทุกแชท',adm:'แอดมินตอบแล้ว',bot:'มีแต่ bot ตอบ',none:'ไม่มีข้อความตอบกลับเลย'};
 const RWHO_ORD=['all','adm','bot','none'];
 const RWHO_D={all:'ไม่กรองตามคนตอบ',
- adm:'หลังลูกค้าทักมา มีแอดมินตอบอย่างน้อย 1 ข้อความ — พิมพ์เองหรือกดส่งข้อความที่บันทึกไว้ก็นับ (Facebook ดูจากป้าย Meta ว่าคนเป็นผู้ส่ง · LINE ดูจากชื่อแอดมิน)',
- bot:'ลูกค้าทักมาแล้วได้แต่ข้อความอัตโนมัติ (ข้อความต้อนรับ ปุ่มคำถาม ตอบตามคีย์เวิร์ด ข้อความติดตามที่ตั้งเวลา) ไม่มีแอดมินตอบเลย',
- none:'ลูกค้าทักมาแล้วไม่ได้รับข้อความตอบกลับเลย ทั้งจากแอดมินและ bot'};
-function whoOf(r){if(r._who)return r._who;const ms=r[18]||[];const c0=ms.findIndex(e=>e[1]===0);let w;
- if(c0<0)w='x';else if(ms.slice(c0).some(e=>e[1]===1))w='adm';
- else w=ms.slice(c0).some(e=>e[1]===2||(CH==='ig'&&e[1]===3))?'bot':'none';
+ adm:'ในแชทนี้มีแอดมินส่งข้อความอย่างน้อย 1 ข้อความ — พิมพ์เองหรือกดส่งข้อความที่บันทึกไว้ก็นับ รวมแชทที่แอดมินทักไปก่อน เช่น ตอบคอมเมนต์แล้วส่งข้อความต่อ (Facebook ดูจากป้าย Meta ว่าคนเป็นผู้ส่ง · LINE ดูจากชื่อแอดมิน)',
+ bot:'ทั้งแชทมีแต่ข้อความอัตโนมัติ (ข้อความต้อนรับ ปุ่มคำถาม ตอบตามคีย์เวิร์ด ตอบคอมเมนต์อัตโนมัติ ข้อความติดตามที่ตั้งเวลา) ไม่มีแอดมินส่งเลยสักข้อความ',
+ none:'ลูกค้าทักมา แต่ฝั่งเราไม่มีข้อความเลยสักข้อความ ทั้งแอดมินและ bot — มีไม่กี่แชท ควรเปิดดูทุกแชท'};
+const WHO_SYS=/^\u0001|คุณกำลังตอบกลับความคิดเห็น|You are responding to a user comment|ตอบกลับโฆษณา$|ได้ตอบกลับโพสต์|replied to a post/;
+function whoOf(r,m){if(r._who)return r._who;const ms=r[18]||[];const c0=ms.findIndex(e=>e[1]===0);let w;
+ if(c0<0)w='x';else if(ms.some(e=>e[1]===1))w='adm';
+ else w=ms.some(e=>(e[1]===2||(CH==='ig'&&e[1]===3))&&!WHO_SYS.test(String(txt(e[2],m)||'')))?'bot':'none';
  r._who=w;return w;}
 function lnWho(o){if(o._who)return o._who;const tr=o.tr||[];const c0=tr.findIndex(m=>m[1]==='C');let w;
- if(c0<0)w='x';else if(tr.slice(c0).some(m=>m[1]!=='C'&&m[1]!=='B'))w='adm';
- else w=tr.slice(c0).some(m=>m[1]==='B')?'bot':'none';
+ if(c0<0)w='x';else if(tr.some(m=>m[1]!=='C'&&m[1]!=='B'))w='adm';
+ else w=tr.some(m=>m[1]==='B')?'bot':'none';
  o._who=w;return w;}
 const whoOk=(w)=>RWHO==='all'||w===RWHO;
 function whoRow(counts){return `<div class="chips whochips" id="whochips"><span class="lab">ใครตอบ</span>${RWHO_ORD.map(k=>`<button class="chip" data-w="${k}" aria-pressed="${RWHO===k}">${RWHO_N[k]} (${nf(counts[k]||0)})</button>`).join('')}</div>`+
@@ -1237,9 +1238,9 @@ const hitBody=(r,t,m)=>(r[18]||[]).some(e=>String(txt(e[2],m)).toLowerCase().inc
 const hitTerm=(r,t,m)=>!t||hitName(r,t)||(DEEP&&hitBody(r,t,m));
 function hitChip(r,f){if(f.slice(0,3)==='mx:'){const q=f.split(':');return mxHit(q[1],q[2],r[38],r[37],r[40]);}if(['QW','VT','V','T','H','OTH','NA','W'].includes(f))return stHit(f,r[37],r[40]);if(f==='leadsonly')return isRealLead(r);if(f==='t1')return r[34]==='L1';if(f==='t2')return r[34]==='L2';if(f==='t3')return r[34]==='L3';if(f==='t4')return r[34]==='L4';if(f==='t5')return r[34]==='L5';if(f==='hot')return r[34]==='L5'&&!r[17];if(f==='nohuman')return r[10]<0;if(f==='risk')return r[12]===1;
  if(f==='price')return r[15]===1;if(f==='dup')return r[14]>=2;if(f==='won')return r[17]===1;return true;}
-function filtered(){const t=norm(TERM);return leads().filter(o=>hitTerm(o.r,t,o.m)&&hitChip(o.r,FILTER)&&whoOk(whoOf(o.r)));}
+function filtered(){const t=norm(TERM);return leads().filter(o=>hitTerm(o.r,t,o.m)&&hitChip(o.r,FILTER)&&whoOk(whoOf(o.r,o.m)));}
 function whoCounts(){const t=norm(TERM),c={all:0,adm:0,bot:0,none:0};
- for(const o of leads())if(hitTerm(o.r,t,o.m)&&hitChip(o.r,FILTER)){c.all++;const w=whoOf(o.r);if(c[w]!=null)c[w]++;}return c;}
+ for(const o of leads())if(hitTerm(o.r,t,o.m)&&hitChip(o.r,FILTER)){c.all++;const w=whoOf(o.r,o.m);if(c[w]!=null)c[w]++;}return c;}
 function everywhere(t){let n=0;
  if(CH==='fb'){for(const k of FBKEYS){const d=FBFULL[k];if(d)for(const r of d.chats)if(hitTerm(r,t,k))n++;}return n;}
  if(!IGFULL)return 0;
