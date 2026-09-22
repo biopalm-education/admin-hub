@@ -386,6 +386,9 @@ body{background:
 @media(max-width:700px){.fulist thead{display:none}.fulist tr{display:grid;grid-template-columns:1fr auto;gap:2px 10px;padding:10px 12px;border-bottom:1px solid var(--line)}
  .fulist td{display:block;border:0;padding:0;white-space:normal}.fulist td.w{grid-column:1/-1;min-width:0;max-width:none;margin-top:4px}
  .fulist td:last-child{grid-column:1/-1;margin-top:6px}.fulist td.n{text-align:right}.fuwk thead th{min-width:0}}
+.whochips{align-items:center;padding-top:7px;border-top:1px dashed var(--line)}
+.whochips>.lab{margin-right:4px}
+.whochips .chip[aria-pressed="true"]{background:var(--teal-ink);border-color:var(--teal-ink);color:#fff}
 </style>
 </head>
 <body>
@@ -550,20 +553,20 @@ function downloadCSV(fname,rows){
 function exportChats(){
  const rows=filtered();
  const head=['เดือน','ชื่อลูกค้า','ขั้น','วัน','ชั่วโมง','วันในสัปดาห์','ข้อความลูกค้า','แอดมินตอบเอง','อัตโนมัติ','สลับถาม-ตอบ',
-  'ตอบครั้งแรก(วินาที)','รอนานสุด(วินาที)','ทักมาแล้วหาย','ทีม','ถามระดับชั้นซ้ำ','ได้ราคาแล้ว','ส่งหลักฐานจ่าย','ปิดการขาย','จากโฆษณา','ป้ายมีคุณสมบัติ','ระดับลีด','หลักฐานปิดการขาย'];
+  'ตอบครั้งแรก(วินาที)','รอนานสุด(วินาที)','ทักมาแล้วหาย','ทีม','ถามระดับชั้นซ้ำ','ได้ราคาแล้ว','ส่งหลักฐานจ่าย','ปิดการขาย','จากโฆษณา','ป้ายมีคุณสมบัติ','ระดับลีด','หลักฐานปิดการขาย','ใครตอบ'];
  const out=[head];
  for(const o of rows){const r=o.r;
   out.push([MLABEL[o.m]||o.m,r[0],r[1],r[3],r[4],DOWN[r[5]],r[6],r[7],r[8],r[9],
-   (r[10]<0?'':r[10]),(r[11]==null?'':r[11]),r[12]?'Y':'',WHO[r[13]]||r[13],r[14]||'',r[15]?'Y':'',r[16]?'Y':'',r[17]?'Y':'',r[20]?'Y':'',r[21]?'Y':'',r[34]?r[34]+' '+TIERN[r[34]]:'',WONK[r[35]]||'']);}
+   (r[10]<0?'':r[10]),(r[11]==null?'':r[11]),r[12]?'Y':'',WHO[r[13]]||r[13],r[14]||'',r[15]?'Y':'',r[16]?'Y':'',r[17]?'Y':'',r[20]?'Y':'',r[21]?'Y':'',r[34]?r[34]+' '+TIERN[r[34]]:'',WONK[r[35]]||'',RWHO_N[whoOf(r)]||'ลูกค้าไม่ได้ทัก']);}
  downloadCSV('chat-'+(CH==='fb'?'facebook':'instagram')+'-'+(M==='all'?'ทุกเดือน':M)+'-'+(FNAME[FILTER]||FILTER)+'.csv',out);}
 function exportLine(){
  const rows=lnFiltered();
  const head=['เดือน','ชื่อลูกค้า','สถานะแท็ก','แท็กทั้งหมด','แอดมินที่เข้าไปตอบ','ข้อความลูกค้า','ข้อความแอดมิน','ข้อความบอท',
-  'ตอบเร็วสุด(วินาที)','ค่ากลางการตอบ(วินาที)','รอนานสุด(วินาที)','ไม่เคยได้คุยกับ Admin','ทักมาแล้วหาย','ลิงก์ห้องแชท'];
+  'ตอบเร็วสุด(วินาที)','ค่ากลางการตอบ(วินาที)','รอนานสุด(วินาที)','ไม่เคยได้คุยกับ Admin','ทักมาแล้วหาย','ลิงก์ห้องแชท','ใครตอบ'];
  const out=[head];
  for(const o of rows){
   out.push([MLABEL[o._m]||o._m,o.n,o.st,(o.tg||[]).join(' | '),(o.ad||[]).join(' | '),o.c,o.h,o.b,
-   (o.r1==null?'':o.r1),(o.rm==null?'':o.rm),(o.rw==null?'':o.rw),o.nh?'Y':'',o.hg?'Y':'',lnLink(o.id,o._m)]);}
+   (o.r1==null?'':o.r1),(o.rm==null?'':o.rm),(o.rw==null?'':o.rw),o.nh?'Y':'',o.hg?'Y':'',lnLink(o.id,o._m),RWHO_N[lnWho(o)]||'ลูกค้าไม่ได้ทัก']);}
  downloadCSV('chat-line-'+(M==='all'?'ทุกเดือน':M)+'-'+(LN_FNAME[LN_F]||LN_F)+'.csv',out);}
 function toast(m){let t=document.getElementById('bp-toast');
  if(!t){t=document.createElement('div');t.id='bp-toast';document.body.appendChild(t);
@@ -1202,6 +1205,26 @@ function renderHours(){
   <p class="note" style="margin-top:9px">จำนวนลีดแยกตามวันในสัปดาห์ — ใช้คู่กับแถบชั่วโมงด้านบนเพื่อจัดกะ</p>`;
 }
 
+/* ---------- second filter row: who answered (Sep 22 2026) ---------- */
+let RWHO='all';
+const RWHO_N={all:'ทุกแชท',adm:'แอดมินตอบแล้ว',bot:'มีแต่ bot ตอบ',none:'ไม่มีใครตอบเลย'};
+const RWHO_ORD=['all','adm','bot','none'];
+const RWHO_D={all:'ไม่กรองตามคนตอบ',
+ adm:'หลังลูกค้าทักมา มีแอดมินตอบอย่างน้อย 1 ข้อความ — พิมพ์เองหรือกดส่งข้อความที่บันทึกไว้ก็นับ (Facebook ดูจากป้าย Meta ว่าคนเป็นผู้ส่ง · LINE ดูจากชื่อแอดมิน)',
+ bot:'ลูกค้าทักมาแล้วได้แต่ข้อความอัตโนมัติ (ข้อความต้อนรับ ปุ่มคำถาม ตอบตามคีย์เวิร์ด ข้อความติดตามที่ตั้งเวลา) ไม่มีแอดมินตอบเลย',
+ none:'ลูกค้าทักมาแล้วไม่ได้รับข้อความตอบกลับเลย ทั้งจากแอดมินและ bot'};
+function whoOf(r){if(r._who)return r._who;const ms=r[18]||[];const c0=ms.findIndex(e=>e[1]===0);let w;
+ if(c0<0)w='x';else if(ms.slice(c0).some(e=>e[1]===1))w='adm';
+ else w=ms.slice(c0).some(e=>e[1]===2||(CH==='ig'&&e[1]===3))?'bot':'none';
+ r._who=w;return w;}
+function lnWho(o){if(o._who)return o._who;const tr=o.tr||[];const c0=tr.findIndex(m=>m[1]==='C');let w;
+ if(c0<0)w='x';else if(tr.slice(c0).some(m=>m[1]!=='C'&&m[1]!=='B'))w='adm';
+ else w=tr.slice(c0).some(m=>m[1]==='B')?'bot':'none';
+ o._who=w;return w;}
+const whoOk=(w)=>RWHO==='all'||w===RWHO;
+function whoRow(counts){return `<div class="chips whochips" id="whochips"><span class="lab">ใครตอบ</span>${RWHO_ORD.map(k=>`<button class="chip" data-w="${k}" aria-pressed="${RWHO===k}">${RWHO_N[k]} (${nf(counts[k]||0)})</button>`).join('')}</div>`+
+ (RWHO!=='all'?`<p class="fdesc"><b>${RWHO_N[RWHO]}</b> — ${RWHO_D[RWHO]}</p>`:'');}
+
 /* ---------- raw: IG chat browser ---------- */
 function leads(){const o=[];
  if(CH==='fb'){for(const k of fbMonths()){const d=FBFULL[k];if(d)for(const r of d.chats)o.push({m:k,r});}return o;}
@@ -1212,9 +1235,11 @@ const norm=s=>String(s==null?'':s).toLowerCase().replace(/^[@\s]+/,'').replace(/
 const hitName=(r,t)=>norm(r[0]).includes(t);
 const hitBody=(r,t,m)=>(r[18]||[]).some(e=>String(txt(e[2],m)).toLowerCase().includes(t));
 const hitTerm=(r,t,m)=>!t||hitName(r,t)||(DEEP&&hitBody(r,t,m));
-function hitChip(r,f){if(f.slice(0,3)==='mx:'){const q=f.split(':');return mxHit(q[1],q[2],r[38],r[37],r[40]);}if(['QW','VT','OTH','NA','W'].includes(f))return stHit(f,r[37],r[40]);if(f==='leadsonly')return isRealLead(r);if(f==='t1')return r[34]==='L1';if(f==='t2')return r[34]==='L2';if(f==='t3')return r[34]==='L3';if(f==='t4')return r[34]==='L4';if(f==='t5')return r[34]==='L5';if(f==='hot')return r[34]==='L5'&&!r[17];if(f==='nohuman')return r[10]<0;if(f==='risk')return r[12]===1;
+function hitChip(r,f){if(f.slice(0,3)==='mx:'){const q=f.split(':');return mxHit(q[1],q[2],r[38],r[37],r[40]);}if(['QW','VT','V','T','H','OTH','NA','W'].includes(f))return stHit(f,r[37],r[40]);if(f==='leadsonly')return isRealLead(r);if(f==='t1')return r[34]==='L1';if(f==='t2')return r[34]==='L2';if(f==='t3')return r[34]==='L3';if(f==='t4')return r[34]==='L4';if(f==='t5')return r[34]==='L5';if(f==='hot')return r[34]==='L5'&&!r[17];if(f==='nohuman')return r[10]<0;if(f==='risk')return r[12]===1;
  if(f==='price')return r[15]===1;if(f==='dup')return r[14]>=2;if(f==='won')return r[17]===1;return true;}
-function filtered(){const t=norm(TERM);return leads().filter(o=>hitTerm(o.r,t,o.m)&&hitChip(o.r,FILTER));}
+function filtered(){const t=norm(TERM);return leads().filter(o=>hitTerm(o.r,t,o.m)&&hitChip(o.r,FILTER)&&whoOk(whoOf(o.r)));}
+function whoCounts(){const t=norm(TERM),c={all:0,adm:0,bot:0,none:0};
+ for(const o of leads())if(hitTerm(o.r,t,o.m)&&hitChip(o.r,FILTER)){c.all++;const w=whoOf(o.r);if(c[w]!=null)c[w]++;}return c;}
 function everywhere(t){let n=0;
  if(CH==='fb'){for(const k of FBKEYS){const d=FBFULL[k];if(d)for(const r of d.chats)if(hitTerm(r,t,k))n++;}return n;}
  if(!IGFULL)return 0;
@@ -1239,6 +1264,7 @@ function igBrowserShell(){
   <div class="chips" id="chips">
    ${(FORDER.includes(FILTER)?FORDER:FORDER.concat([FILTER])).map(k=>`<button class="chip" data-f="${k}" aria-pressed="${FILTER===k}">${FNAME[k]}</button>`).join('')}</div>
   <p class="fdesc"><b>${FNAME[FILTER]||'ทั้งหมด'}</b> — ${fdescOf(FILTER)}</p>
+  ${whoRow(whoCounts())}
   <details class="fhelp"><summary>คำอธิบายทุกแท็บ</summary><dl>${FORDER.map(k=>'<dt>'+FNAME[k]+'</dt><dd>'+fdescOf(k)+'</dd>').join('')}</dl></details>
   <label class="deeprow"><input type="checkbox" id="deep"${DEEP?' checked':''}> ค้นในเนื้อข้อความด้วย</label>
  </div><div class="plist" id="plist"></div>
@@ -1334,6 +1360,7 @@ function renderRaw(){
   $('#deep').addEventListener('change',e=>{DEEP=e.target.checked;PAGE=0;SEL=0;renderList();renderChat();});
   el.querySelectorAll('#chips .chip').forEach(c=>c.addEventListener('click',()=>{
    FILTER=c.dataset.f;PAGE=0;SEL=0;renderRaw();}));
+  el.querySelectorAll('#whochips .chip').forEach(c=>c.addEventListener('click',()=>{RWHO=c.dataset.w;PAGE=0;SEL=0;renderRaw();}));
   const dl=$('#dlcsv'); if(dl)dl.addEventListener('click',exportChats);
   renderList();renderChat();
   return;
@@ -1372,7 +1399,10 @@ function lnFiltered(){const t=LN_TERM.trim().toLowerCase();
   if(LN_F==='won'&&o.st!=='สมัครแล้ว')return false;
   if(LN_F==='open'&&o.st!=='ยังไม่สมัคร')return false;
   if(LN_F==='notag'&&o.st!=='ไม่ติดแท็ก')return false;
+  if(!whoOk(lnWho(o)))return false;
   return lnHit(o,t);});}
+function lnWhoCounts(){const keep=RWHO;RWHO='all';const L=lnFiltered();RWHO=keep;const c={all:L.length,adm:0,bot:0,none:0};
+ for(const o of L){const w=lnWho(o);if(c[w]!=null)c[w]++;}return c;}
 function lnCount(f){const t=LN_TERM.trim().toLowerCase();
  return lnRooms().filter(o=>{
   if(f!=='all')return (f.slice(0,3)==='mx:'?mxHit(f.split(':')[1],f.split(':')[2],o.it,o.sg,o.fr):stHit(f,o.sg,o.fr))&&lnHit(o,t);
@@ -1388,6 +1418,7 @@ function lnShell(){
   <input id="lnq" type="search" placeholder="ค้นหาชื่อลูกค้า หรือชื่อแอดมิน…" aria-label="ค้นหา" value="${esc(LN_TERM)}">
   <div class="chips" id="lnchips">${(LN_FORDER.includes(LN_F)?LN_FORDER:LN_FORDER.concat([LN_F])).map(k=>`<button class="chip" data-f="${k}" aria-pressed="${LN_F===k}">${LN_FNAME[k]} (${nf(lnCount(k))})</button>`).join('')}</div>
   <p class="fdesc"><b>${LN_FNAME[LN_F]}</b> — ${LN_FDESC[LN_F]}</p>
+  ${whoRow(lnWhoCounts())}
   <details class="fhelp"><summary>คำอธิบายทุกแท็บ</summary><dl>${LN_FORDER.map(k=>'<dt>'+LN_FNAME[k]+'</dt><dd>'+LN_FDESC[k]+'</dd>').join('')}</dl></details>
   <label class="deeprow"><input type="checkbox" id="lndeep"${LN_DEEP?' checked':''}> ค้นในเนื้อข้อความด้วย</label>
  </div><div class="plist" id="lnlist"></div>
@@ -1458,6 +1489,7 @@ function lnRenderRaw(){
  $('#lnq').addEventListener('input',e=>{LN_TERM=e.target.value;LN_PAGE=0;LN_SEL=0;lnRenderList();lnRenderChat();});
  $('#lndeep').addEventListener('change',e=>{LN_DEEP=e.target.checked;LN_PAGE=0;LN_SEL=0;lnRenderList();lnRenderChat();});
  el.querySelectorAll('#lnchips .chip').forEach(c=>c.addEventListener('click',()=>{LN_F=c.dataset.f;LN_PAGE=0;LN_SEL=0;lnRenderRaw();}));
+ el.querySelectorAll('#whochips .chip').forEach(c=>c.addEventListener('click',()=>{RWHO=c.dataset.w;LN_PAGE=0;LN_SEL=0;lnRenderRaw();}));
  const lndl=$('#lndlcsv'); if(lndl)lndl.addEventListener('click',exportLine);
  lnRenderList();lnRenderChat();}
 function lnBar(lab,v,max,extra){return `<div class="lnbar"><span>${esc(lab)}</span><span class="track"><span class="t" style="width:${max?Math.max(2,Math.round(v*100/max)):0}%"></span></span><span>${nf(v)}${extra||''}</span></div>`;}
@@ -2159,7 +2191,7 @@ function applyView(){
 
 function refresh(){buildMonths();setNow();applyView();}
 $('#chseg').querySelectorAll('button').forEach(b=>b.addEventListener('click',()=>{
- CH=b.dataset.ch;PAGE=0;SEL=0;TERM='';FILTER='all';LN_PAGE=0;LN_SEL=0;LN_TERM='';LN_F='all';
+ CH=b.dataset.ch;PAGE=0;SEL=0;TERM='';FILTER='all';RWHO='all';LN_PAGE=0;LN_SEL=0;LN_TERM='';LN_F='all';
  $('#chseg').querySelectorAll('button').forEach(x=>x.setAttribute('aria-pressed',String(x.dataset.ch===CH)));
  PAGE=0;SEL=0;refresh();}));
 $('#vseg').querySelectorAll('button').forEach(b=>b.addEventListener('click',()=>{
