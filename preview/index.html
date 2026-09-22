@@ -393,6 +393,9 @@ body{background:
 .thrline>.lab{margin-right:4px}
 .thrm{font:inherit;font-size:11.5px;padding:2px 9px;border-radius:999px;border:1px solid var(--line-2);background:var(--card);color:var(--leaf);cursor:pointer}
 .thrm:hover{background:var(--leaf-soft)} .thrm.on{background:var(--leaf);color:#fff;border-color:var(--leaf);cursor:default}
+.fustat{display:flex;flex-wrap:wrap;gap:6px 14px;align-items:baseline;margin:10px 0 2px;padding:10px 13px;background:var(--card);border:1px solid var(--line);border-radius:10px;font-size:13px}
+.fustat>.lab{flex-basis:100%}
+.fust b{font-family:"IBM Plex Mono",monospace} .fust.ok b{color:var(--teal-ink)} .fust.risk b{color:var(--risk)} .fust.warn b{color:var(--warn)}
 </style>
 </head>
 <body>
@@ -2112,6 +2115,12 @@ function fuExport(){const rows=fuFilt(false);
   o.src==='ad'?'โฆษณา':(o.src==='comment'?'คอมเมนต์':'ทักเอง'),fuLink(o)||'','','','']);
  const end=FU?FU.end.slice(0,10):'';
  downloadCSV('followup-'+(CH==='ig'?'instagram':'facebook')+'-'+(FU_B==='30'?'ค้าง30วันขึ้นไป':'ค้าง7-29วัน')+(FU_W?'-สัปดาห์'+FU_W:'')+(FU_K!=='all'?'-'+FU_KN[FU_K]:'')+'-'+end+'.csv',out);}
+function fuStatus(){const S=((FU||{}).status||{})[CH];if(!S)return '';
+ const tot=Object.values(S).reduce((a,b)=>a+b,0);
+ const it=(k,lab,cls)=>`<span class="fust ${cls||''}"><b>${nf(S[k]||0)}</b> ${lab}</span>`;
+ return `<div class="fustat"><span class="lab">อ่านทั้งห้องแชท (ทุกเดือนต่อกัน) · ${nf(tot)} ห้องที่ลูกค้าเคยทัก</span>`+
+  it('won','ปิดการขายแล้ว','ok')+it('answered','แอดมินตอบรอบล่าสุดแล้ว','ok')+it('closing','ลูกค้าปิดท้ายเอง (ขอบคุณ/โอเค/สติกเกอร์)','ok')+
+  it('waiting_never','รอตอบ · ไม่เคยมีแอดมินคุย','risk')+it('waiting_prior','รอตอบ · เคยคุยแล้ว แต่ถามรอบใหม่ยังไม่มีคนตอบ','warn')+`</div>`;}
 async function renderFU(){
  const el=$('#fu'), sc=$('#fuscope');
  if(!FU){el.innerHTML='<p class="note">กำลังโหลดรายการแชท…</p>';
@@ -2130,7 +2139,7 @@ async function renderFU(){
  const cards=`<div class="fucards">`+
   card('7','warn','ไม่มีแอดมินตอบ · 7–29 วัน',c7,'ลูกค้าทักล่าสุดเมื่อ 7–29 วันก่อน · ยังตามได้ทัน',FU_P?'':dd(c7,prevH&&prevH[hi]))+
   card('30','risk','ไม่มีแอดมินตอบ · 30 วันขึ้นไป',c30,'เป้าหมาย = 0 · ตอบแล้วแชทจะหายจากรายการในรอบอัปเดตถัดไป',FU_P?'':dd(c30,prevH&&prevH[hi+1]))+
-  `</div><p class="note fusm">ยังไม่ถึง 7 วัน ${nf(c0)} แชท (ยังไม่เข้ารายการ) · ${ngive?'ไม่นับแชท Giveaway '+nf(ngive)+' แชท (บอทส่งของแถมให้แล้ว ไม่ต้องตาม) · ':''}${FU_P?'<b>รวม</b>แชทที่เคยคุยกับแอดมินแล้วแต่รอบล่าสุดไม่มีคนตอบ':'นับเฉพาะแชทที่<b>ไม่เคยมีแอดมินตอบเลย</b> มีแต่ข้อความอัตโนมัติ'}</p>`;
+  `</div>${fuStatus()}<p class="note fusm">ยังไม่ถึง 7 วัน ${nf(c0)} แชท (ยังไม่เข้ารายการ) · ${ngive?'ไม่นับแชท Giveaway '+nf(ngive)+' แชท (บอทส่งของแถมให้แล้ว ไม่ต้องตาม) · ':''}${FU_P?'<b>รวม</b>แชทที่เคยคุยกับแอดมินแล้วแต่รอบล่าสุดไม่มีคนตอบ':'นับเฉพาะแชทที่<b>ไม่เคยมีแอดมินตอบเลย</b> มีแต่ข้อความอัตโนมัติ'}</p>`;
 
  /* weekly strip for the chosen bucket (ignores the week filter itself) */
  const wk={}; for(const o of fuFilt(true)){(wk[o.week]=wk[o.week]||{n:0,k:{}});wk[o.week].n++;wk[o.week].k[o.kind]=(wk[o.week].k[o.kind]||0)+1;}
@@ -2162,7 +2171,7 @@ async function renderFU(){
  const list=`<div class="fuhd"><b>รายชื่อแชทที่ต้องตาม</b> <span class="nsm">เรียงจากลูกค้าทักล่าสุด</span></div>
   <div class="tw"><div class="ptop"><input type="search" id="fuq" placeholder="ค้นชื่อลูกค้า หรือข้อความที่ลูกค้าพิมพ์" value="${esc(FU_Q)}">
    <div class="chips">${['all'].concat(FU_KORD).filter(k=>k==='all'||kinds[k]).map(k=>`<button class="chip" data-fuk="${k}" aria-pressed="${FU_K===k}">${FU_KN[k]}${k==='all'?'':' '+nf(kinds[k])}</button>`).join('')}
-    <label class="fuprior"><input type="checkbox" id="fuprior" ${FU_P?'checked':''}> รวมแชทที่เคยคุยกับแอดมินแล้ว แต่รอบล่าสุดไม่มีคนตอบ</label></div></div>
+    <label class="fuprior"><input type="checkbox" id="fuprior" ${FU_P?'checked':''}> รวมแชทที่เคยคุยกับแอดมินแล้ว แต่ลูกค้าถามรอบใหม่ยังไม่มีคนตอบ</label></div></div>
   <table class="fulist"><thead><tr><th>ลูกค้า</th><th class="n">ค้างมาแล้ว</th><th>ลูกค้าพิมพ์/กดอะไร</th><th>Auto reply ล่าสุดที่ลูกค้าได้</th><th></th></tr></thead><tbody>${lrows||'<tr><td colspan="5">ไม่มีแชทตามตัวกรองนี้ 🎉</td></tr>'}</tbody></table>
   <div class="pfoot"><span class="nsm">${nf(L.length)} แชท${FU_T?' · หัวข้อ '+esc(FU_T):''}${FU_W?' · สัปดาห์ '+fuWeek(FU_W):''}</span>
    <button class="dlbtn fudl" id="fudl" type="button">⤓ ดาวน์โหลดรายการนี้ (CSV) · ${nf(L.length)} แชท</button><span class="fupager">${pager}</span></div></div>`;
@@ -2171,6 +2180,7 @@ async function renderFU(){
   `<p class="note fusm">ตัวเลขเทียบรายสัปดาห์จะเริ่มขึ้นหลังรอบอัปเดตถัดไป — ระบบเก็บยอดค้างไว้ทุกครั้งที่ดึงข้อมูลใหม่</p>`;
 
  const help=`<details class="fhelp"><summary>รายการนี้นับอย่างไร</summary><dl>
+  <dt>อ่านทั้งห้อง ไม่ใช่รายเดือน</dt><dd>รายการนี้ต่อข้อความทุกเดือนของห้องเดียวกันแล้วดูว่า <b>ตอนนี้</b> ห้องอยู่สถานะไหน — ถ้าแอดมินตอบหลังข้อความล่าสุดของลูกค้าแล้ว (แม้จะคนละเดือน) ห้องนั้นไม่อยู่ในรายการ · ถ้าลูกค้าพิมพ์แค่ขอบคุณ/โอเค/สติกเกอร์หลังจากแอดมินคุยไปแล้ว ถือว่าจบบทสนทนา ไม่ต้องตาม · “เคยคุยกับแอดมิน” นับย้อนไปถึงก่อนปี 2026 ด้วย (Facebook)</dd>
   <dt>แชทแบบไหนเข้ารายการ</dt><dd>ลูกค้าทักมาแล้วได้รับแต่ <b>ข้อความอัตโนมัติ</b> (ข้อความต้อนรับ ปุ่มคำถามที่ตั้งไว้ ข้อความตอบตามคีย์เวิร์ด ข้อความติดตามที่ตั้งเวลาส่ง) และ <b>ไม่มีแอดมินตอบเลย</b> นับจากข้อความล่าสุดของลูกค้า</dd>
   <dt>แยกแอดมินกับข้อความอัตโนมัติอย่างไร</dt><dd><b>Facebook</b> — Meta ติดป้ายทุกข้อความว่าส่งมาจากไหน ข้อความที่ส่งจากแอปมือถือ (Business Suite) = มีคนกดส่ง นับเป็นแอดมินตอบ ทั้งที่พิมพ์เองและกดส่งข้อความที่บันทึกไว้ · ข้อความที่ระบบส่งเอง (ข้อความต้อนรับ ปุ่มคำถาม ตอบตามคีย์เวิร์ด ข้อความติดตามที่ตั้งเวลา บอทตรวจสลิป) = อัตโนมัติ · <b>Instagram</b> — API ไม่มีป้ายนี้ จึงเทียบจากข้อความเดียวกันบน Facebook (แอดมินใช้ข้อความชุดเดียวกัน) ข้อความที่ไม่เคยเจอบน Facebook ใช้จังหวะเวลา: ส่งหลังลูกค้าทัก 2 นาทีขึ้นไป = แอดมิน · <b>LINE OA</b> — ระบบ LINE บอกชื่อแอดมินที่ส่งทุกข้อความอยู่แล้ว</dd>
   <dt>“ค้างมาแล้ว” นับจากไหน</dt><dd>จากข้อความล่าสุดของลูกค้า ถึงเวลาที่ดึงข้อมูลชุดนี้ (${endT}) · 7–29 วัน = ยังตามได้ทัน · 30 วันขึ้นไป = กองค้างที่ควรเคลียร์ให้เป็น 0</dd>
