@@ -2218,7 +2218,7 @@ let FU=null, FU_B='7', FU_K='all', FU_T='', FU_W='', FU_Q='', FU_PAGE=0;
    FU_B 'all' = every age (used when a status-box number is clicked). */
 let FU_G='never', FU_MODE='ar';
 try{const m=localStorage.getItem('bp_fu_mode');if(m==='pay'||m==='ar')FU_MODE=m;}catch(e){}
-const FU_GN={never:'ไม่เคยมีแอดมินคุย',prior:'เคยคุยแล้ว · ถามรอบใหม่ยังไม่มีคนตอบ',both:'รวมสองกลุ่ม',skip:'ไม่ต้องตาม'};
+const FU_GN={never:'ไม่เคยมีแอดมินคุย',prior:'เคยคุยแล้ว · ถามรอบใหม่ยังไม่มีคนตอบ',both:'รวมสองกลุ่ม',skip:'ไม่ต้องตาม',done:'กดตอบแล้ว · รอรอบ 05:00 ยืนยัน'};
 const FU_KN={all:'ทั้งหมด',A:'ถามจริง · ตามก่อน',B:'กดปุ่มสนใจคอร์ส',C:'ไม่ต้องตาม'};
 let FU_KORD=['A','B'];
 const FU_KS={A:'ถามจริง',B:'กดปุ่มสนใจ',C:'ไม่ต้องตาม'};
@@ -2254,11 +2254,11 @@ function ovAsk(title,sub,min,def,multi){return new Promise(res=>{
 const OV_ADMINS=[['pat',''],['Gambumm',''],['ARM',''],['🚲',''],['🌙',''],['PPALM','owner'],['khing','operator'],['Pball','operator']];
 function ovMove(o,st,why){return new Promise(res=>{
  const other=st==='skip'&&why==='อื่น ๆ';
- const fuDone=st==='skip'&&/^ตามแล้ว/.test(why||'');
- const ttl=fuDone?'บันทึกว่าตามแล้ว (นอกแชท)':(st==='skip'?'ย้ายไป “ไม่ต้องตาม”':(st==='follow'?'ย้ายกลับมาในรายการที่ต้องตาม':'ยกเลิกการย้าย (คืนค่าอัตโนมัติ)'));
+ const fuDone=st==='skip'&&/^ตามแล้ว/.test(why||''), ansDone=st==='skip'&&/^ตอบแล้ว/.test(why||'');
+ const ttl=ansDone?'บันทึกว่าตอบแล้ว':fuDone?'บันทึกว่าตามแล้ว':(st==='skip'?'ย้ายไป “ไม่ต้องตาม”':(st==='follow'?'ย้ายกลับมาในรายการที่ต้องตาม':'ยกเลิกการย้าย (คืนค่าอัตโนมัติ)'));
  const bg=document.createElement('div');bg.className='ovdlg-bg';
  bg.innerHTML=`<div class="ovdlg" role="dialog" aria-modal="true"><h4>${ttl}</h4>
-  <p class="nsm">แชท: <b>${esc(o&&o.name||'')}</b>${fuDone?'<br>แชทจะไปอยู่ “ตามแล้ว · รอลูกค้าตอบ” 7 วัน ถ้าลูกค้ายังเงียบจะกลับมาในรายการที่ต้องตาม':(st==='skip'?'<br>เหตุผล: <b>'+esc(why)+'</b>':'')}</p>
+  <p class="nsm">แชท: <b>${esc(o&&o.name||'')}</b>${ansDone?'<br>แชทจะออกจากรายการที่ต้องตอบทันที (ไม่ต้องรอรอบ 05:00) · ถ้าลูกค้าทักมาใหม่ แชทจะกลับเข้ารายการเอง':fuDone?'<br>แชทจะไปอยู่ “ตามแล้ว · รอลูกค้าตอบ” 7 วัน ถ้าลูกค้ายังเงียบจะกลับมาในรายการที่ต้องตาม':(st==='skip'?'<br>เหตุผล: <b>'+esc(why)+'</b>':'')}</p>
   ${other?'<label class="ovlab">อธิบายเหตุผล <span class="nsm">(จำเป็น อย่างน้อย 5 ตัวอักษร)</span></label><textarea rows="3" class="ovin"></textarea><div class="ovcnt nsm"></div>':''}
   <label class="ovlab">แอดมินที่ปรับ <span class="nsm">(จำเป็น)</span></label>
   <div class="ovadm">${OV_ADMINS.map(([n,r])=>`<button type="button" class="ovad" data-n="${esc(n)}">${esc(n)}${r?' <span>'+r+'</span>':''}</button>`).join('')}</div>
@@ -2291,13 +2291,13 @@ function ovSet(o,st,why,by){const k=ovKey(CH,o.ovtid||o.tid,o.ovlast||o.last);
  if(OVURL){fetch(OVURL,{method:'POST',headers:{'Content-Type':'text/plain;charset=utf-8'},body:JSON.stringify({t:window.OVT,ch:CH,tid:o.ovtid||o.tid,last:o.ovlast||o.last,st,why:why||'',name:o.name,by:by||''})})
    .then(r=>r.json()).then(j=>{if(!j.ok)toast('บันทึกไม่สำเร็จ ('+(j.error||'?')+')');}).catch(()=>toast('บันทึกไม่สำเร็จ — ตรวจอินเทอร์เน็ตแล้วลองใหม่'));}
  else{try{localStorage.setItem('bp_ov',JSON.stringify(OV));}catch(e){}}
- toast(st==='skip'&&/^ตามแล้ว/.test(why||'')?'บันทึกว่าตามแล้ว':st==='skip'?'ย้ายไป “ไม่ต้องตาม” แล้ว':(st==='follow'?'ย้ายกลับมาในรายการที่ต้องตามแล้ว':'คืนค่าเป็นแบบอัตโนมัติแล้ว'));
+ toast(st==='skip'&&/^ตอบแล้ว/.test(why||'')?'บันทึกว่าตอบแล้ว':st==='skip'&&/^ตามแล้ว/.test(why||'')?'บันทึกว่าตามแล้ว':st==='skip'?'ย้ายไป “ไม่ต้องตาม” แล้ว':(st==='follow'?'ย้ายกลับมาในรายการที่ต้องตามแล้ว':'คืนค่าเป็นแบบอัตโนมัติแล้ว'));
  if(FU_MODE==='pay')renderPay();else renderFU();}
 function fuRows(){ if(!FU)return [];
  return (FU[CH]||[]).map(r=>{const o={tid:r[0],name:r[1],type:r[2],kind:r[15]||'A',auto0:r[15]||'A',wait:r[3],first:r[4],last:r[5],week:r[6],n:r[7],said:r[8],tags:r[9]||[],auto:r[10],nauto:r[11],prior:r[12],src:r[13],mo:r[14],owner:r[16]||'',reg:r[17]||0,admins:r[18]||[]};
-  const ov=OV[ovKey(CH,o.tid,o.last)];if(ov){o.ov=ov;if(ov.st==='skip')o.kind='C';else if(ov.st==='follow'&&o.kind==='C')o.kind='A';}return o;});}
+  const ov=OV[ovKey(CH,o.tid,o.last)];if(ov){o.ov=ov;if(ov.st==='skip'&&/^ตอบแล้ว/.test(ov.why||''))o.kind='D';else if(ov.st==='skip')o.kind='C';else if(ov.st==='follow'&&o.kind==='C')o.kind='A';}return o;});}
 function fuInB(o,b){return b==='all'?true:(b==='7'?(o.wait>=7&&o.wait<30):(b==='30'?o.wait>=30:o.wait<7));}
-function fuInG(o,g){return g==='skip'?o.kind==='C':(o.kind!=='C'&&(g==='both'||(g==='prior'?!!o.prior:!o.prior)));}
+function fuInG(o,g){if(o.kind==='D'||g==='done')return o.kind==='D'&&g==='done';return g==='skip'?o.kind==='C':(o.kind!=='C'&&(g==='both'||(g==='prior'?!!o.prior:!o.prior)));}
 function fuBase(g){return fuRows().filter(o=>o.type!=='give'&&fuInG(o,g||FU_G));}
 function fuFilt(skipWeek){const q=FU_Q.trim().toLowerCase();
  return fuBase().filter(o=>fuInB(o,FU_B)&&(FU_K==='all'||o.kind===FU_K)&&(!FU_T||o.tags.includes(FU_T))&&(!FU_O||o.owner===FU_O)&&(skipWeek||!FU_W||o.week===FU_W)
@@ -2319,10 +2319,11 @@ function fuExport(){const rows=fuFilt(false);
  downloadCSV('followup-'+(CH==='ig'?'instagram':(CH==='line'?'line':'facebook'))+(FU_O?'-'+FU_O:'')+'-'+FU_GN[FU_G].replace(/[^฀-๿a-zA-Z0-9]+/g,'')+'-'+(FU_B==='30'?'ค้าง30วันขึ้นไป':(FU_B==='all'?'ทุกช่วง':'ค้าง7-29วัน'))+(FU_W?'-สัปดาห์'+FU_W:'')+(FU_K!=='all'?'-'+FU_KN[FU_K]:'')+'-'+end+'.csv',out);}
 let FU_L=[];
 function fuOvCtl(o,i){
+ if(o.kind==='D')return `<div class="fuov">✓ กดตอบแล้ว${o.ov&&o.ov.by?' โดย '+esc(o.ov.by):''}<br><span class="nsm">รอบ 05:00 จะเช็กจากแชทจริงอีกครั้ง</span><button class="fuovb" data-ovi="${i}" data-ovst="clear">ยกเลิก</button></div>`;
  if(o.ov&&o.ov.st==='skip')return `<div class="fuov on">ย้ายเป็นไม่ต้องตาม${o.ov.by?' โดย '+esc(o.ov.by):''}${o.ov.why?'<br><span class="nsm">'+esc(o.ov.why)+'</span>':''}<button class="fuovb" data-ovi="${i}" data-ovst="clear">ยกเลิก</button></div>`;
  if(o.ov&&o.ov.st==='follow')return `<div class="fuov">ย้ายกลับมาตาม${o.ov.by?' โดย '+esc(o.ov.by):''}<button class="fuovb" data-ovi="${i}" data-ovst="clear">ยกเลิก</button></div>`;
  if(o.kind==='C')return `<div class="fuov"><button class="fuovb" data-ovi="${i}" data-ovst="follow">ย้ายกลับมาตาม</button></div>`;
- return `<div class="fuov"><select class="fuovs" data-ovi="${i}" aria-label="ย้ายไปไม่ต้องตาม"><option value="">ย้ายไป “ไม่ต้องตาม”…</option>${OV_WHY.map(w=>`<option>${esc(w)}</option>`).join('')}</select></div>`;}
+ return `<div class="fuov"><button class="fuovb fudone" data-ovi="${i}" data-ovst="skip" data-why="ตอบแล้ว (กดเอง)" title="ตอบลูกค้าแล้ว — แชทออกจากรายการทันที ไม่ต้องรอรอบ 05:00">✓ ตอบแล้ว</button><select class="fuovs" data-ovi="${i}" aria-label="ย้ายไปไม่ต้องตาม"><option value="">ย้ายไป “ไม่ต้องตาม”…</option>${OV_WHY.map(w=>`<option>${esc(w)}</option>`).join('')}</select></div>`;}
 function fuStatus(){const S=((FU||{}).status||{})[CH];if(!S)return '';
  const tot=Object.values(S).reduce((a,b)=>a+b,0);
  const it=(k,lab,cls)=>`<span class="fust ${cls||''}"><b>${nf(S[k]||0)}</b> ${lab}</span>`;
@@ -2340,7 +2341,7 @@ function fuFlow(){
  if(FU_O)return '<p class="note fusm">สรุป “แชทค้างไปไหน” ดูได้เมื่อเลือกแอดมินผู้ดูแล “ทุกคน”</p>';
  const nowSet=new Map(fuBase().filter(o=>o.wait>=7).map(o=>[String(o.tid),o.name||'']));
  return flowBox(((FU.arflow||{})[CH]||{})[FU_FLD],FU_FLD,FU_FLK,'afk','afd',
-  [['answered','แอดมินตอบแล้ว','ok'],['won','ปิดการขาย','ok'],['closing','ลูกค้าปิดท้ายเอง','ok'],['x','กลายเป็นไม่ต้องตาม',''],['moved','แอดมินย้ายไปไม่ต้องตาม','']],
+  [['answered','แอดมินตอบแล้ว','ok'],['won','ปิดการขาย','ok'],['closing','ลูกค้าปิดท้ายเอง','ok'],['x','กลายเป็นไม่ต้องตาม',''],['moved','แอดมินกดเอง (ตอบแล้ว / ไม่ต้องตาม)','ok']],
   [['more','ลูกค้าทักเพิ่ม ยังไม่มีคนตอบ','risk'],['still','ยังไม่มีใครตอบ','risk']],
   '',
   {filter:flt,nowSet,scope:FU_GN[FU_G],clearLab:'เคลียร์ได้',clearVerb:'ตอบ',newLab:'ค้างใหม่',
@@ -2412,7 +2413,7 @@ async function renderFU(){
   ownRow=`<div class="chips fuown"><span class="nsm">แอดมินผู้ดูแลห้อง:</span> <button class="chip" data-fuo="" aria-pressed="${!FU_O}">ทุกคน</button>${os.map(n=>`<button class="chip" data-fuo="${esc(n)}" aria-pressed="${FU_O===n}">${esc(n)} ${nf(oc[n])}</button>`).join('')}</div>`;}
  const bl=FU_B==='all'?'ทุกช่วงเวลา':(FU_B==='30'?'ค้าง 30 วันขึ้นไป':'ค้าง 7–29 วัน');
  const grp=`<div class="fugrp" role="group" aria-label="เลือกกลุ่มแชท"><span class="lab">กลุ่มแชท</span>`+
-  ['never','prior','both','skip'].map(g=>`<button type="button" class="fug g-${g}" data-fug="${g}" aria-pressed="${FU_G===g}">${FU_GN[g]} <b>${nf(gOf(g))}</b></button>`).join('')+`</div>`;
+  ['never','prior','both','skip'].concat(fuRows().some(o=>o.kind==='D')||FU_G==='done'?['done']:[]).map(g=>`<button type="button" class="fug g-${g}" data-fug="${g}" aria-pressed="${FU_G===g}">${g==='done'?'✓ ':''}${FU_GN[g]} <b>${nf(gOf(g))}</b></button>`).join('')+`</div>`;
  const show=`<div class="fushow" id="fulist">กำลังดู <b>${FU_GN[FU_G]}</b> · ${bl}${FU_K!=='all'?' · '+FU_KN[FU_K]:''} · <b>${nf(L.length)}</b> แชท${FU_B==='all'?' <button class="chip" data-fub="7" aria-pressed="false">กลับไปดูค้าง 7–29 วัน</button>':''}</div>`;
  const list=`<div class="fuhd"><b>รายชื่อแชทที่ต้องตาม</b> <span class="nsm">เลือกกลุ่มก่อน แล้วกรองต่อได้ · ถามจริงขึ้นก่อน แล้วเรียงจากลูกค้าทักล่าสุด</span></div>
   ${grp}${show}
@@ -2428,6 +2429,7 @@ async function renderFU(){
 
  const help=`<details class="fhelp"><summary>รายการนี้นับอย่างไร</summary><dl>
   <dt>อ่านทั้งห้อง ไม่ใช่รายเดือน</dt><dd>รายการนี้ต่อข้อความทุกเดือนของห้องเดียวกันแล้วดูว่า <b>ตอนนี้</b> ห้องอยู่สถานะไหน — ถ้าแอดมินตอบหลังข้อความล่าสุดของลูกค้าแล้ว (แม้จะคนละเดือน) ห้องนั้นไม่อยู่ในรายการ · ถ้าลูกค้าพิมพ์แค่ขอบคุณ/โอเค/สติกเกอร์หลังจากแอดมินคุยไปแล้ว ถือว่าจบบทสนทนา ไม่ต้องตาม · “เคยคุยกับแอดมิน” นับย้อนไปถึงก่อนปี 2026 ด้วย (Facebook)</dd>
+  <dt>ปุ่ม ✓ ตอบแล้ว</dt><dd>ตอบลูกค้าในแชทแล้วกดปุ่มนี้ แชทออกจากรายการและตัวเลขลดทันที (คนอื่นเห็นเมื่อ refresh) ไม่ต้องรอรอบ 05:00 · ดูแชทที่กดไว้ได้ที่กลุ่ม “กดตอบแล้ว · รอรอบ 05:00 ยืนยัน” (กดยกเลิกได้) · รอบ 05:00 จะอ่านแชทจริงแล้วย้ายเป็น “แอดมินตอบแล้ว” เอง · ถ้าลูกค้าทักมาใหม่ แชทจะกลับเข้ารายการเป็นรอบใหม่</dd>
   <dt>ย้ายแชทเอง</dt><dd>ถ้าเปิดดูแล้วไม่ควรตาม (ถามกวน มาปั่น ไม่ใช่ลูกค้า คุยต่อทางอื่นแล้ว) เลือกเหตุผลในช่อง “ย้ายไป ไม่ต้องตาม” ท้ายแถว (ทุกครั้งต้องเลือกชื่อแอดมินที่ปรับ และถ้าเลือก “อื่น ๆ” ต้องพิมพ์อธิบายเหตุผลอย่างน้อย 5 ตัวอักษร) แชทจะหายจากรายการและตัวเลขทันที · กดยกเลิกเพื่อคืนค่าได้ · ถ้าลูกค้าส่งข้อความใหม่ในภายหลัง แชทจะกลับเข้ารายการเองเพราะเป็นรอบใหม่ · แชทที่ระบบซ่อนไว้ผิด เลือกกลุ่ม “ไม่ต้องตาม” แล้วกด “ย้ายกลับมาตาม”</dd>
   <dt>กลุ่มแชท</dt><dd>เลือกได้ทีละกลุ่ม รายชื่อจะเปลี่ยนเป็นแชทของกลุ่มนั้นทันที · <b>ไม่เคยมีแอดมินคุย</b> ลูกค้าได้แต่ข้อความอัตโนมัติมาตลอด · <b>เคยคุยแล้ว · ถามรอบใหม่ยังไม่มีคนตอบ</b> เคยมีแอดมินคุย (รวมก่อนปี 2026 บน Facebook) แต่ข้อความล่าสุดของลูกค้ายังไม่มีคนตอบ · <b>ไม่ต้องตาม</b> ระบบคัดออก (รูป/สติกเกอร์/ทักทาย/ข้อความไม่ชัด/ลูกค้าปฏิเสธ) หรือแอดมินย้ายเอง · ตัวเลขในกล่อง “อ่านทั้งห้องแชท” ที่มีกรอบกดได้ จะเปิดรายชื่อกลุ่มนั้น<b>ทุกช่วงเวลา</b></dd>
   <dt>LINE OA</dt><dd>อ่านทั้งห้องต่อกันทุกเดือนที่ดึงมาแล้ว · LINE บอกชื่อแอดมินที่ส่งทุกข้อความ ข้อความจากบัญชีบอท/ข้อความตอบกลับอัตโนมัติ = อัตโนมัติ · ห้องเข้ารายการเมื่อข้อความล่าสุดของลูกค้ายังไม่มีแอดมินคนไหนตอบ (รวมห้องที่เคยคุยแล้ว เพราะ LINE เกือบทุกห้องเคยคุยกับแอดมิน) · “ผู้ดูแล” = แอดมินที่ LINE ตั้งเป็นผู้รับผิดชอบห้อง กดชื่อเพื่อดูเฉพาะห้องของคนนั้น · ปุ่ม “เปิดแชทนี้” เข้าห้องใน LINE OA Manager ได้ตรง · ข้อมูล LINE ดึงเดือนละครั้ง “ค้างมาแล้ว” จึงนับถึงข้อความล่าสุดในชุดที่ดึงมา (ไม่ใช่วันนี้)</dd>
@@ -2459,8 +2461,8 @@ async function renderFU(){
   const o=FU_L[+sv.dataset.ovi];const r=await ovMove(o,'skip',why);
   if(!r){sv.value='';toast('ยังไม่ได้ย้าย');return;}
   ovSet(o,'skip',r.why,r.by);}));
- el.querySelectorAll('.fuovb').forEach(b=>b.addEventListener('click',async()=>{const o=FU_L[+b.dataset.ovi],st=b.dataset.ovst;
-  const r=await ovMove(o,st,'');if(!r){toast('ยังไม่ได้เปลี่ยน');return;}ovSet(o,st,'',r.by);}));
+ el.querySelectorAll('.fuovb[data-ovi]').forEach(b=>b.addEventListener('click',async()=>{const o=FU_L[+b.dataset.ovi],st=b.dataset.ovst,why=b.dataset.why||'';
+  const r=await ovMove(o,st,why);if(!r){toast('ยังไม่ได้เปลี่ยน');return;}ovSet(o,st,why?r.why:'',r.by);}));
 }
 
 /* ---------- Follow up hub (Sep 23 2026): one "Follow up" page, two lists ----------
@@ -2554,7 +2556,8 @@ function puRows(){if(!FU||!FU.pay)return [];
   o.ovtid='pay:'+o.tid; o.ovlast=o.q1+'/'+o.lastc;          /* a new quote or a new customer message brings a moved chat back */
   const ov=OV[ovKey(CH,o.ovtid,o.ovlast)];
   if(ov){o.ov=ov;
-   if(ov.st==='skip'&&/^ตามแล้ว/.test(ov.why||'')){        /* "ตามแล้ว (นอกแชท)": counts as followed for 7 days from the click */
+   if(ov.st==='skip'&&/^ตอบแล้ว/.test(ov.why||'')){o.ansMan=1;if(o.g==='R')o.g='B';}
+   else if(ov.st==='skip'&&/^ตามแล้ว/.test(ov.why||'')){        /* "ตามแล้ว (นอกแชท)": counts as followed for 7 days from the click */
     const age=(Date.now()-new Date(ov.at||0).getTime())/864e5;o.fuMan=1;
     if(age<7&&o.g!=='X'&&o.g!=='R'){o.g='F';o.due=0;}else if(o.g!=='X'&&o.g!=='R'){o.g=o.bg==='F'?'C':o.bg;o.due=1;}}
    else if(ov.st==='skip')o.g='X';else if(ov.st==='follow'&&o.g0==='X')o.g='C';}
@@ -2578,8 +2581,9 @@ function puOvCtl(o,i){
  if(o.ov&&o.ov.st==='skip')return `<div class="fuov on">ย้ายเป็นไม่ต้องตาม${o.ov.by?' โดย '+esc(o.ov.by):''}${o.ov.why?'<br><span class="nsm">'+esc(o.ov.why)+'</span>':''}<button class="fuovb" data-pui="${i}" data-ovst="clear">ยกเลิก</button></div>`;
  if(o.ov&&o.ov.st==='follow')return `<div class="fuov">ย้ายกลับมาตาม${o.ov.by?' โดย '+esc(o.ov.by):''}<button class="fuovb" data-pui="${i}" data-ovst="clear">ยกเลิก</button></div>`;
  if(o.g==='X')return `<div class="fuov"><button class="fuovb" data-pui="${i}" data-ovst="follow">ย้ายกลับมาตาม</button></div>`;
- if(o.fuMan&&o.g==='F')return `<div class="fuov">บันทึกว่าตามแล้ว${o.ov.by?' โดย '+esc(o.ov.by):''}<button class="fuovb" data-pui="${i}" data-ovst="clear">ยกเลิก</button></div>`;
- return `<div class="fuov">${o.g==='F'||o.g==='R'?'':`<button class="fuovb fudone" data-pui="${i}" data-ovst="skip" data-why="ตามแล้ว (นอกแชท: โทร / LINE / อื่น ๆ)" title="ตามทางอื่นที่ระบบมองไม่เห็น เช่น โทร หรือทัก LINE">✓ ตามแล้ว (นอกแชท)</button>`}<select class="fuovs" data-pui="${i}" aria-label="ย้ายไปไม่ต้องตาม"><option value="">ย้ายไป “ไม่ต้องตาม”…</option>${PU_WHY.map(w=>`<option>${esc(w)}</option>`).join('')}</select></div>`;}
+ if(o.fuMan&&o.g==='F')return `<div class="fuov">✓ กดตามแล้ว${o.ov.by?' โดย '+esc(o.ov.by):''}<button class="fuovb" data-pui="${i}" data-ovst="clear">ยกเลิก</button></div>`;
+ if(o.ansMan)return `<div class="fuov">✓ กดตอบแล้ว${o.ov.by?' โดย '+esc(o.ov.by):''}<br><span class="nsm">รอบ 05:00 จะเช็กจากแชทจริงอีกครั้ง</span><button class="fuovb" data-pui="${i}" data-ovst="clear">ยกเลิก</button></div>`;
+ return `<div class="fuov">${o.g==='R'?`<button class="fuovb fudone" data-pui="${i}" data-ovst="skip" data-why="ตอบแล้ว (กดเอง)" title="ตอบคำถามลูกค้าแล้ว — ย้ายไป “คุยต่อหลังได้ราคา” ทันที ไม่ต้องรอรอบ 05:00">✓ ตอบแล้ว</button>`:(o.g==='F'?'':`<button class="fuovb fudone" data-pui="${i}" data-ovst="skip" data-why="ตามแล้ว (กดเอง)" title="ทักตามลูกค้าแล้ว (ในแชท โทร หรือ LINE) — ย้ายไป “ตามแล้ว · รอลูกค้าตอบ” ทันที ไม่ต้องรอรอบ 05:00">✓ ตามแล้ว</button>`)}<select class="fuovs" data-pui="${i}" aria-label="ย้ายไปไม่ต้องตาม"><option value="">ย้ายไป “ไม่ต้องตาม”…</option>${PU_WHY.map(w=>`<option>${esc(w)}</option>`).join('')}</select></div>`;}
 
 function renderPay(){
  const el=$('#fu'), sc=$('#fuscope'), LN=CH==='line', chn=CH==='ig'?'Instagram':(LN?'LINE OA':'Facebook');
@@ -2609,7 +2613,7 @@ function renderPay(){
  const PF=((FU.payfu||{})[CH])||{};
  const payNow=new Map(puRows().filter(o=>PU_TODO.includes(o.g)&&o.wait>=1&&o.wait<90).map(o=>[String(o.tid),o.name||'']));
  const flow=FU_O?'<p class="note fusm">สรุป “แชทค้างไปไหน” ดูได้เมื่อเลือกแอดมินผู้ดูแล “ทุกคน”</p>':(!['all','R','A','B','C'].includes(PU_G)||PU_G!=='all')?'<p class="note fusm">สรุป “แชทค้างไปไหน” นับรวมทุกกลุ่มที่ต้องตาม — เลือกกลุ่ม “ทั้งหมดที่ต้องตาม” เพื่อดู</p>':flowBox(((FU.payflow||{})[CH]||{})[PU_FLD],PU_FLD,PU_FLK,'flk','fld',
-  [['paid','โอนแล้ว','ok'],['fu','ตามแล้ว → รอลูกค้าตอบ','ok'],['x','ไม่ต้องตาม',''],['aged','หลุดเพราะส่งราคาเกิน 90 วัน',''],['moved','แอดมินกดเอง (ตามแล้วนอกแชท / ไม่ต้องตาม)','ok']],
+  [['paid','โอนแล้ว','ok'],['fu','ตามแล้ว → รอลูกค้าตอบ','ok'],['x','ไม่ต้องตาม',''],['aged','หลุดเพราะส่งราคาเกิน 90 วัน',''],['moved','แอดมินกดเอง (ตามแล้ว / ไม่ต้องตาม)','ok']],
   [['reply','ลูกค้าตอบกลับ (ย้ายกลุ่ม)','warn'],['fudue','ตามแล้วแต่ครบกำหนดอีก','warn'],['still','ยังไม่มีใครตาม','risk']],
   `ย้อนหลัง 7 วัน แอดมินทักตามในแชท <b>${nf(PF.fu_7d||0)}</b> แชท · ตั้งแต่ ม.ค. โอนแล้ว ${nf(S.paid||0)} แชท ในนั้น <b>${nf(S.paid_fu||0)}</b> แชทโอนหลังแอดมินทักตาม · ตัวเลขนี้นับจากข้อความในแชทอย่างเดียว การกด “ตามแล้ว (นอกแชท)” ไม่อยู่ในตารางนี้`,
   {nowSet:payNow,scope:'ทั้งหมดที่ต้องตาม',passive:['aged'],clearLab:'เคลียร์ได้',clearVerb:'เคลียร์',newLab:'ส่งราคาใหม่',how:'“ค้างตอนนี้” = การ์ด 1–6 + 7–29 + 30–89 วัน ด้านบน (ถามค้าง + สรุปยอดแล้ว + คุยต่อแล้วเงียบ + เงียบเลย) · “เคลียร์ได้” = โอนแล้ว · ตามแล้วรอลูกค้าตอบ · ไม่ต้องตาม (ไม่นับแชทที่หลุดเพราะส่งราคาเกิน 90 วัน ซึ่งแสดงแยกสีเทา) · “ส่งราคาใหม่” = แชทที่เพิ่งเข้ารายการในช่วงนี้ ·'});
@@ -2617,7 +2621,7 @@ function renderPay(){
   <dt>ส่งราคา (ข้อความฝั่งเรา แอดมินหรือข้อความอัตโนมัติ)</dt><dd><div class="fukw"><code>ตัวเลข + บาท</code><code>ตัวเลข + ฿</code><code>ตัวเลข + .-</code><code>ค่าเรียน + ตัวเลข</code><code>ราคา + ตัวเลข</code></div>ตัวเลข 4–5 หลัก เช่น 5,700.- · 6,900 บาท · 12,000฿</dd>
   <dt>สรุปยอด = ลูกค้าตกลงแล้ว (กลุ่ม “สรุปยอดแล้ว · รอโอน”)</dt><dd><div class="fukw"><code>ยอดชำระ</code><code>สรุปรายละเอียด</code><code>เลขบัญชี / เลขที่บัญชี</code><code>166-3-63464-6</code></div></dd>
   <dt>โอนแล้ว = หลุดจากรายการ</dt><dd><div class="fukw"><code>สถานะ: ตรวจสอบสลิปสำเร็จ</code><code>ชื่อผู้รับ: บจก. ไบโอปาล์ม</code>${LN?'<code>แท็ก LINE “สมัครแล้ว”</code>':''}</div>ต้องมา<b>หลัง</b>ข้อความราคารอบนั้น · ถ้าส่งราคาใหม่หลังเคยโอน (ซื้อคอร์สต่อ) จะนับเป็นรอบใหม่ และติดป้าย “เคยโอนแล้ว”</dd>
-  <dt>ตามแล้ว (ระบบจับเอง)</dt><dd>ข้อความที่<b>แอดมินกดส่งเอง</b> หลังลูกค้าเงียบ <b>12 ชม.ขึ้นไป</b> และหลังส่งราคาแล้ว 12 ชม.ขึ้นไป (ข้อความอัตโนมัติไม่นับ · ส่งหลายข้อความภายใน 30 นาทีนับ 1 ครั้ง) · ส่งการ์ดราคาซ้ำแบบนี้ก็นับเป็นการตาม <b>ไม่</b>นับเป็นส่งราคาใหม่ วันที่ “ส่งราคามาแล้ว” จึงไม่รีเซ็ต · ลูกค้ายังไม่ตอบ = อยู่ “ตามแล้ว · รอลูกค้าตอบ” 7 วัน ครบแล้วยังเงียบ = กลับมาในรายการพร้อมป้าย “ครบกำหนดตามรอบถัดไป” · ลูกค้าตอบ = ย้ายไปถามค้าง/คุยต่อ · ตามทางโทรหรือ LINE ที่ระบบมองไม่เห็น กดปุ่ม <b>✓ ตามแล้ว (นอกแชท)</b> มีผล 7 วันเหมือนกัน</dd>
+  <dt>ตามแล้ว (ระบบจับเอง)</dt><dd>ข้อความที่<b>แอดมินกดส่งเอง</b> หลังลูกค้าเงียบ <b>12 ชม.ขึ้นไป</b> และหลังส่งราคาแล้ว 12 ชม.ขึ้นไป (ข้อความอัตโนมัติไม่นับ · ส่งหลายข้อความภายใน 30 นาทีนับ 1 ครั้ง) · ส่งการ์ดราคาซ้ำแบบนี้ก็นับเป็นการตาม <b>ไม่</b>นับเป็นส่งราคาใหม่ วันที่ “ส่งราคามาแล้ว” จึงไม่รีเซ็ต · ลูกค้ายังไม่ตอบ = อยู่ “ตามแล้ว · รอลูกค้าตอบ” 7 วัน ครบแล้วยังเงียบ = กลับมาในรายการพร้อมป้าย “ครบกำหนดตามรอบถัดไป” · ลูกค้าตอบ = ย้ายไปถามค้าง/คุยต่อ · ตามทางโทรหรือ LINE ที่ระบบมองไม่เห็น กดปุ่ม <b>✓ ตามแล้ว</b> ได้ทันที (ตามในแชทแล้วไม่อยากรอรอบ 05:00 หรือตามทางโทร/LINE ก็ได้) มีผล 7 วันเหมือนกัน · แถว “ลูกค้าถามค้าง” มีปุ่ม <b>✓ ตอบแล้ว</b> ย้ายไป “คุยต่อหลังได้ราคา” ทันที</dd>
   <dt>ไม่ต้องตาม</dt><dd><div class="fukw"><code>โอนแล้ว / แนบสลิป / ชำระแล้ว</code><code>ถามเรื่องไฟล์ ลิงก์เข้าเรียน ชีท</code><code>ไม่สนใจ / ไว้ก่อน / แพง / ยกเลิก</code><code>ชวนไปคุย LINE แล้ว</code></div>(ลูกค้าพิมพ์หลังได้ราคา) · หรือแอดมินย้ายเอง</dd></dl></details>`;
  const note=`<p class="note fusm">ตัวเลขในการ์ด = กลุ่ม <b>${PU_GN[PU_G]}</b> · ส่งราคาไม่ถึง 1 วัน ${nf(c0)} แชท (ยังคุยกันอยู่ ยังไม่เข้ารายการ) · ส่งราคาเก่ากว่า 90 วัน ${nf(c90)} แชท (นับไว้เฉย ๆ ไม่ใส่ในรายการ)${LN?' · LINE ดึงเดือนละครั้ง “มาแล้ว” นับถึง '+endT:''}</p>`;
  /* weekly strip by the week of the latest quote */
