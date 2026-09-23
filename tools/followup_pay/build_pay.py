@@ -1,0 +1,179 @@
+# -*- coding: utf-8 -*-
+"""Payment follow-up list (admin-hub "Follow up · ตามโอนเงิน", Sep 23 2026).
+
+A chat is listed when OUR side (admin, saved reply or automation - never the customer) sent a price
+and no verified slip came back AFTER that quote:
+  quote  = PRICE (amount + บาท/฿/.- , "ค่าเรียน <n>", "ราคา <n>") or BILL ("ยอดชำระ", "สรุปรายละเอียด",
+           the BioPalm account number / เลขบัญชี)
+  paid   = "ตรวจสอบสลิปสำเร็จ" or receiver "บจก. ไบโอปาล์ม" in any message at/after the FIRST quote of the
+           open round; LINE rooms tagged "สมัครแล้ว" also count as paid
+Whole thread, all months stitched by thread id (same as build_fu.py).
+
+  g (group, first match wins)
+             R ลูกค้าตอบแล้ว·รอแอดมิน  the customer wrote something real after the quote and no admin has answered it
+             A สรุปยอดแล้ว·รอโอน      BILL was sent (customer had agreed; only the transfer is missing)
+             B คุยต่อหลังได้ราคา       the customer replied after the quote, the admin answered, then silence
+             C ได้ราคาแล้วเงียบ         nothing real from the customer after the quote
+             X ไม่ต้องตาม              customer declined / wants to think after the quote, or we moved the chat to LINE
+  wait       days from the LAST quote to the end of the data
+  ball       'c' = the customer wrote after the quote and no admin answered yet -> reply first
+Writes key "pay" into src/followup.json (run right after build_fu.py; build_fu.py calls it itself).
+"""
+import json, glob, re, datetime, collections, gc
+T0 = datetime.datetime(2026, 1, 1)
+def base(mo): return int((datetime.datetime(int(mo[:4]), int(mo[5:7]), 1) - T0).total_seconds() // 60)
+def stamp(mi): return (T0 + datetime.timedelta(minutes=mi)).strftime('%Y-%m-%d %H:%M')
+def tx_of(d): return lambda x: d[x] if isinstance(x, int) and 0 <= x < len(d) else (x if isinstance(x, str) else '')
+PRICE = re.compile(r'\d{1,3},\d{3}\s*(บาท|฿|\.-)|\d{4,5}\s*(บาท|฿|\.-)|ค่าเรียน\s*[:：]?\s*\d|ราคา\s*[:：]?\s*\d')
+BILL = re.compile(r'ยอดชำระ|สรุปรายละเอียด|166-?3-?63464-?6|เลขที่บัญชี|เลขบัญชี')
+AMT = re.compile(r'(\d{1,3},\d{3}|\d{4,5})(?:\.\d+)?\s*(?:บาท|฿|\.-)')
+SLIP = re.compile(r'ตรวจสอบสลิปสำเร็จ|ชื่อผู้รับ\s*[:：]\s*(บจก\.?\s*ไบโอปาล์ม|BIOPALM)', re.I)
+TOLINE = re.compile(r'line\.me|lin\.ee|@biopalm|แอด\s?ไลน์|ทัก\s?ไลน์|ทาง\s?ไลน์|ทาง\s?LINE|แอด\s?LINE|ทัก\s?LINE', re.I)
+DECLINE = re.compile(r'ไม่สนใจ|ไม่เอา|ไม่ต้องส่ง|ไม่ต้องการ|ยกเลิก|หยุดส่ง|เลิกส่ง|ส่งผิด|ทักผิด|กดผิด|ขอคิดดูก่อน|ไว้ก่อน|แพง|ขอบคุณ.*ไม่')
+SYS = re.compile(r'^\x01|Facebook สร้างแชทนี้ขึ้น|คุณกำลังตอบกลับความคิดเห็น|replied to a post|ได้ตอบกลับโพสต์|ตอบกลับโฆษณา$|^ตั้งระยะข้อมูลลูกค้า')
+NOISE = set(['▶ กดปุ่ม', 'เมนูหลัก', 'You received a message', '[รูป/ไฟล์แนบ]', '[รูปภาพ]', '[สติกเกอร์]', '(emoji)', '[ไฟล์]', '[ไฟล์แนบ]',
+             '[ตอบกลับสตอรี่]', '[ข้อความที่ IG ไม่รองรับ]', '[วิดีโอ]', '[เสียง]', ''])
+import importlib.util, sys, io, contextlib
+LOW = re.compile(r'^[\s\.\,!?~😊🙏❤️👍🥰💕❣️🏻]*(สวัสดี|หวัดดี|ขอบคุณ|ขอบคุน|ค่ะ|คะ|ครับ|คับ|ค่า|ok|โอเค|รับทราบ|จ้า|ใช่|ได้|เรียบร้อย)?\s*(ค่ะ|คะ|ครับ|คับ|ค่า|นะคะ|นะครับ|มากค่ะ|มากครับ|มาก ๆ|มากๆ|มาก|เลยค่ะ|จ้า|ะ|บ)?[\s\.\,!?~😊🙏❤️👍🥰💕❣️🏻]*$', re.I)
+BTN = set(['สนใจลงเรียน ม.ต้น', 'สนใจลงเรียน ม.ปลาย', 'สอบถามตารางเรียนทั้งม.ต้น และม.ปลาย', 'สนใจลงเรียนคอร์ส ม.ต้น', 'สนใจคอร์สเตรียม สอวน.',
+    'สนใจคอร์สเตรียม สอวน. ชีวะค่าย1', 'สนใจคอร์สพื้นฐานชีวะ ม.4', 'สนใจคอร์สพื้นฐานชีวะ ม.5', 'สนใจคอร์สพื้นฐานชีวะ ม.6', 'ค่าเรียนเท่าไร',
+    'มีโปรโมชั่นหรือไม่', 'ชำระเงินแบบไหนได้บ้าง', 'ชำระเงินได้อย่างไร', 'หลักสูตรเรียนชีววิทยามีราคาเท่าไร?', 'คอร์สเรียนมีราคาเท่าไร',
+    'มีคอร์สเรียนอะไรบ้าง', 'ช่วยแนะนำคอร์สเรียน', 'รายละเอียดคอร์ส', 'รายละเอียด', 'สมัครเรียน', 'คอร์ส ม.ต้น', 'คอร์ส ม.ปลาย', 'คอร์สม.ต้น',
+    'คอร์สม.ปลาย', 'ยืนยันการลงทะเบียน', 'เทป RERUN', 'คอร์สทั้งหมด', 'คอร์สเรียนทั้งหมด', 'คอร์ส ONLINE', 'Onsite สด', 'Onsite', 'Online',
+    'Online : Google meet', 'วิธีการสมัครเรียน', 'แผนการเรียน ม.ต้น', 'สอบถามรายละเอียด', 'โปรโมชั่น', 'ติดต่อแอดมิน', 'ต้องการติดต่อแอดมิน',
+    'แผนการเรียน ม.ปลาย', 'คอร์ส RERUN', 'ตัวอย่างคอร์สเรียน', 'รีวิวคอร์สเรียน', 'เงื่อนไข และอายุคอร์สเรียน', 'ขั้นตอนการเข้าเรียน',
+    'วิธีการเข้าเรียนย้อนหลัง', 'ไม่ได้รับลิ้งค์เข้าเรียนผ่าน E-mail', 'ยืนยันข้อมูลถูกต้อง'])
+TAGS = [('ม.ต้น', r'ม\.?\s?ต้น|มต้น|ม\.\s?[1-3](?!\d)|ม[1-3](?!\d)|Module\s?[1-4]'), ('ม.ปลาย', r'ม\.?\s?ปลาย|มปลาย|ม\.\s?[4-6](?!\d)|ม[4-6](?!\d)'),
+        ('สอวน.', r'สอวน|ค่าย\s?1|โอลิมปิก|IJSO'), ('สอบเข้า', r'สอบเข้า|MWIT|KVIS|เตรียมอุดม|มหิดลวิทย|กำเนิดวิทย'), ('A-Level', r'A-?Level|TCAS|หมอ|แพทย์'),
+        ('Onsite', r'onsite|ออนไซต์|เรียนสด'), ('Online', r'online|ออนไลน์|google meet'), ('เทป', r'เทป|rerun|ย้อนหลัง')]
+TAGS = [(n, re.compile(p, re.I)) for n, p in TAGS]
+QUEST = re.compile(r'\?|ไหม|มั้ย|มั๊ย|หรือเปล่า|ยังไง|อย่างไร|อะไร|เมื่อไ|ที่ไหน|ได้บ้าง|สอบถาม|ขอทราบ|อยาก|ต้องการ|แนะนำ|รบกวน|เท่าไ|กี่บาท|ได้ไหม|หรอ|เหรอ', re.I)
+COURSE = re.compile(r'สนใจ|คอร์ส|คอส|ครอส|ราคา|ค่าเรียน|สมัคร|ลงเรียน|ตาราง|เรียน|สอวน|IJSO|A-?Level|สอบ|MWIT|KVIS|onsite|online|ออนไลน์|เทป|โมดูล|module|ม\.?\s?[1-6]|ผ่อน|โปร|ส่วนลด', re.I)
+POLITE = re.compile(r'ขอบคุณ|ขอบคุน|โอเค|\bok\b|รับทราบ|ได้ค่ะ|ได้ครับ|ได้ค่า|ค่ะ$|ครับ$', re.I)
+PAIDSAY = re.compile(r'โอนแล้ว|โอนเรียบร้อย|โอนไปแล้ว|แนบสลิป|ชำระแล้ว|ชำระเรียบร้อย|จ่ายแล้ว')
+STUDENT = re.compile(r'ไฟล์|ลิ้ง|ลิงก์|ลิงค์|เข้าเรียน|รหัสผ่าน|password|ชีท|ใบเสร็จ|ใบกำกับ|ดาวน์โหลด|ไม่ได้รับอีเมล|e-?mail', re.I)
+THINK = re.compile(r'ขอ(ถาม|ปรึกษา|คุย|คิด)\S*ก่อน|ส่งให้\S*ดู|ไว้ก่อน|เดี๋ยว\S*(บอก|แจ้ง|ติดต่อ)|ปรึกษา')
+MOVED = re.compile(r'ทัก(ไป)?แล้ว|แอด(ไป)?แล้ว|add แล้ว', re.I)
+def asks(s): return not THINK.search(s) and real(s) and (QUEST.search(s) or COURSE.search(s)) and not (POLITE.search(s) and not QUEST.search(s) and len(s) < 30)
+BUY = re.compile(r'สมัคร|ลงเรียน|ลงคอร์ส|เอาคอร์ส|เอาอันนี้|โอน|จ่าย|ชำระ|สรุปยอด|ขอเลขบัญชี|ผ่อน|บัตรเครดิต', re.I)
+
+def real(s): return s and s not in NOISE and s not in BTN and not LOW.match(s) and len(s.strip()) >= 3 and not s.startswith('[')
+
+def judge(ms, end, extra=None):
+    """ms: [(minute, role, text)] role 0 customer · 1 admin (person) · 2 automation"""
+    ms.sort(key=lambda x: x[0])
+    cus = [x for x in ms if x[1] == 0]
+    if not cus: return None, 'nocus'
+    q = [i for i, x in enumerate(ms) if x[1] != 0 and (PRICE.search(x[2]) or BILL.search(x[2]))]
+    if not q: return None, 'noquote'
+    # the open round starts at the first quote after the last verified slip
+    sl = [i for i, x in enumerate(ms) if SLIP.search(x[2])]
+    lastSlip = sl[-1] if sl else -1
+    q = [i for i in q if i > lastSlip]
+    if not q:
+        return None, 'paid'
+    if extra and extra.get('reg'): return None, 'paid'
+    first, last = ms[q[0]], ms[q[-1]]
+    after = ms[q[-1] + 1:]
+    bill = any(BILL.search(ms[i][2]) for i in q)
+    amt = ''
+    for i in reversed(q):
+        m = AMT.findall(ms[i][2])
+        if m: amt = ' · '.join(dict.fromkeys(a + ' บาท' for a in m[:3])); break
+    csaid = [x[2] for x in cus if real(x[2])]
+    cafter = [x for x in after if x[1] == 0 and x[2] not in NOISE]
+    hafter = [x for x in after if x[1] == 1]
+    flags = []
+    if sl: flags.append('เคยโอนแล้ว')
+    if any(TOLINE.search(x[2]) for x in ms[q[0]:] if x[1] != 0): flags.append('ชวนไปคุย LINE')
+    if any(BUY.search(x[2]) for x in cus if real(x[2])): flags.append('ลูกค้าพูดถึงการสมัคร/โอน')
+    dec = any(DECLINE.search(x[2]) for x in cafter)
+    lastH = hafter[-1][0] if hafter else -1
+    tail = [x for x in cafter if x[0] > lastH]                       # customer lines nobody has answered yet
+    ball = 'c' if any(asks(x[2]) for x in tail) else 'a'
+    creal = [x for x in cafter if real(x[2]) and not (POLITE.search(x[2]) and len(x[2]) < 30 and not QUEST.search(x[2]))]
+    if any(PAIDSAY.search(x[2]) for x in cafter): g = 'X'; flags.append('ลูกค้าแจ้งว่าโอนแล้ว (ไม่มีสลิปจากบอท — เช็กยอด)')
+    elif any(STUDENT.search(x[2]) for x in cafter if real(x[2])): g = 'X'; flags.append('ดูเป็นนักเรียนแล้ว (ถามเรื่องไฟล์/ลิงก์เข้าเรียน)')
+    elif dec: g = 'X'; flags.append('ลูกค้าปฏิเสธ/ขอคิดก่อน')
+    elif 'ชวนไปคุย LINE' in flags and (not creal or any(MOVED.search(x[2]) for x in cafter)): g = 'X'
+    elif ball == 'c': g = 'R'
+    elif bill: g = 'A'
+    elif creal: g = 'B'
+    else: g = 'C'
+    joined = ' '.join(csaid)
+    lastc = [x for x in cus if x[2] not in NOISE]
+    row = dict(wait=round((end - last[0]) / 1440.0, 1), q0=stamp(first[0]), q1=stamp(last[0]), last=stamp(ms[-1][0]),
+               lastc=stamp(cus[-1][0]), g=g, bill=1 if bill else 0, amt=amt, qt=last[2].replace('\n', ' ')[:160], nq=len(q),
+               said=' | '.join(dict.fromkeys(csaid))[-140:], after=' | '.join(x[2] for x in cafter)[-200:], ball=ball,
+               tags=[n for n, rx in TAGS if rx.search(joined + ' ' + last[2])], flags=flags, who=last[1])
+    return row, g
+
+COLS = ['tid', 'name', 'g', 'wait', 'q0', 'q1', 'last', 'lastc', 'bill', 'amt', 'qt', 'nq', 'said', 'after', 'ball', 'tags', 'flags', 'src', 'owner', 'week']
+OLD = collections.defaultdict(collections.Counter)   # quotes older than 90 days: counted, not listed (keeps followup.json small)
+def finish(th, end, ch, out, stat):
+    for tid, e in th.items():
+        r, why = judge(e['m'], end, e)
+        stat[ch][why] += 1
+        if not r: continue
+        if r['wait'] >= 90: OLD[ch][r['g']] += 1; continue
+        d0 = datetime.datetime.strptime(r['q1'], '%Y-%m-%d %H:%M'); wk = (d0 - datetime.timedelta(days=d0.weekday())).strftime('%Y-%m-%d')
+        out.append([tid, e.get('n') or '', r['g'], r['wait'], r['q0'], r['q1'], r['last'], r['lastc'], r['bill'], r['amt'], r['qt'], r['nq'],
+                    r['said'], r['after'], r['ball'], r['tags'], r['flags'], e.get('src') or '', e.get('ow') or '', wk])
+    out.sort(key=lambda r: r[5], reverse=True)
+
+def main():
+    F = json.load(open('src/followup.json', encoding='utf-8'))
+    agg = json.load(open('src/agg.json', encoding='utf-8')); END = agg.get('v4end') or 0; del agg
+    stat = collections.defaultdict(collections.Counter); PAY = {}
+    th = {}
+    for p in sorted(glob.glob('src/fb_*.json')):
+        mo = p[-12:-5]; f = json.load(open(p, encoding='utf-8')); t = tx_of(f['dict']); b = base(mo)
+        for c in f['chats']:
+            e = th.setdefault(str(c[19]), {'n': '', 'm': [], 'src': ''}); e['n'] = c[0] or e['n']; e['src'] = c[26] or e['src']
+            for m in c[18]:
+                s = str(t(m[2])).strip()
+                if SYS.search(s): continue
+                e['m'].append((b + m[0], m[1] if m[1] in (0, 1) else 2, s))
+        del f; gc.collect()
+    PAY['fb'] = []; finish(th, END, 'fb', PAY['fb'], stat); del th; gc.collect()
+    ig = json.load(open('src/ig_all.json', encoding='utf-8')); t = tx_of(ig['dict']); th = {}
+    for mo in sorted(ig['months']):
+        b = base(mo)
+        for c in ig['months'][mo]['leads']:
+            e = th.setdefault(str(c[19]), {'n': '', 'm': [], 'src': ''}); e['n'] = c[0] or e['n']; e['src'] = c[26] or e['src']
+            for m in c[18]:
+                s = str(t(m[2])).strip()
+                if SYS.search(s): continue
+                e['m'].append((b + m[0], m[1] if m[1] in (0, 1) else 2, s))
+    del ig; gc.collect()
+    PAY['ig'] = []; finish(th, END, 'ig', PAY['ig'], stat); del th; gc.collect()
+    PAY['line'] = []
+    lf = sorted(glob.glob('src/line_*.json'))
+    if lf and F.get('lend'):
+        LE = int((datetime.datetime.strptime(F['lend'], '%Y-%m-%d %H:%M') - T0).total_seconds() // 60)
+        th = {}
+        for p in lf:
+            mo = p[-12:-5]; f = json.load(open(p, encoding='utf-8')); t = tx_of(f['dict']); y = int(mo[:4])
+            for r in f['rooms']:
+                e = th.setdefault(r['id'], {'n': '', 'm': [], 'src': 'line'}); e['n'] = r.get('n') or e['n']; e['ow'] = r.get('ow') or ''
+                e['reg'] = 1 if any('สมัครแล้ว' in x for x in (r.get('tg') or [])) else 0
+                for m in r['tr']:
+                    try: ts = int((datetime.datetime(y, int(m[0][:2]), int(m[0][3:5]), int(m[0][6:8]), int(m[0][9:11])) - T0).total_seconds() // 60)
+                    except Exception: continue
+                    w = m[1]; e['m'].append((ts, 0 if w == 'C' else (2 if w == 'B' else 1), str(t(m[2])).strip()))
+            del f; gc.collect()
+        finish(th, LE, 'line', PAY['line'], stat); del th; gc.collect()
+    F['pay'] = PAY; F['paycols'] = COLS; F['paystat'] = {k: dict(v) for k, v in stat.items()}; F['pay90'] = {k: dict(v) for k, v in OLD.items()}
+    # weekly history of the headline pile (A+B+C, 1-6 / 7-29 / 30-89 days) per channel
+    day = (F.get('end') or '')[:10]
+    def heads(L): z = [r for r in L if r[2] != 'X']; return [sum(1 for r in z if 1 <= r[3] < 7), sum(1 for r in z if 7 <= r[3] < 30), sum(1 for r in z if 30 <= r[3] < 90)]
+    ph = [h for h in (F.get('payhist') or []) if h[0] != day] + [[day] + heads(PAY['fb']) + heads(PAY['ig']) + heads(PAY['line'])]
+    F['payhist'] = sorted(ph)[-120:]
+    json.dump(F, open('src/followup.json.tmp', 'w', encoding='utf-8'), separators=(',', ':'), ensure_ascii=False)
+    import os; os.replace('src/followup.json.tmp', 'src/followup.json')   # never leave a half-written file behind
+    for ch, L in PAY.items():
+        c = collections.Counter((r[2], '<1' if r[3] < 1 else '1-6' if r[3] < 7 else '7-29' if r[3] < 30 else '30-89' if r[3] < 90 else '90+') for r in L)
+        print('pay', ch, len(L), sorted(c.items()), dict(stat[ch]))
+
+if __name__ == '__main__':
+    main()
