@@ -205,10 +205,113 @@ def finish(th, end, ch, out, stat):
         FLOW[ch][str(days)] = {'from': stamp(cut), 'to': stamp(end), 'new': new,
                                'out': {k: v for k, v in res.items()}, 'fuwin': len(fuw), 'paidwin': len(paidw)}
 
+# ---- (Sep 23 2026) third list: "คุยแล้วไม่ถึงราคา" — asked about a course, an admin answered, no price was ever sent ----
+GRADE = re.compile(r'ม\.?\s?[1-6]|ป\.?\s?[1-6]|ม\.ต้น|ม\.ปลาย|มัธยม|ประถม|ซิ่ว|ปี\s?[1-4]|dek\s?\d', re.I)
+ASKC = re.compile(r'คอร์ส|คอส|ครอส|ราคา|ค่าเรียน|สมัคร|เท่าไ|กี่บาท|โปร|ตาราง|ลงเรียน|สอวน|IJSO|A-?Level|สอบเข้า|MWIT|KVIS|เตรียมอุดม|onsite|online|ออนไลน์|เรียนสด|เทป|โมดูล|module', re.I)
+NP_TODO = ('A', 'B')
+REGD = re.compile(r'(?<!ถ้า)(?<!หลัง)(?<!ก่อน)สมัคร(?:คอร์ส|คอส|เรียน|\s){0,3}(?:ไป)?แล้ว|ซื้อคอร์ส(?:ไป)?แล้ว|ลงทะเบียน(?:ไป)?แล้ว')   # "หนูสมัครคอร์สไปแล้ว ต้องเข้าเรียนที่ไหน"
+def judge_np(ms, end, extra=None, cut=None):
+    """whole thread; in the list when the customer typed about a course, an ADMIN (person) answered the customer's latest
+       real message, and our side never sent a price / payment summary in the open round (after the last verified slip).
+       anchor = the admin's first answer after the customer's latest real message; age = days since that answer.
+       A บอกชั้น/คอร์สแล้ว (grade AND course/price/schedule words) · B ถามเรื่องคอร์สทั่วไป · F ตามแล้ว · X ไม่ต้องตาม"""
+    if cut is not None:
+        ms = [x for x in ms if x[0] <= cut]; end = cut
+    if extra and extra.get('reg'): return None, 'reg'
+    sl = [i for i, x in enumerate(ms) if SLIP.search(x[2])]
+    i0 = sl[-1] + 1 if sl else 0
+    if any(x[1] != 0 and (PRICE.search(x[2]) or BILL.search(x[2])) for x in ms[i0:]): return None, 'quoted'
+    rnd = ms[i0:]
+    creal = [x for x in rnd if x[1] == 0 and real(x[2]) and not (POLITE.search(x[2]) and len(x[2]) < 30 and not QUEST.search(x[2]))]
+    if not creal: return None, 'nocus'
+    joined = ' '.join(x[2] for x in creal)
+    if not ASKC.search(joined) and not COURSE.search(joined): return None, 'noint'
+    lastR = creal[-1][0]
+    ans = [x for x in rnd if x[1] == 1 and x[0] >= lastR]
+    if not ans: return None, 'waiting'
+    anchor = ans[0][0]
+    fus = []; lastC = lastR; since = False
+    for t, r, x in rnd:
+        if t <= anchor: continue
+        if r == 0:
+            if x not in NOISE: lastC = t; since = True
+            continue
+        if r == 1 and not since and t - lastC >= FU_GAP and t - anchor >= FU_GAP:
+            if fus and t - fus[-1] < FU_MERGE: fus[-1] = t
+            else: fus.append(t)
+        since = False
+    cafter = [x for x in rnd if x[1] == 0 and x[0] > anchor and x[2] not in NOISE]
+    recent = [x[2] for x in creal[-8:]] + [x[2] for x in cafter]
+    flags = []
+    if sl: flags.append('เคยโอนแล้ว')
+    if any(TOLINE.search(x[2]) for x in rnd if x[1] != 0 and x[0] >= lastR): flags.append('ชวนไปคุย LINE')
+    if any(BUY.search(x) for x in recent): flags.append('ลูกค้าพูดถึงการสมัคร/โอน')
+    lastCust = cafter[-1][0] if cafter else lastR
+    fu_open = bool(fus) and fus[-1] > lastCust
+    due = 0
+    alltx = joined + ' ' + ' '.join(x[2] for x in cafter)      # grade often comes in the reply after the admin's answer ("ม.3ค่ะ")
+    hot = bool(GRADE.search(alltx) and ASKC.search(alltx))
+    if any(PAIDSAY.search(x) for x in recent): g = 'X'; flags.append('ลูกค้าแจ้งว่าโอนแล้ว (เช็กยอด)')
+    elif any(STUDENT.search(x) for x in recent) and not ASKC.search(' '.join(recent[-3:])): g = 'X'; flags.append('ดูเป็นนักเรียนแล้ว (ถามเรื่องไฟล์/ลิงก์เข้าเรียน)')
+    elif any(REGD.search(x) for x in recent): g = 'X'; flags.append('ลูกค้าบอกว่าสมัครแล้ว (เช็กชื่อในระบบ)')
+    elif any(DECLINE.search(x) for x in recent): g = 'X'; flags.append('ลูกค้าปฏิเสธ/ขอคิดก่อน')
+    elif 'ชวนไปคุย LINE' in flags: g = 'X'
+    elif fu_open and end - fus[-1] < FU_DUE: g = 'F'
+    else:
+        g = 'A' if hot else 'B'
+        if fu_open: due = 1
+    bg = g if g != 'F' else ('A' if hot else 'B')
+    row = dict(wait=round((end - anchor) / 1440.0, 1), q0=stamp(creal[0][0]), q1=stamp(anchor), last=stamp(ms[-1][0]),
+               lastc=stamp(lastCust), g=g, qt=ans[0][2].replace('\n', ' ')[:160], nq=len(ans),
+               said=' | '.join(dict.fromkeys(x[2] for x in creal))[-160:], after=' | '.join(x[2] for x in cafter)[-200:],
+               tags=[n for n, rx in TAGS if rx.search(joined)], flags=flags,
+               nfu=len(fus), fu1=stamp(fus[-1]) if fus else '', due=due, fus=fus, lastc_m=lastCust, bg=bg)
+    return row, g
+
+NPOLD = collections.defaultdict(collections.Counter); NPFLOW = collections.defaultdict(dict); NPSTAT = collections.defaultdict(collections.Counter)
+def finish_np(th, end, ch, out):
+    now = {}
+    for tid, e in th.items():
+        r, why = judge_np(e['m'], end, e)
+        NPSTAT[ch][why] += 1
+        if not r: continue
+        now[tid] = (r['g'], r['wait'], r['fus'], r['lastc_m'])
+        if r['wait'] >= 90: NPOLD[ch][r['g']] += 1; continue
+        d0 = datetime.datetime.strptime(r['q1'], '%Y-%m-%d %H:%M'); wk = (d0 - datetime.timedelta(days=d0.weekday())).strftime('%Y-%m-%d')
+        out.append([tid, e.get('n') or '', r['g'], r['wait'], r['q0'], r['q1'], r['last'], r['lastc'], 0, '', r['qt'], r['nq'],
+                    r['said'], r['after'], 'a', r['tags'], r['flags'], e.get('src') or '', e.get('ow') or '', wk,
+                    r['nfu'], r['fu1'], r['due'], r['bg']])
+        if r['fus'] and end - r['fus'][-1] < 7 * 1440: NPSTAT[ch]['fu_7d'] += 1
+    out.sort(key=lambda r: r[5], reverse=True)
+    endset = {tid for tid, n in now.items() if n[0] in NP_TODO and 1 <= n[1] < 90}
+    for days in (1, 7):
+        cut = end - days * 1440
+        start = {}
+        for tid, e in th.items():
+            r, why = judge_np(e['m'], end, e, cut)
+            if r and why in NP_TODO and 1 <= r['wait'] < 90: start[tid] = r
+        res = collections.defaultdict(list)
+        for tid, r0 in start.items():
+            n = now.get(tid)
+            if tid in endset:
+                k = 'fudue' if (n[2] and n[2][-1] > cut) else 'still'
+            else:
+                pr, pw = judge(th[tid]['m'], end, th[tid])
+                if pw in ('paid', 'paid_fu'): k = 'paid'
+                elif pr: k = 'quoted'
+                elif not n:
+                    k = 'waiting' if judge_np(th[tid]['m'], end, th[tid])[1] == 'waiting' else 'aged'
+                elif n[0] == 'X': k = 'x'
+                elif n[0] == 'F': k = 'fu'
+                else: k = 'aged'
+            res[k].append([tid, th[tid].get('n') or ''])
+        NPFLOW[ch][str(days)] = {'from': stamp(cut), 'to': stamp(end), 'new': [[t, th[t].get('n') or ''] for t in endset if t not in start],
+                                 'out': dict(res)}
+
 def main():
     F = json.load(open('src/followup.json', encoding='utf-8'))
     agg = json.load(open('src/agg.json', encoding='utf-8')); END = agg.get('v4end') or 0; del agg
-    stat = collections.defaultdict(collections.Counter); PAY = {}
+    stat = collections.defaultdict(collections.Counter); PAY = {}; NP = {'fb': [], 'ig': [], 'line': []}
     th = {}
     for p in sorted(glob.glob('src/fb_*.json')):
         mo = p[-12:-5]; f = json.load(open(p, encoding='utf-8')); t = tx_of(f['dict']); b = base(mo)
@@ -219,7 +322,7 @@ def main():
                 if SYS.search(s): continue
                 e['m'].append((b + m[0], m[1] if m[1] in (0, 1) else 2, s))
         del f; gc.collect()
-    PAY['fb'] = []; finish(th, END, 'fb', PAY['fb'], stat); del th; gc.collect()
+    PAY['fb'] = []; finish(th, END, 'fb', PAY['fb'], stat); NP['fb'] = []; finish_np(th, END, 'fb', NP['fb']); del th; gc.collect()
     ig = json.load(open('src/ig_all.json', encoding='utf-8')); t = tx_of(ig['dict']); th = {}
     for mo in sorted(ig['months']):
         b = base(mo)
@@ -230,7 +333,7 @@ def main():
                 if SYS.search(s): continue
                 e['m'].append((b + m[0], m[1] if m[1] in (0, 1) else 2, s))
     del ig; gc.collect()
-    PAY['ig'] = []; finish(th, END, 'ig', PAY['ig'], stat); del th; gc.collect()
+    PAY['ig'] = []; finish(th, END, 'ig', PAY['ig'], stat); NP['ig'] = []; finish_np(th, END, 'ig', NP['ig']); del th; gc.collect()
     PAY['line'] = []
     lf = sorted(glob.glob('src/line_*.json'))
     if lf and F.get('lend'):
@@ -246,9 +349,10 @@ def main():
                     except Exception: continue
                     w = m[1]; e['m'].append((ts, 0 if w == 'C' else (2 if w == 'B' else 1), str(t(m[2])).strip()))
             del f; gc.collect()
-        finish(th, LE, 'line', PAY['line'], stat); del th; gc.collect()
+        finish(th, LE, 'line', PAY['line'], stat); finish_np(th, LE, 'line', NP['line']); del th; gc.collect()
     F['pay'] = PAY; F['paycols'] = COLS; F['paystat'] = {k: dict(v) for k, v in stat.items()}; F['pay90'] = {k: dict(v) for k, v in OLD.items()}
     F['payflow'] = {k: v for k, v in FLOW.items()}; F['payfu'] = {k: dict(v) for k, v in FUSTAT.items()}
+    F['np'] = NP; F['npflow'] = {k: v for k, v in NPFLOW.items()}; F['npstat'] = {k: dict(v) for k, v in NPSTAT.items()}; F['np90'] = {k: dict(v) for k, v in NPOLD.items()}
     # weekly history of the headline pile (A+B+C, 1-6 / 7-29 / 30-89 days) per channel
     day = (F.get('end') or '')[:10]
     def heads(L): z = [r for r in L if r[2] in TODO]; return [sum(1 for r in z if 1 <= r[3] < 7), sum(1 for r in z if 7 <= r[3] < 30), sum(1 for r in z if 30 <= r[3] < 90)]
@@ -259,6 +363,9 @@ def main():
     for ch, L in PAY.items():
         c = collections.Counter((r[2], '<1' if r[3] < 1 else '1-6' if r[3] < 7 else '7-29' if r[3] < 30 else '30-89' if r[3] < 90 else '90+') for r in L)
         print('pay', ch, len(L), sorted(c.items()), dict(stat[ch]))
+    for ch, L in NP.items():
+        c = collections.Counter((r[2], '<1' if r[3] < 1 else '1-6' if r[3] < 7 else '7-29' if r[3] < 30 else '30-89') for r in L)
+        print('np', ch, len(L), sorted(c.items()), dict(NPSTAT[ch]))
 
 if __name__ == '__main__':
     main()
