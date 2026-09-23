@@ -1314,6 +1314,7 @@ const whoOk=(w)=>RWHO==='all'||w===RWHO;
 const SHOW_WHO=false;
 /* ---- raw data: Follow up status per chat (Sep 23 2026) — read from the whole-thread follow-up lists ---- */
 let RFU='all', FUMAP=null, FUMAP_K='';
+const SHOW_RFU=false;   /* Sep 23 2026: owner asked to remove the Follow up row from the raw views (flip to true to restore) */
 const RFU_N={all:'ทุกแชท',ar:'รอตอบ (Auto reply)',todo:'ตามโอน · ต้องตาม',f:'ตามโอน · ตามแล้ว',x:'ตามโอน · ไม่ต้องตาม',none:'ไม่อยู่ในรายการ Follow up'};
 const RFU_ORD=['all','ar','todo','f','x','none'];
 function fuMapGet(){if(!FU)return null;const k=CH+'|'+Object.keys(OV).length;if(FUMAP&&FUMAP_K===k)return FUMAP;const m={};
@@ -1323,13 +1324,13 @@ function fuMapGet(){if(!FU)return null;const k=CH+'|'+Object.keys(OV).length;if(
 function rfuHit(tid,f){if(f==='all')return true;const M=fuMapGet();if(!M)return true;const m=M[String(tid)];
  if(f==='none')return !m;if(!m)return false;if(f==='ar')return !!m.ar;if(!m.pay)return false;
  const g=m.pay.g;return f==='f'?g==='F':(f==='x'?g==='X':PU_TODO.includes(g));}
-function rfuBadges(tid){const M=fuMapGet();if(!M)return '';const m=M[String(tid)];if(!m)return '';let h='';
+function rfuBadges(tid){if(!SHOW_RFU)return '';const M=fuMapGet();if(!M)return '';const m=M[String(tid)];if(!m)return '';let h='';
  if(m.ar)h+='<span class="badge risk">Follow up · รอตอบ '+Math.floor(m.ar.wait)+' วัน</span>';
  if(m.pay)h+='<span class="badge puk-'+m.pay.g+'">ตามโอน · '+(PU_GS[m.pay.g]||PU_GN[m.pay.g])+(m.pay.due?' · ครบกำหนด':'')+'</span>';return h;}
-function rfuRow(countOf){if(!FU)return '<div class="chips whochips"><span class="lab">Follow up</span><span class="nsm">กำลังโหลดสถานะ follow up…</span></div>';
+function rfuRow(countOf){if(!SHOW_RFU)return '';if(!FU)return '<div class="chips whochips"><span class="lab">Follow up</span><span class="nsm">กำลังโหลดสถานะ follow up…</span></div>';
  return `<div class="chips whochips" id="rfuchips"><span class="lab">Follow up</span>${RFU_ORD.map(k=>`<button class="chip" data-rfu="${k}" aria-pressed="${RFU===k}">${RFU_N[k]} (${nf(countOf(k))})</button>`).join('')}</div>`+
   (RFU!=='all'?`<p class="fdesc"><b>${RFU_N[RFU]}</b> — สถานะปัจจุบันของทั้งห้องแชท (อ่านทุกเดือนต่อกัน) จากหน้า Follow up · ห้องที่คุยหลายเดือนจะขึ้นสถานะเดียวกันทุกเดือน</p>`:'');}
-function rfuEnsure(then){if(FU&&OVREADY)return false;
+function rfuEnsure(then){if(!SHOW_RFU||(FU&&OVREADY))return false;
  (FU?Promise.resolve(FU):getFile('followup')).then(d=>{FU=d;return OVREADY?0:ovLoad();}).then(then).catch(()=>{});return true;}
 function whoRow(counts){if(!SHOW_WHO)return '';return `<div class="chips whochips" id="whochips"><span class="lab">ใครตอบ</span>${RWHO_ORD.map(k=>`<button class="chip" data-w="${k}" aria-pressed="${RWHO===k}">${RWHO_N[k]} (${nf(counts[k]||0)})</button>`).join('')}</div>`+
  (RWHO!=='all'?`<p class="fdesc"><b>${RWHO_N[RWHO]}</b> — ${RWHO_D[RWHO]}</p>`:'');}
