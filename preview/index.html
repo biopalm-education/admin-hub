@@ -2337,12 +2337,14 @@ function fuStatus(){const S=((FU||{}).status||{})[CH];if(!S)return '';
 function fuFlow(){
  if(FU_G==='skip')return '<p class="note fusm">ตาราง “แชทไปไหน” ไม่มีสำหรับกลุ่มไม่ต้องตาม — เลือกกลุ่มอื่นเพื่อดู</p>';
  const flt=FU_G==='never'?(x=>!x[2]):(FU_G==='prior'?(x=>!!x[2]):null);
+ if(FU_O)return '<p class="note fusm">สรุป “แชทค้างไปไหน” ดูได้เมื่อเลือกแอดมินผู้ดูแล “ทุกคน”</p>';
+ const nowSet=new Map(fuBase().filter(o=>o.wait>=7).map(o=>[String(o.tid),o.name||'']));
  return flowBox(((FU.arflow||{})[CH]||{})[FU_FLD],FU_FLD,FU_FLK,'afk','afd',
-  [['answered','แอดมินตอบแล้ว','ok'],['won','ปิดการขาย','ok'],['closing','ลูกค้าปิดท้ายเอง','ok'],['x','กลายเป็นไม่ต้องตาม','']],
+  [['answered','แอดมินตอบแล้ว','ok'],['won','ปิดการขาย','ok'],['closing','ลูกค้าปิดท้ายเอง','ok'],['x','กลายเป็นไม่ต้องตาม',''],['moved','แอดมินย้ายไปไม่ต้องตาม','']],
   [['more','ลูกค้าทักเพิ่ม ยังไม่มีคนตอบ','risk'],['still','ยังไม่มีใครตอบ','risk']],
   '',
-  {filter:flt,scope:FU_GN[FU_G],clearLab:'เคลียร์ได้',clearVerb:'ตอบ',newLab:'ค้างใหม่',
-   how:'“ค้างตอนนี้” = การ์ด 7–29 วัน + 30 วันขึ้นไป ด้านบน · “เคลียร์ได้” = แชทที่ค้างอยู่เมื่อ 7 วัน/เมื่อวานก่อน แล้วตอนนี้หลุดจากรายการ (แอดมินตอบ · ปิดการขาย · ลูกค้าปิดท้ายเอง · กลายเป็นไม่ต้องตาม) · “ค้างใหม่” = แชทที่เพิ่งค้างครบ 7 วันในช่วงนี้ · ค้างตอนนี้ = ค้างเดิม − เคลียร์ได้ + ค้างใหม่ · แชทที่แอดมินกดย้ายเองไม่นับในส่วนนี้'});}
+  {filter:flt,nowSet,scope:FU_GN[FU_G],clearLab:'เคลียร์ได้',clearVerb:'ตอบ',newLab:'ค้างใหม่',
+   how:'“ค้างตอนนี้” = การ์ด 7–29 วัน + 30 วันขึ้นไป ด้านบน · “เคลียร์ได้” = แชทที่ค้างอยู่เมื่อ 7 วัน/เมื่อวานก่อน แล้วตอนนี้หลุดจากรายการ (แอดมินตอบ · ปิดการขาย · ลูกค้าปิดท้ายเอง · กลายเป็นไม่ต้องตาม) · “ค้างใหม่” = แชทที่เพิ่งค้างครบ 7 วันในช่วงนี้ · ค้างตอนนี้ = ค้างเดิม − เคลียร์ได้ + ค้างใหม่ · แชทที่แอดมินกดย้ายไป “ไม่ต้องตาม” นับเป็นเคลียร์ได้แบบ “แอดมินย้ายเอง”'});}
 async function renderFU(){
  const el=$('#fu'), sc=$('#fuscope');
  if(!FU){el.innerHTML='<p class="note">กำลังโหลดรายการแชท…</p>';
@@ -2488,7 +2490,19 @@ function flowBox(F,day,sel,kAttr,dAttr,outs,stays,extra,opt){
  opt=opt||{};
  if(!F)return '<p class="note fusm">สรุป “แชทค้างไปไหน” จะขึ้นหลังรอบอัปเดตถัดไป</p>';
  const keep=opt.filter||(()=>true);
- const lst=k=>(k==='new'?(F.new||[]):((F.out||{})[k]||[])).filter(keep);
+ let FO={}, FN=(F.new||[]).filter(keep);
+ for(const x of outs.concat(stays))FO[x[0]]=((F.out||{})[x[0]]||[]).filter(keep);
+ /* reconcile with the list the cards show right now (manual moves in the shared sheet happen after the build):
+    a chat still counted as "stuck" but no longer on today's list -> "แอดมินย้ายเอง"; a chat on today's list that the build
+    did not know about -> new. So "ค้างตอนนี้" always equals the cards. */
+ if(opt.nowSet){const now=opt.nowSet, stayK=stays.map(x=>x[0]), seen=new Set();
+  FO.moved=[];
+  for(const k of stayK){const keepL=[];for(const x of FO[k]){seen.add(String(x[0]));if(now.has(String(x[0])))keepL.push(x);else FO.moved.push(x);}FO[k]=keepL;}
+  for(const k of Object.keys(FO))if(!stayK.includes(k)&&k!=='moved')for(const x of FO[k])seen.add(String(x[0]));
+  FN=FN.filter(x=>now.has(String(x[0])));const inNew=new Set(FN.map(x=>String(x[0])));
+  for(const [t,nm] of now)if(!inNew.has(t)&&!stayK.some(k=>FO[k].some(x=>String(x[0])===t)))FN.push([t,nm]);
+  if(!outs.some(x=>x[0]==='moved'))outs=outs.concat([['moved','แอดมินย้ายเอง','']]);}
+ const lst=k=>k==='new'?FN:(FO[k]||[]);
  const n=k=>lst(k).length;
  const pas=opt.passive||[], act=outs.filter(x=>!pas.includes(x[0])), psv=outs.filter(x=>pas.includes(x[0]));
  const outN=act.reduce((a,x)=>a+n(x[0]),0), agedN=psv.reduce((a,x)=>a+n(x[0]),0), stayN=stays.reduce((a,x)=>a+n(x[0]),0), newN=n('new');
@@ -2593,11 +2607,12 @@ function renderPay(){
   `<span class="fust ok"><b>${nf(S.paid||0)}</b> โอนแล้ว (สลิปผ่านหลังได้ราคา${LN?' หรือแท็กสมัครแล้ว':''})</span>`+
   go('R','ลูกค้าถามค้าง','risk')+go('A','สรุปยอดแล้ว รอโอน','warn')+go('B','คุยต่อแล้วเงียบ','')+go('C','ได้ราคาแล้วเงียบเลย','')+go('F','ตามแล้ว รอลูกค้าตอบ','ok')+go('X','ไม่ต้องตาม','')+`</div></details>`;
  const PF=((FU.payfu||{})[CH])||{};
- const flow=flowBox(((FU.payflow||{})[CH]||{})[PU_FLD],PU_FLD,PU_FLK,'flk','fld',
-  [['paid','โอนแล้ว','ok'],['fu','ตามแล้ว → รอลูกค้าตอบ','ok'],['x','ไม่ต้องตาม',''],['aged','หลุดเพราะส่งราคาเกิน 90 วัน','']],
+ const payNow=new Map(puRows().filter(o=>PU_TODO.includes(o.g)&&o.wait>=1&&o.wait<90).map(o=>[String(o.tid),o.name||'']));
+ const flow=FU_O?'<p class="note fusm">สรุป “แชทค้างไปไหน” ดูได้เมื่อเลือกแอดมินผู้ดูแล “ทุกคน”</p>':(!['all','R','A','B','C'].includes(PU_G)||PU_G!=='all')?'<p class="note fusm">สรุป “แชทค้างไปไหน” นับรวมทุกกลุ่มที่ต้องตาม — เลือกกลุ่ม “ทั้งหมดที่ต้องตาม” เพื่อดู</p>':flowBox(((FU.payflow||{})[CH]||{})[PU_FLD],PU_FLD,PU_FLK,'flk','fld',
+  [['paid','โอนแล้ว','ok'],['fu','ตามแล้ว → รอลูกค้าตอบ','ok'],['x','ไม่ต้องตาม',''],['aged','หลุดเพราะส่งราคาเกิน 90 วัน',''],['moved','แอดมินกดเอง (ตามแล้วนอกแชท / ไม่ต้องตาม)','ok']],
   [['reply','ลูกค้าตอบกลับ (ย้ายกลุ่ม)','warn'],['fudue','ตามแล้วแต่ครบกำหนดอีก','warn'],['still','ยังไม่มีใครตาม','risk']],
   `ย้อนหลัง 7 วัน แอดมินทักตามในแชท <b>${nf(PF.fu_7d||0)}</b> แชท · ตั้งแต่ ม.ค. โอนแล้ว ${nf(S.paid||0)} แชท ในนั้น <b>${nf(S.paid_fu||0)}</b> แชทโอนหลังแอดมินทักตาม · ตัวเลขนี้นับจากข้อความในแชทอย่างเดียว การกด “ตามแล้ว (นอกแชท)” ไม่อยู่ในตารางนี้`,
-  {scope:'ทั้งหมดที่ต้องตาม',passive:['aged'],clearLab:'เคลียร์ได้',clearVerb:'เคลียร์',newLab:'ส่งราคาใหม่',how:'“ค้างตอนนี้” = การ์ด 1–6 + 7–29 + 30–89 วัน ด้านบน (ถามค้าง + สรุปยอดแล้ว + คุยต่อแล้วเงียบ + เงียบเลย) · “เคลียร์ได้” = โอนแล้ว · ตามแล้วรอลูกค้าตอบ · ไม่ต้องตาม (ไม่นับแชทที่หลุดเพราะส่งราคาเกิน 90 วัน ซึ่งแสดงแยกสีเทา) · “ส่งราคาใหม่” = แชทที่เพิ่งเข้ารายการในช่วงนี้ ·'});
+  {nowSet:payNow,scope:'ทั้งหมดที่ต้องตาม',passive:['aged'],clearLab:'เคลียร์ได้',clearVerb:'เคลียร์',newLab:'ส่งราคาใหม่',how:'“ค้างตอนนี้” = การ์ด 1–6 + 7–29 + 30–89 วัน ด้านบน (ถามค้าง + สรุปยอดแล้ว + คุยต่อแล้วเงียบ + เงียบเลย) · “เคลียร์ได้” = โอนแล้ว · ตามแล้วรอลูกค้าตอบ · ไม่ต้องตาม (ไม่นับแชทที่หลุดเพราะส่งราคาเกิน 90 วัน ซึ่งแสดงแยกสีเทา) · “ส่งราคาใหม่” = แชทที่เพิ่งเข้ารายการในช่วงนี้ ·'});
  const kw=`<details class="fhelp" style="margin:8px 0 16px"><summary>Keyword ที่ใช้จับ “ส่งราคา” และ “โอนแล้ว”</summary><dl>
   <dt>ส่งราคา (ข้อความฝั่งเรา แอดมินหรือข้อความอัตโนมัติ)</dt><dd><div class="fukw"><code>ตัวเลข + บาท</code><code>ตัวเลข + ฿</code><code>ตัวเลข + .-</code><code>ค่าเรียน + ตัวเลข</code><code>ราคา + ตัวเลข</code></div>ตัวเลข 4–5 หลัก เช่น 5,700.- · 6,900 บาท · 12,000฿</dd>
   <dt>สรุปยอด = ลูกค้าตกลงแล้ว (กลุ่ม “สรุปยอดแล้ว · รอโอน”)</dt><dd><div class="fukw"><code>ยอดชำระ</code><code>สรุปรายละเอียด</code><code>เลขบัญชี / เลขที่บัญชี</code><code>166-3-63464-6</code></div></dd>
