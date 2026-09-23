@@ -105,7 +105,11 @@ def ar_at(tid, e, cut, ch):
     return ep[-1][0]
 
 def ar_flow(th, now, ch):
+    """start + new - out = end, exactly: a start chat still on the list today is a 'stay', otherwise an 'out'.
+       every entry is [thread id, name, had an admin before (1/0)] so the page can split never / prior"""
     out = {}
+    pri = lambda t: 1 if (any(x[1] == 1 for x in th[t]['m']) or t in PRE[ch]) else 0
+    endset = {tid for tid, n in now.items() if n[2]}
     for days in (1, 7):
         cut = END - days * 1440
         start = {}
@@ -116,15 +120,13 @@ def ar_flow(th, now, ch):
         res = collections.defaultdict(list)
         for tid, lc in start.items():
             n = now.get(tid)
-            if not n: k = 'answered'
+            if tid in endset: k = 'more' if n[1] > lc else 'still'
+            elif not n: k = 'answered'
             elif n[0] in ('won', 'answered', 'closing'): k = n[0]
-            elif n[0] == 'noise': k = 'x'
-            elif n[1] > lc: k = 'more'           # the customer wrote again, still no admin
-            else: k = 'still'
-            res[k].append([tid, th[tid].get('name') or ''])
-        endset = [tid for tid, n in now.items() if n[2]]
-        out[str(days)] = {'from': stamp(cut), 'to': stamp(END), 'start': len(start), 'end': len(endset),
-                          'new': [[t, th[t].get('name') or ''] for t in endset if t not in start], 'out': dict(res)}
+            else: k = 'x'
+            res[k].append([tid, th[tid].get('name') or '', pri(tid)])
+        out[str(days)] = {'from': stamp(cut), 'to': stamp(END),
+                          'new': [[t, th[t].get('name') or '', pri(t)] for t in endset if t not in start], 'out': dict(res)}
     ARFLOW[ch] = out
 
 def feed(th, mo, rows, t):

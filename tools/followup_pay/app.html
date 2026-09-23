@@ -449,7 +449,8 @@ body{background:
 .flc{font:inherit;font-size:12.5px;cursor:pointer;padding:3px 10px;border-radius:999px;border:1px solid var(--line-2);background:var(--card);color:var(--ink-2)}
 .flc b{font-family:"IBM Plex Mono",monospace;color:var(--ink)} .flc.ok b{color:var(--teal-ink)} .flc.risk b{color:var(--risk)} .flc.warn b{color:var(--warn)}
 .flc[aria-pressed="true"]{background:var(--ink);color:var(--paper);border-color:var(--ink)} .flc[aria-pressed="true"] b{color:var(--paper)}
-.flsum{margin:8px 0 0} .flnames{margin-top:10px;max-height:320px;overflow-y:auto;border-top:1px dashed var(--line);padding-top:8px}
+.flsum{margin:8px 0 0}
+.flsent{font-size:14px;margin:0 0 10px;line-height:1.6} .flsent b{font-family:"IBM Plex Mono",monospace} .okc{color:var(--teal-ink)} .riskc{color:var(--risk)} .flnames{margin-top:10px;max-height:320px;overflow-y:auto;border-top:1px dashed var(--line);padding-top:8px}
 .flrow{display:flex;justify-content:space-between;align-items:center;gap:8px;padding:4px 0;border-bottom:1px solid var(--line);font-size:13px}
 .fuinfo{color:var(--teal-ink);margin-top:3px} .fudone{margin:0 6px 6px 0;color:var(--teal-ink)}
 .fuk-A{color:var(--risk);background:var(--risk-soft);border-color:transparent}
@@ -2319,10 +2320,14 @@ function fuStatus(){const S=((FU||{}).status||{})[CH];if(!S)return '';
  return `<div class="fustat"><span class="lab">อ่านทั้งห้องแชท (ทุกเดือนต่อกัน) · ${nf(tot)} ห้องที่ลูกค้าเคยทัก · <b>กดตัวเลขที่มีกรอบ</b>เพื่อเปิดรายชื่อแชท</span>`+
   it('won','ปิดการขายแล้ว','ok')+it('answered','แอดมินตอบรอบล่าสุดแล้ว','ok')+it('closing','ลูกค้าปิดท้ายเอง (ขอบคุณ/โอเค/สติกเกอร์)','ok')+
   go('never','รอตอบ · ไม่เคยมีแอดมินคุย','risk')+go('prior','รอตอบ · เคยคุยแล้ว แต่ถามรอบใหม่ยังไม่มีคนตอบ','warn')+go('skip','ไม่ต้องตาม (รูป/สติกเกอร์/ทักทาย/ข้อความไม่ชัด/แอดมินย้าย)','')+`</div>`;}
-function fuFlow(){return flowBox(((FU.arflow||{})[CH]||{})[FU_FLD],FU_FLD,FU_FLK,'afk','afd',
+function fuFlow(){
+ if(FU_G==='skip')return '<p class="note fusm">ตาราง “แชทไปไหน” ไม่มีสำหรับกลุ่มไม่ต้องตาม — เลือกกลุ่มอื่นเพื่อดู</p>';
+ const flt=FU_G==='never'?(x=>!x[2]):(FU_G==='prior'?(x=>!!x[2]):null);
+ return flowBox(((FU.arflow||{})[CH]||{})[FU_FLD],FU_FLD,FU_FLK,'afk','afd',
   [['answered','แอดมินตอบแล้ว','ok'],['won','ปิดการขาย','ok'],['closing','ลูกค้าปิดท้ายเอง','ok'],['x','กลายเป็นไม่ต้องตาม','']],
   [['more','ลูกค้าทักเพิ่ม ยังไม่มีคนตอบ','risk'],['still','ยังไม่มีใครตอบ','risk']],
-  '<p class="nsm flsum">นับรวมทั้งแชทที่ไม่เคยมีแอดมินคุย และเคยคุยแล้ว (ค้าง 7 วันขึ้นไป ไม่นับกลุ่มไม่ต้องตาม) · แชทที่แอดมินกดย้ายเองไม่อยู่ในตารางนี้</p>');}
+  '<p class="nsm flsum">“แชทที่ต้องตอบ” = ค้าง 7 วันขึ้นไป ไม่นับกลุ่มไม่ต้องตาม · ตัวเลข “ค้างอยู่วันนี้” = การ์ด 7–29 วัน + 30 วันขึ้นไป ด้านบน · แชทที่แอดมินกดย้ายเองไม่อยู่ในตารางนี้</p>',
+  {filter:flt,scope:FU_GN[FU_G],what:'แชทที่ต้องตอบ',newLab:'เพิ่งค้างครบ 7 วัน',newChip:'แชท',newSent:'มีแชทเพิ่งค้างครบ 7 วัน'});}
 async function renderFU(){
  const el=$('#fu'), sc=$('#fuscope');
  if(!FU){el.innerHTML='<p class="note">กำลังโหลดรายการแชท…</p>';
@@ -2461,22 +2466,31 @@ function fuModeBind(el){el.querySelectorAll('[data-fumode]').forEach(b=>b.addEve
 let PU_B='1', PU_G='all', PU_T='', PU_W='', PU_Q='', PU_PAGE=0, PU_L=[], PU_FLD='7', PU_FLK='', FU_FLD='7', FU_FLK='';
 /* flow box (Sep 23 2026): the to-do list as it stood 1 / 7 days ago -> where each of those chats is now.
    F = {from,to,start,end,new:[[tid,name]],out:{key:[[tid,name]]}} built by build_fu.py / build_pay.py */
-function flowBox(F,day,sel,kAttr,dAttr,outs,stays,extra){
+function flowBox(F,day,sel,kAttr,dAttr,outs,stays,extra,opt){
+ /* start = every chat on the list back then (= all "out" + all "stay"), now = "stay" + "new" -> the numbers always add up */
+ opt=opt||{};
  if(!F)return '<p class="note fusm">ตาราง “แชทไปไหน” จะขึ้นหลังรอบอัปเดตถัดไป</p>';
- const n=k=>k==='new'?(F.new||[]).length:((F.out||{})[k]||[]).length;
+ const keep=opt.filter||(()=>true);
+ const lst=k=>(k==='new'?(F.new||[]):((F.out||{})[k]||[])).filter(keep);
+ const n=k=>lst(k).length;
+ const outN=outs.reduce((a,x)=>a+n(x[0]),0), stayN=stays.reduce((a,x)=>a+n(x[0]),0), newN=n('new');
+ const startN=outN+stayN, endN=stayN+newN;
+ const dFrom=fuDay(F.from), dTo=fuDay(F.to);
  const chip=(k,lab,cls)=>`<button type="button" class="flc ${cls}" data-${kAttr}="${k}" aria-pressed="${sel===k}"><b>${nf(n(k))}</b> ${lab}</button>`;
- const outN=outs.reduce((a,x)=>a+n(x[0]),0);
  let names='';
- if(sel){const L=sel==='new'?(F.new||[]):((F.out||{})[sel]||[]);const lab=(outs.concat(stays,[['new','เข้าใหม่']]).find(x=>x[0]===sel)||[])[1]||'';
+ if(sel){const L=lst(sel);const lab=(outs.concat(stays,[['new',opt.newLab||'เพิ่มเข้ามาใหม่']]).find(x=>x[0]===sel)||[])[1]||'';
   names=`<div class="flnames"><div class="fuhd"><b>${esc(lab)}</b> <span class="nsm">${nf(L.length)} แชท${L.length>300?' · แสดง 300 แชทแรก':''}</span></div>`+
    L.slice(0,300).map(x=>`<div class="flrow"><span>${CH==='ig'?'@':''}${esc(x[1]||'(ไม่มีชื่อ)')}</span>${fuBtn({tid:x[0],name:x[1]})}</div>`).join('')+`</div>`;}
- return `<div class="flow"><div class="flhd"><b>แชทไปไหน</b> <span class="nsm">รายการที่ต้องตามเมื่อ ${day==='1'?'1 วัน':'7 วัน'}ก่อน (${fuDay(F.from)} ${F.from.slice(11,16)}) เทียบกับตอนนี้ · กดตัวเลขเพื่อดูรายชื่อ</span>
-  <span class="flday">${['1','7'].map(d=>`<button type="button" class="chip" data-${dAttr}="${d}" aria-pressed="${day===d}">${d==='1'?'1 วัน':'7 วัน'}</button>`).join('')}</span></div>
-  <div class="flline"><span class="flbox"><span class="nsm">ต้นรอบ</span><b>${nf(F.start)}</b></span><span class="flar">→</span>
-   <span class="flgrp"><span class="nsm">ออกจากรายการ ${nf(outN)}</span>${outs.map(x=>chip(x[0],x[1],x[2])).join('')}</span>
-   <span class="flgrp"><span class="nsm">ยังอยู่ในรายการ</span>${stays.map(x=>chip(x[0],x[1],x[2])).join('')}</span>
-   <span class="flgrp"><span class="nsm">เข้ามาใหม่</span>${chip('new','แชทใหม่','')}</span><span class="flar">→</span>
-   <span class="flbox"><span class="nsm">ตอนนี้</span><b>${nf(F.end)}</b></span></div>${extra||''}${names}</div>`;}
+ const what=opt.what||'แชทที่ต้องตาม';
+ return `<div class="flow"><div class="flhd"><b>${day==='1'?'เมื่อวาน':'7 วันที่ผ่านมา'} ${what}ไปไหน</b>${opt.scope?' <span class="badge">'+esc(opt.scope)+'</span>':''}
+  <span class="flday">${['1','7'].map(d=>`<button type="button" class="chip" data-${dAttr}="${d}" aria-pressed="${day===d}">${d==='1'?'เทียบเมื่อวาน':'เทียบ 7 วันก่อน'}</button>`).join('')}</span></div>
+  <p class="flsent">${dFrom} มี${what} <b>${nf(startN)}</b> แชท → จัดการจบไปแล้ว <b class="okc">${nf(outN)}</b> · ยังค้างอยู่ <b class="riskc">${nf(stayN)}</b> · ${opt.newSent||'มีแชทใหม่เข้ามา'} <b>${nf(newN)}</b> → ${CH==='line'?'ข้อมูลล่าสุด':'วันนี้'} (${dTo}) เหลือ <b>${nf(endN)}</b> แชท${opt.endNote?' <span class="nsm">'+opt.endNote+'</span>':''}</p>
+  <div class="flline"><span class="flbox"><span class="nsm">ค้างอยู่เมื่อ ${dFrom}</span><b>${nf(startN)}</b></span><span class="flar">→</span>
+   <span class="flgrp"><span class="nsm">จัดการจบแล้ว · หลุดออกจากรายการ ${nf(outN)}</span>${outs.map(x=>chip(x[0],x[1],x[2])).join('')}</span>
+   <span class="flgrp"><span class="nsm">ยังค้างอยู่ (มาจากเมื่อ ${dFrom}) ${nf(stayN)}</span>${stays.map(x=>chip(x[0],x[1],x[2])).join('')}</span>
+   <span class="flgrp"><span class="nsm">+ ${opt.newLab||'เพิ่มเข้ามาใหม่'}</span>${chip('new',opt.newChip||'แชท','')}</span><span class="flar">→</span>
+   <span class="flbox"><span class="nsm">ค้างอยู่${CH==='line'?' ข้อมูลล่าสุด':'วันนี้'} ${dTo}</span><b>${nf(endN)}</b></span></div>${extra||''}${names}
+  <p class="nsm flsum">กดตัวเลขเพื่อดูรายชื่อแชท</p></div>`;}
 const PU_GN={all:'ทั้งหมดที่ต้องตาม',R:'ลูกค้าถามค้าง · ตอบก่อน',A:'สรุปยอดแล้ว · รอโอน',B:'คุยต่อหลังได้ราคา แล้วเงียบ',C:'ได้ราคาแล้วเงียบเลย',F:'ตามแล้ว · รอลูกค้าตอบ',X:'ไม่ต้องตาม'};
 const PU_GS={R:'ถามค้าง',A:'สรุปยอดแล้ว',B:'คุยต่อแล้วเงียบ',C:'เงียบเลย',F:'ตามแล้ว'};
 const PU_GD={R:'ลูกค้าพิมพ์ถามหลังได้ราคา แต่ยังไม่มีแอดมินตอบ — ตอบก่อนตามโอน',
@@ -2550,7 +2564,8 @@ function renderPay(){
  const flow=flowBox(((FU.payflow||{})[CH]||{})[PU_FLD],PU_FLD,PU_FLK,'flk','fld',
   [['paid','โอนแล้ว','ok'],['fu','ตามแล้ว → รอลูกค้าตอบ','ok'],['x','ไม่ต้องตาม',''],['aged','เกิน 90 วัน','']],
   [['reply','ลูกค้าตอบกลับ (ย้ายกลุ่ม)','warn'],['fudue','ตามแล้วแต่ครบกำหนดอีก','warn'],['still','ยังไม่มีใครตาม','risk']],
-  `<p class="nsm flsum">ย้อนหลัง 7 วัน แอดมินทักตามในแชท <b>${nf(PF.fu_7d||0)}</b> แชท · ตั้งแต่ ม.ค. โอนแล้ว ${nf(S.paid||0)} แชท ในนั้น <b>${nf(S.paid_fu||0)}</b> แชทโอนหลังแอดมินทักตาม · ตัวเลขนี้นับจากข้อความในแชทอย่างเดียว การกด “ตามแล้ว (นอกแชท)” ไม่อยู่ในตารางนี้</p>`);
+  `<p class="nsm flsum">“แชทที่ต้องตามโอน” = ถามค้าง + สรุปยอดแล้ว + คุยต่อแล้วเงียบ + เงียบเลย ที่ส่งราคามา 1–89 วัน · ตัวเลข “ค้างอยู่วันนี้” = การ์ด 1–6 + 7–29 + 30–89 วัน ด้านบน (กลุ่มทั้งหมดที่ต้องตาม)</p><p class="nsm flsum">ย้อนหลัง 7 วัน แอดมินทักตามในแชท <b>${nf(PF.fu_7d||0)}</b> แชท · ตั้งแต่ ม.ค. โอนแล้ว ${nf(S.paid||0)} แชท ในนั้น <b>${nf(S.paid_fu||0)}</b> แชทโอนหลังแอดมินทักตาม · ตัวเลขนี้นับจากข้อความในแชทอย่างเดียว การกด “ตามแล้ว (นอกแชท)” ไม่อยู่ในตารางนี้</p>`,
+  {scope:'ทั้งหมดที่ต้องตาม',what:'แชทที่ต้องตามโอน',newLab:'ส่งราคาใหม่',newChip:'แชท',newSent:'ส่งราคาใหม่'});
  const kw=`<details class="fhelp" style="margin:8px 0 16px"><summary>Keyword ที่ใช้จับ “ส่งราคา” และ “โอนแล้ว”</summary><dl>
   <dt>ส่งราคา (ข้อความฝั่งเรา แอดมินหรือข้อความอัตโนมัติ)</dt><dd><div class="fukw"><code>ตัวเลข + บาท</code><code>ตัวเลข + ฿</code><code>ตัวเลข + .-</code><code>ค่าเรียน + ตัวเลข</code><code>ราคา + ตัวเลข</code></div>ตัวเลข 4–5 หลัก เช่น 5,700.- · 6,900 บาท · 12,000฿</dd>
   <dt>สรุปยอด = ลูกค้าตกลงแล้ว (กลุ่ม “สรุปยอดแล้ว · รอโอน”)</dt><dd><div class="fukw"><code>ยอดชำระ</code><code>สรุปรายละเอียด</code><code>เลขบัญชี / เลขที่บัญชี</code><code>166-3-63464-6</code></div></dd>

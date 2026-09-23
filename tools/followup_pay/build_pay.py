@@ -185,23 +185,24 @@ def finish(th, end, ch, out, stat):
         for tid, e in th.items():
             r, why = judge(e['m'], end, e, cut)
             if r and why in TODO and 1 <= r['wait'] < 90: start[tid] = r
+        endset = {tid for tid, n in now.items() if n[0] in TODO and 1 <= n[1] < 90}
         res = collections.defaultdict(list)
         for tid, r0 in start.items():
             n = now.get(tid)
-            if not n: k = 'aged'
+            if tid in endset:                                      # still on today's to-do list
+                if n[3] > cut and n[0] in ('R', 'B') and n[3] > r0['lastc_m']: k = 'reply'
+                elif n[2] and n[2][-1] > cut: k = 'fudue'
+                else: k = 'still'
+            elif not n: k = 'aged'
             elif n[0] == 'paid': k = 'paid'
             elif n[0] == 'X': k = 'x'
-            elif n[0] == 'F': k = 'fu'                        # followed up, waiting for the customer -> off the to-do list
-            elif n[1] >= 90: k = 'aged'
-            elif n[3] > cut and n[0] in ('R', 'B') and n[3] > r0['lastc_m']: k = 'reply'
-            elif n[2] and n[2][-1] > cut: k = 'fudue'           # followed up in the window, already due again
-            else: k = 'still'
+            elif n[0] == 'F': k = 'fu'
+            else: k = 'aged'                                       # older than 90 days now
             res[k].append([tid, th[tid].get('n') or ''])
-        endset = {tid for tid, n in now.items() if n[0] in TODO and 1 <= n[1] < 90}
         new = [[tid, th[tid].get('n') or ''] for tid in endset if tid not in start]
         fuw = [tid for tid, n in now.items() if n[0] not in ('paid',) and n[2] and n[2][-1] > cut]
         paidw = [tid for tid, n in now.items() if n[0] == 'paid' and n[1] and n[1] > cut]
-        FLOW[ch][str(days)] = {'from': stamp(cut), 'to': stamp(end), 'start': len(start), 'end': len(endset), 'new': new,
+        FLOW[ch][str(days)] = {'from': stamp(cut), 'to': stamp(end), 'new': new,
                                'out': {k: v for k, v in res.items()}, 'fuwin': len(fuw), 'paidwin': len(paidw)}
 
 def main():
