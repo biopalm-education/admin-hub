@@ -14,6 +14,14 @@ Whole thread, all months stitched by thread id (same as build_fu.py).
              A สรุปยอดแล้ว·รอโอน      BILL was sent (customer had agreed; only the transfer is missing)
              B คุยต่อหลังได้ราคา       the customer replied after the quote, the admin answered, then silence
              C ได้ราคาแล้วเงียบ         nothing real from the customer after the quote
+             F ตามแล้ว·รอลูกค้า        (Sep 23 2026) an admin followed up and the customer has not answered yet;
+                                       after FU_DUE days of silence the chat falls back to A/B/C with due=1
+  follow-up  a PERSON's message (role 1) sent while the customer is silent: at least FU_GAP after the
+             customer's last line and after the anchor quote, and nobody from the customer since our
+             previous message. A price card re-sent this way is a follow-up, not a new quote, so it no
+             longer resets the age. Messages within 30 min of each other count as one follow-up.
+  anchor     the quote the age is counted from = the latest quote that was NOT a follow-up
+  flow       where last week's / yesterday's list went: judge() again on the thread cut at END-7d / END-1d
              X ไม่ต้องตาม              customer declined / wants to think after the quote, or we moved the chat to LINE
   wait       days from the LAST quote to the end of the data
   ball       'c' = the customer wrote after the quote and no admin answered yet -> reply first
@@ -59,22 +67,51 @@ BUY = re.compile(r'สมัคร|ลงเรียน|ลงคอร์ส|�
 
 def real(s): return s and s not in NOISE and s not in BTN and not LOW.match(s) and len(s.strip()) >= 3 and not s.startswith('[')
 
-def judge(ms, end, extra=None):
-    """ms: [(minute, role, text)] role 0 customer · 1 admin (person) · 2 automation"""
-    ms.sort(key=lambda x: x[0])
+FU_GAP = 12 * 60        # minutes of customer silence before an admin message counts as a follow-up
+FU_DUE = 7 * 1440       # a follow-up the customer ignored for this long -> due for the next round
+FU_MERGE = 30           # admin messages this close together are one follow-up
+
+def rounds(ms, i0, i1):
+    """walk ms[i0:i1] (the open round) -> anchor index, follow-up times"""
+    anchor = None; fus = []; lastC = -10**9; cust_since_our = True
+    for i in range(i0, i1):
+        t, r, x = ms[i]
+        if r == 0:
+            if x not in NOISE: lastC = t; cust_since_our = True
+            continue
+        isq = bool(PRICE.search(x) or BILL.search(x))
+        isfu = (r == 1 and anchor is not None and not cust_since_our and t - lastC >= FU_GAP and t - ms[anchor][0] >= FU_GAP)
+        if isfu:
+            if fus and t - fus[-1] < FU_MERGE: fus[-1] = t
+            else: fus.append(t)
+        elif isq:
+            anchor = i; fus = []
+        cust_since_our = False
+    return anchor, fus
+
+def judge(ms, end, extra=None, cut=None):
+    """ms: [(minute, role, text)] role 0 customer · 1 admin (person) · 2 automation, sorted.
+       cut: look at the thread as it stood at minute `cut` (flow tables)"""
+    if cut is not None:
+        ms = [x for x in ms if x[0] <= cut]; end = cut   # LINE 'สมัครแล้ว' tag has no date -> tagged rooms stay out of the flow too
     cus = [x for x in ms if x[1] == 0]
     if not cus: return None, 'nocus'
     q = [i for i, x in enumerate(ms) if x[1] != 0 and (PRICE.search(x[2]) or BILL.search(x[2]))]
     if not q: return None, 'noquote'
-    # the open round starts at the first quote after the last verified slip
     sl = [i for i, x in enumerate(ms) if SLIP.search(x[2])]
     lastSlip = sl[-1] if sl else -1
     q = [i for i in q if i > lastSlip]
     if not q:
-        return None, 'paid'
-    if extra and extra.get('reg'): return None, 'paid'
-    first, last = ms[q[0]], ms[q[-1]]
-    after = ms[q[-1] + 1:]
+        # paid: was the round before the slip followed up?
+        prev = sl[-2] if len(sl) > 1 else -1
+        pq = [i for i, x in enumerate(ms) if prev < i < lastSlip and x[1] != 0 and (PRICE.search(x[2]) or BILL.search(x[2]))]
+        fu = rounds(ms, pq[0], lastSlip)[1] if pq else []
+        return {'paidat': ms[lastSlip][0], 'fu': fu}, ('paid_fu' if fu else 'paid')
+    if extra and extra.get('reg'): return {'paidat': None, 'fu': []}, 'paid'
+    anchor, fus = rounds(ms, q[0], len(ms))
+    if anchor is None: anchor = q[-1]
+    first, last = ms[q[0]], ms[anchor]
+    after = ms[anchor + 1:]
     bill = any(BILL.search(ms[i][2]) for i in q)
     amt = ''
     for i in reversed(q):
@@ -92,34 +129,80 @@ def judge(ms, end, extra=None):
     tail = [x for x in cafter if x[0] > lastH]                       # customer lines nobody has answered yet
     ball = 'c' if any(asks(x[2]) for x in tail) else 'a'
     creal = [x for x in cafter if real(x[2]) and not (POLITE.search(x[2]) and len(x[2]) < 30 and not QUEST.search(x[2]))]
+    lastCust = cafter[-1][0] if cafter else -1
+    fu_open = bool(fus) and fus[-1] > lastCust                      # we followed up and the customer has not answered since
+    due = 0
     if any(PAIDSAY.search(x[2]) for x in cafter): g = 'X'; flags.append('ลูกค้าแจ้งว่าโอนแล้ว (ไม่มีสลิปจากบอท — เช็กยอด)')
     elif any(STUDENT.search(x[2]) for x in cafter if real(x[2])): g = 'X'; flags.append('ดูเป็นนักเรียนแล้ว (ถามเรื่องไฟล์/ลิงก์เข้าเรียน)')
     elif dec: g = 'X'; flags.append('ลูกค้าปฏิเสธ/ขอคิดก่อน')
     elif 'ชวนไปคุย LINE' in flags and (not creal or any(MOVED.search(x[2]) for x in cafter)): g = 'X'
     elif ball == 'c': g = 'R'
-    elif bill: g = 'A'
-    elif creal: g = 'B'
-    else: g = 'C'
+    elif fu_open and end - fus[-1] < FU_DUE: g = 'F'
+    else:
+        g = 'A' if bill else ('B' if creal else 'C')
+        if fu_open: due = 1
+    bg = g if g not in ('F',) else ('A' if bill else ('B' if creal else 'C'))
     joined = ' '.join(csaid)
-    lastc = [x for x in cus if x[2] not in NOISE]
     row = dict(wait=round((end - last[0]) / 1440.0, 1), q0=stamp(first[0]), q1=stamp(last[0]), last=stamp(ms[-1][0]),
                lastc=stamp(cus[-1][0]), g=g, bill=1 if bill else 0, amt=amt, qt=last[2].replace('\n', ' ')[:160], nq=len(q),
                said=' | '.join(dict.fromkeys(csaid))[-140:], after=' | '.join(x[2] for x in cafter)[-200:], ball=ball,
-               tags=[n for n, rx in TAGS if rx.search(joined + ' ' + last[2])], flags=flags, who=last[1])
+               tags=[n for n, rx in TAGS if rx.search(joined + ' ' + last[2])], flags=flags, who=last[1],
+               nfu=len(fus), fu1=stamp(fus[-1]) if fus else '', due=due, bg=bg, fus=fus, lastc_m=cus[-1][0])
     return row, g
 
-COLS = ['tid', 'name', 'g', 'wait', 'q0', 'q1', 'last', 'lastc', 'bill', 'amt', 'qt', 'nq', 'said', 'after', 'ball', 'tags', 'flags', 'src', 'owner', 'week']
+COLS = ['tid', 'name', 'g', 'wait', 'q0', 'q1', 'last', 'lastc', 'bill', 'amt', 'qt', 'nq', 'said', 'after', 'ball', 'tags', 'flags', 'src', 'owner', 'week',
+        'nfu', 'fu1', 'due', 'bg']
+TODO = ('R', 'A', 'B', 'C')
 OLD = collections.defaultdict(collections.Counter)   # quotes older than 90 days: counted, not listed (keeps followup.json small)
+FLOW = collections.defaultdict(dict)
+FUSTAT = collections.defaultdict(collections.Counter)
 def finish(th, end, ch, out, stat):
+    now = {}
     for tid, e in th.items():
+        e['m'].sort(key=lambda x: x[0])
         r, why = judge(e['m'], end, e)
-        stat[ch][why] += 1
+        stat[ch]['paid' if why == 'paid_fu' else why] += 1
+        if why in ('paid', 'paid_fu'):
+            now[tid] = ('paid', r and r['paidat'])
+            if why == 'paid_fu': stat[ch]['paid_fu'] += 1
+            continue
         if not r: continue
+        now[tid] = (r['g'], r['wait'], r['fus'], r['lastc_m'])
+        # the group the chat would be in without the follow-up (so a due chat shows where it came from)
         if r['wait'] >= 90: OLD[ch][r['g']] += 1; continue
         d0 = datetime.datetime.strptime(r['q1'], '%Y-%m-%d %H:%M'); wk = (d0 - datetime.timedelta(days=d0.weekday())).strftime('%Y-%m-%d')
         out.append([tid, e.get('n') or '', r['g'], r['wait'], r['q0'], r['q1'], r['last'], r['lastc'], r['bill'], r['amt'], r['qt'], r['nq'],
-                    r['said'], r['after'], r['ball'], r['tags'], r['flags'], e.get('src') or '', e.get('ow') or '', wk])
+                    r['said'], r['after'], r['ball'], r['tags'], r['flags'], e.get('src') or '', e.get('ow') or '', wk,
+                    r['nfu'], r['fu1'], r['due'], r['bg']])
+        if r['fus']:
+            FUSTAT[ch]['fu_any'] += 1
+            if end - r['fus'][-1] < 7 * 1440: FUSTAT[ch]['fu_7d'] += 1
     out.sort(key=lambda r: r[5], reverse=True)
+    # ---- flow: the to-do list as it stood 1 / 7 days ago, and where each of those chats is now ----
+    for days in (1, 7):
+        cut = end - days * 1440
+        start = {}
+        for tid, e in th.items():
+            r, why = judge(e['m'], end, e, cut)
+            if r and why in TODO and 1 <= r['wait'] < 90: start[tid] = r
+        res = collections.defaultdict(list)
+        for tid, r0 in start.items():
+            n = now.get(tid)
+            if not n: k = 'aged'
+            elif n[0] == 'paid': k = 'paid'
+            elif n[0] == 'X': k = 'x'
+            elif n[0] == 'F': k = 'fu'                        # followed up, waiting for the customer -> off the to-do list
+            elif n[1] >= 90: k = 'aged'
+            elif n[3] > cut and n[0] in ('R', 'B') and n[3] > r0['lastc_m']: k = 'reply'
+            elif n[2] and n[2][-1] > cut: k = 'fudue'           # followed up in the window, already due again
+            else: k = 'still'
+            res[k].append([tid, th[tid].get('n') or ''])
+        endset = {tid for tid, n in now.items() if n[0] in TODO and 1 <= n[1] < 90}
+        new = [[tid, th[tid].get('n') or ''] for tid in endset if tid not in start]
+        fuw = [tid for tid, n in now.items() if n[0] not in ('paid',) and n[2] and n[2][-1] > cut]
+        paidw = [tid for tid, n in now.items() if n[0] == 'paid' and n[1] and n[1] > cut]
+        FLOW[ch][str(days)] = {'from': stamp(cut), 'to': stamp(end), 'start': len(start), 'end': len(endset), 'new': new,
+                               'out': {k: v for k, v in res.items()}, 'fuwin': len(fuw), 'paidwin': len(paidw)}
 
 def main():
     F = json.load(open('src/followup.json', encoding='utf-8'))
@@ -164,9 +247,10 @@ def main():
             del f; gc.collect()
         finish(th, LE, 'line', PAY['line'], stat); del th; gc.collect()
     F['pay'] = PAY; F['paycols'] = COLS; F['paystat'] = {k: dict(v) for k, v in stat.items()}; F['pay90'] = {k: dict(v) for k, v in OLD.items()}
+    F['payflow'] = {k: v for k, v in FLOW.items()}; F['payfu'] = {k: dict(v) for k, v in FUSTAT.items()}
     # weekly history of the headline pile (A+B+C, 1-6 / 7-29 / 30-89 days) per channel
     day = (F.get('end') or '')[:10]
-    def heads(L): z = [r for r in L if r[2] != 'X']; return [sum(1 for r in z if 1 <= r[3] < 7), sum(1 for r in z if 7 <= r[3] < 30), sum(1 for r in z if 30 <= r[3] < 90)]
+    def heads(L): z = [r for r in L if r[2] in TODO]; return [sum(1 for r in z if 1 <= r[3] < 7), sum(1 for r in z if 7 <= r[3] < 30), sum(1 for r in z if 30 <= r[3] < 90)]
     ph = [h for h in (F.get('payhist') or []) if h[0] != day] + [[day] + heads(PAY['fb']) + heads(PAY['ig']) + heads(PAY['line'])]
     F['payhist'] = sorted(ph)[-120:]
     json.dump(F, open('src/followup.json.tmp', 'w', encoding='utf-8'), separators=(',', ':'), ensure_ascii=False)

@@ -429,6 +429,8 @@ body{background:
 .puk-A{color:var(--warn);background:var(--warn-soft);border-color:transparent}
 .puk-B{color:var(--fb);background:var(--fb-soft);border-color:transparent}
 .puk-C,.puk-X{color:var(--ink-3);background:var(--sunk);border-color:transparent}
+.puk-F{color:var(--teal-ink);background:var(--teal-soft);border-color:transparent}
+.fust.go.ok b{color:var(--teal-ink)}
 .fukw{display:flex;flex-wrap:wrap;gap:5px;margin:6px 0 2px}
 .fukw code{font-family:"IBM Plex Mono",monospace;font-size:11.5px;background:var(--sunk);border:1px solid var(--line);border-radius:6px;padding:1px 7px;color:var(--ink-2)}
 .puamt{font-family:"IBM Plex Mono",monospace;font-weight:600;font-size:14px;color:var(--ink)}
@@ -436,6 +438,20 @@ body{background:
 .puafter{font-size:13px;line-height:1.45} .puafter .nsm{display:block}
 .puflag{display:inline-block;font-size:11px;padding:1px 7px;border-radius:999px;background:var(--warn-soft);color:var(--warn);margin:3px 4px 0 0}
 .puflag.bad{background:var(--risk-soft);color:var(--risk)} .puflag.ok{background:var(--leaf-soft);color:var(--leaf)}
+.flow{margin:10px 0 4px;padding:11px 13px;background:var(--card);border:1px solid var(--line);border-radius:10px}
+.flhd{display:flex;flex-wrap:wrap;gap:6px 10px;align-items:baseline;font-size:13.5px;margin-bottom:8px}.flday{margin-left:auto;display:flex;gap:4px}
+.flline{display:flex;flex-wrap:wrap;gap:8px 10px;align-items:stretch}
+.flbox{display:flex;flex-direction:column;justify-content:center;padding:6px 12px;border-radius:9px;background:var(--sunk);min-width:74px}
+.flbox b{font-family:"IBM Plex Mono",monospace;font-size:20px}
+.flar{align-self:center;color:var(--ink-3);font-size:18px}
+.flgrp{display:flex;flex-wrap:wrap;gap:5px;align-items:center;padding:5px 8px;border:1px dashed var(--line-2);border-radius:9px}
+.flgrp>.nsm{flex-basis:100%}
+.flc{font:inherit;font-size:12.5px;cursor:pointer;padding:3px 10px;border-radius:999px;border:1px solid var(--line-2);background:var(--card);color:var(--ink-2)}
+.flc b{font-family:"IBM Plex Mono",monospace;color:var(--ink)} .flc.ok b{color:var(--teal-ink)} .flc.risk b{color:var(--risk)} .flc.warn b{color:var(--warn)}
+.flc[aria-pressed="true"]{background:var(--ink);color:var(--paper);border-color:var(--ink)} .flc[aria-pressed="true"] b{color:var(--paper)}
+.flsum{margin:8px 0 0} .flnames{margin-top:10px;max-height:320px;overflow-y:auto;border-top:1px dashed var(--line);padding-top:8px}
+.flrow{display:flex;justify-content:space-between;align-items:center;gap:8px;padding:4px 0;border-bottom:1px solid var(--line);font-size:13px}
+.fuinfo{color:var(--teal-ink);margin-top:3px} .fudone{margin:0 6px 6px 0;color:var(--teal-ink)}
 .fuk-A{color:var(--risk);background:var(--risk-soft);border-color:transparent}
 .fuk-B{color:var(--fb);background:var(--fb-soft);border-color:transparent}
 .fuk-C{color:var(--ink-3);background:var(--sunk)}
@@ -1295,6 +1311,25 @@ function lnWho(o){if(o._who)return o._who;const tr=o.tr||[];const c0=tr.findInde
  o._who=w;return w;}
 const whoOk=(w)=>RWHO==='all'||w===RWHO;
 const SHOW_WHO=false;
+/* ---- raw data: Follow up status per chat (Sep 23 2026) — read from the whole-thread follow-up lists ---- */
+let RFU='all', FUMAP=null, FUMAP_K='';
+const RFU_N={all:'ทุกแชท',ar:'รอตอบ (Auto reply)',todo:'ตามโอน · ต้องตาม',f:'ตามโอน · ตามแล้ว',x:'ตามโอน · ไม่ต้องตาม',none:'ไม่อยู่ในรายการ Follow up'};
+const RFU_ORD=['all','ar','todo','f','x','none'];
+function fuMapGet(){if(!FU)return null;const k=CH+'|'+Object.keys(OV).length;if(FUMAP&&FUMAP_K===k)return FUMAP;const m={};
+ for(const o of fuRows())if(o.type!=='give'&&o.kind!=='C'&&o.wait>=7)(m[String(o.tid)]=m[String(o.tid)]||{}).ar=o;
+ for(const o of puRows())if(o.wait>=1&&o.wait<90)(m[String(o.tid)]=m[String(o.tid)]||{}).pay=o;
+ FUMAP=m;FUMAP_K=k;return m;}
+function rfuHit(tid,f){if(f==='all')return true;const M=fuMapGet();if(!M)return true;const m=M[String(tid)];
+ if(f==='none')return !m;if(!m)return false;if(f==='ar')return !!m.ar;if(!m.pay)return false;
+ const g=m.pay.g;return f==='f'?g==='F':(f==='x'?g==='X':PU_TODO.includes(g));}
+function rfuBadges(tid){const M=fuMapGet();if(!M)return '';const m=M[String(tid)];if(!m)return '';let h='';
+ if(m.ar)h+='<span class="badge risk">Follow up · รอตอบ '+Math.floor(m.ar.wait)+' วัน</span>';
+ if(m.pay)h+='<span class="badge puk-'+m.pay.g+'">ตามโอน · '+(PU_GS[m.pay.g]||PU_GN[m.pay.g])+(m.pay.due?' · ครบกำหนด':'')+'</span>';return h;}
+function rfuRow(countOf){if(!FU)return '<div class="chips whochips"><span class="lab">Follow up</span><span class="nsm">กำลังโหลดสถานะ follow up…</span></div>';
+ return `<div class="chips whochips" id="rfuchips"><span class="lab">Follow up</span>${RFU_ORD.map(k=>`<button class="chip" data-rfu="${k}" aria-pressed="${RFU===k}">${RFU_N[k]} (${nf(countOf(k))})</button>`).join('')}</div>`+
+  (RFU!=='all'?`<p class="fdesc"><b>${RFU_N[RFU]}</b> — สถานะปัจจุบันของทั้งห้องแชท (อ่านทุกเดือนต่อกัน) จากหน้า Follow up · ห้องที่คุยหลายเดือนจะขึ้นสถานะเดียวกันทุกเดือน</p>`:'');}
+function rfuEnsure(then){if(FU&&OVREADY)return false;
+ (FU?Promise.resolve(FU):getFile('followup')).then(d=>{FU=d;return OVREADY?0:ovLoad();}).then(then).catch(()=>{});return true;}
 function whoRow(counts){if(!SHOW_WHO)return '';return `<div class="chips whochips" id="whochips"><span class="lab">ใครตอบ</span>${RWHO_ORD.map(k=>`<button class="chip" data-w="${k}" aria-pressed="${RWHO===k}">${RWHO_N[k]} (${nf(counts[k]||0)})</button>`).join('')}</div>`+
  (RWHO!=='all'?`<p class="fdesc"><b>${RWHO_N[RWHO]}</b> — ${RWHO_D[RWHO]}</p>`:'');}
 
@@ -1316,7 +1351,8 @@ const hitBody=(r,t,m)=>(r[18]||[]).some(e=>String(txt(e[2],m)).toLowerCase().inc
 const hitTerm=(r,t,m)=>!t||hitName(r,t)||(DEEP&&hitBody(r,t,m));
 function hitChip(r,f){if(f.slice(0,3)==='mx:'){const q=f.split(':');return mxHit(q[1],q[2],r[38],r[37],r[40]);}if(['QW','VT','V','T','H','OTH','NA','W'].includes(f))return stHit(f,r[37],r[40]);if(f==='leadsonly')return isRealLead(r);if(f==='t1')return r[34]==='L1';if(f==='t2')return r[34]==='L2';if(f==='t3')return r[34]==='L3';if(f==='t4')return r[34]==='L4';if(f==='t5')return r[34]==='L5';if(f==='hot')return r[34]==='L5'&&!r[17];if(f==='nohuman')return r[10]<0;if(f==='risk')return r[12]===1;
  if(f==='price')return r[15]===1;if(f==='dup')return r[14]>=2;if(f==='won')return r[17]===1;return true;}
-function filtered(){const t=norm(TERM);return leads().filter(o=>hitTerm(o.r,t,o.m)&&hitChip(o.r,FILTER)&&whoOk(whoOf(o.r,o.m)));}
+function filtered(){const t=norm(TERM);return leads().filter(o=>hitTerm(o.r,t,o.m)&&hitChip(o.r,FILTER)&&whoOk(whoOf(o.r,o.m))&&rfuHit(o.r[19],RFU));}
+function rfuCounts(k){const t=norm(TERM);let n=0;for(const o of leads())if(hitTerm(o.r,t,o.m)&&hitChip(o.r,FILTER)&&rfuHit(o.r[19],k))n++;return n;}
 function whoCounts(){const t=norm(TERM),c={all:0,adm:0,bot:0,none:0};
  for(const o of leads())if(hitTerm(o.r,t,o.m)&&hitChip(o.r,FILTER)){c.all++;const w=whoOf(o.r,o.m);if(c[w]!=null)c[w]++;}return c;}
 function everywhere(t){let n=0;
@@ -1344,6 +1380,7 @@ function igBrowserShell(){
    ${(FORDER.includes(FILTER)?FORDER:FORDER.concat([FILTER])).map(k=>`<button class="chip" data-f="${k}" aria-pressed="${FILTER===k}">${FNAME[k]}</button>`).join('')}</div>
   <p class="fdesc"><b>${FNAME[FILTER]||'ทั้งหมด'}</b> — ${fdescOf(FILTER)}</p>
   ${SHOW_WHO?whoRow(whoCounts()):''}
+  ${rfuRow(rfuCounts)}
   <details class="fhelp"><summary>คำอธิบายทุกแท็บ</summary><dl>${FORDER.map(k=>'<dt>'+FNAME[k]+'</dt><dd>'+fdescOf(k)+'</dd>').join('')}</dl></details>
   <label class="deeprow"><input type="checkbox" id="deep"${DEEP?' checked':''}> ค้นในเนื้อข้อความด้วย</label>
  </div><div class="plist" id="plist"></div>
@@ -1362,6 +1399,7 @@ function renderList(){
   if(STGN[r[37]])fl.push('<span class="badge'+(r[37]==='W'?' ok':'')+'">'+STGN[r[37]]+(r[39]?' · ฿'+nf(r[39]):'')+'</span>');if(r[37]!=='X')fl.push('<span class="badge">แอดมินตอบครั้งแรก '+(r[40]==null||r[40]<0?'ไม่มี':minTxt(r[40]))+'</span>');
   if(CH==='fb'&&r[20])fl.push('<span class="badge">จากโฆษณา</span>');
   if(CH==='fb'&&FBU[String(r[19])])fl.push('<span class="badge ok">🔗 ลิงก์ตรง</span>');
+  {const b=rfuBadges(r[19]);if(b)fl.push(b);}
   return `<button class="prow" data-i="${gi}" aria-current="${gi===SEL}">
    <span class="nm">${CH==='fb'?'':'@'}${esc(r[0]||'(ไม่มีชื่อผู้ใช้)')}</span>
    <span class="sb">${MSHORT[o.m]} ${r[3]} · ${String(r[4]).padStart(2,'0')}:00 (${DOWN[r[5]]}) · ${r[6]}/${r[7]} ข้อความ</span>
@@ -1444,6 +1482,8 @@ function renderRaw(){
   el.querySelectorAll('#chips .chip').forEach(c=>c.addEventListener('click',()=>{
    FILTER=c.dataset.f;PAGE=0;SEL=0;renderRaw();}));
   el.querySelectorAll('#whochips .chip').forEach(c=>c.addEventListener('click',()=>{RWHO=c.dataset.w;PAGE=0;SEL=0;renderRaw();}));
+  el.querySelectorAll('[data-rfu]').forEach(c=>c.addEventListener('click',()=>{RFU=c.dataset.rfu;PAGE=0;SEL=0;renderRaw();}));
+  rfuEnsure(()=>{if(VIEW==='raw'&&(CH==='fb'||CH==='ig'))renderRaw();});
   const dl=$('#dlcsv'); if(dl)dl.addEventListener('click',exportChats);
   if(JUMP_TID){const L=filtered(),i=L.findIndex(x=>String(x.r[19])===JUMP_TID);if(i>=0){SEL=i;PAGE=Math.floor(i/PER);}JUMP_TID=null;}
   renderList();renderChat();
@@ -1484,6 +1524,7 @@ function lnFiltered(){const t=LN_TERM.trim().toLowerCase();
   if(LN_F==='open'&&o.st!=='ยังไม่สมัคร')return false;
   if(LN_F==='notag'&&o.st!=='ไม่ติดแท็ก')return false;
   if(!whoOk(lnWho(o)))return false;
+  if(!rfuHit(o.id,RFU))return false;
   return lnHit(o,t);});}
 function lnWhoCounts(){const keep=RWHO;RWHO='all';const L=lnFiltered();RWHO=keep;const c={all:L.length,adm:0,bot:0,none:0};
  for(const o of L){const w=lnWho(o);if(c[w]!=null)c[w]++;}return c;}
@@ -1503,6 +1544,7 @@ function lnShell(){
   <div class="chips" id="lnchips">${(LN_FORDER.includes(LN_F)?LN_FORDER:LN_FORDER.concat([LN_F])).map(k=>`<button class="chip" data-f="${k}" aria-pressed="${LN_F===k}">${LN_FNAME[k]} (${nf(lnCount(k))})</button>`).join('')}</div>
   <p class="fdesc"><b>${LN_FNAME[LN_F]}</b> — ${LN_FDESC[LN_F]}</p>
   ${SHOW_WHO?whoRow(lnWhoCounts()):''}
+  ${rfuRow(k=>{const keep=RFU;RFU=k;const n=lnFiltered().length;RFU=keep;return n;})}
   <details class="fhelp"><summary>คำอธิบายทุกแท็บ</summary><dl>${LN_FORDER.map(k=>'<dt>'+LN_FNAME[k]+'</dt><dd>'+LN_FDESC[k]+'</dd>').join('')}</dl></details>
   <label class="deeprow"><input type="checkbox" id="lndeep"${LN_DEEP?' checked':''}> ค้นในเนื้อข้อความด้วย</label>
  </div><div class="plist" id="lnlist"></div>
@@ -1520,6 +1562,7 @@ function lnRenderList(){
   if(lineMonths().length>1)fl.push('<span class="badge">'+(MSHORT[o._m]||o._m||'')+'</span>');
   fl.push('<span class="badge">แอดมินตอบครั้งแรก '+(o.fr==null||o.fr<0?'ไม่มี':minTxt(o.fr))+'</span>');
   (o.ad||[]).slice(0,3).forEach(a=>fl.push('<span class="badge">👤 '+esc(a)+'</span>'));
+  {const b=rfuBadges(o.id);if(b)fl.push(b);}
   return `<button class="prow" data-i="${gi}" aria-current="${gi===LN_SEL}">
    <span class="nm">${esc(o.n||'(ไม่มีชื่อ)')}</span>
    <span class="meta">${esc(o.f)} → ${esc(o.t)} · ลูกค้า ${o.c} · แอดมิน ${o.h} · บอท ${o.b}</span>
@@ -1574,6 +1617,8 @@ function lnRenderRaw(){
  $('#lndeep').addEventListener('change',e=>{LN_DEEP=e.target.checked;LN_PAGE=0;LN_SEL=0;lnRenderList();lnRenderChat();});
  el.querySelectorAll('#lnchips .chip').forEach(c=>c.addEventListener('click',()=>{LN_F=c.dataset.f;LN_PAGE=0;LN_SEL=0;lnRenderRaw();}));
  el.querySelectorAll('#whochips .chip').forEach(c=>c.addEventListener('click',()=>{RWHO=c.dataset.w;LN_PAGE=0;LN_SEL=0;lnRenderRaw();}));
+ el.querySelectorAll('[data-rfu]').forEach(c=>c.addEventListener('click',()=>{RFU=c.dataset.rfu;LN_PAGE=0;LN_SEL=0;lnRenderRaw();}));
+ rfuEnsure(()=>{if(VIEW==='raw'&&CH==='line')lnRenderRaw();});
  const lndl=$('#lndlcsv'); if(lndl)lndl.addEventListener('click',exportLine);
  lnRenderList();lnRenderChat();}
 function lnBar(lab,v,max,extra){return `<div class="lnbar"><span>${esc(lab)}</span><span class="track"><span class="t" style="width:${max?Math.max(2,Math.round(v*100/max)):0}%"></span></span><span>${nf(v)}${extra||''}</span></div>`;}
@@ -2194,10 +2239,11 @@ function ovAsk(title,sub,min,def,multi){return new Promise(res=>{
 const OV_ADMINS=[['pat',''],['Gambumm',''],['ARM',''],['🚲',''],['🌙',''],['PPALM','owner'],['khing','operator'],['Pball','operator']];
 function ovMove(o,st,why){return new Promise(res=>{
  const other=st==='skip'&&why==='อื่น ๆ';
- const ttl=st==='skip'?'ย้ายไป “ไม่ต้องตาม”':(st==='follow'?'ย้ายกลับมาในรายการที่ต้องตาม':'ยกเลิกการย้าย (คืนค่าอัตโนมัติ)');
+ const fuDone=st==='skip'&&/^ตามแล้ว/.test(why||'');
+ const ttl=fuDone?'บันทึกว่าตามแล้ว (นอกแชท)':(st==='skip'?'ย้ายไป “ไม่ต้องตาม”':(st==='follow'?'ย้ายกลับมาในรายการที่ต้องตาม':'ยกเลิกการย้าย (คืนค่าอัตโนมัติ)'));
  const bg=document.createElement('div');bg.className='ovdlg-bg';
  bg.innerHTML=`<div class="ovdlg" role="dialog" aria-modal="true"><h4>${ttl}</h4>
-  <p class="nsm">แชท: <b>${esc(o&&o.name||'')}</b>${st==='skip'?'<br>เหตุผล: <b>'+esc(why)+'</b>':''}</p>
+  <p class="nsm">แชท: <b>${esc(o&&o.name||'')}</b>${fuDone?'<br>แชทจะไปอยู่ “ตามแล้ว · รอลูกค้าตอบ” 7 วัน ถ้าลูกค้ายังเงียบจะกลับมาในรายการที่ต้องตาม':(st==='skip'?'<br>เหตุผล: <b>'+esc(why)+'</b>':'')}</p>
   ${other?'<label class="ovlab">อธิบายเหตุผล <span class="nsm">(จำเป็น อย่างน้อย 5 ตัวอักษร)</span></label><textarea rows="3" class="ovin"></textarea><div class="ovcnt nsm"></div>':''}
   <label class="ovlab">แอดมินที่ปรับ <span class="nsm">(จำเป็น)</span></label>
   <div class="ovadm">${OV_ADMINS.map(([n,r])=>`<button type="button" class="ovad" data-n="${esc(n)}">${esc(n)}${r?' <span>'+r+'</span>':''}</button>`).join('')}</div>
@@ -2230,7 +2276,7 @@ function ovSet(o,st,why,by){const k=ovKey(CH,o.ovtid||o.tid,o.ovlast||o.last);
  if(OVURL){fetch(OVURL,{method:'POST',headers:{'Content-Type':'text/plain;charset=utf-8'},body:JSON.stringify({t:window.OVT,ch:CH,tid:o.ovtid||o.tid,last:o.ovlast||o.last,st,why:why||'',name:o.name,by:by||''})})
    .then(r=>r.json()).then(j=>{if(!j.ok)toast('บันทึกไม่สำเร็จ ('+(j.error||'?')+')');}).catch(()=>toast('บันทึกไม่สำเร็จ — ตรวจอินเทอร์เน็ตแล้วลองใหม่'));}
  else{try{localStorage.setItem('bp_ov',JSON.stringify(OV));}catch(e){}}
- toast(st==='skip'?'ย้ายไป “ไม่ต้องตาม” แล้ว':(st==='follow'?'ย้ายกลับมาในรายการที่ต้องตามแล้ว':'คืนค่าเป็นแบบอัตโนมัติแล้ว'));
+ toast(st==='skip'&&/^ตามแล้ว/.test(why||'')?'บันทึกว่าตามแล้ว':st==='skip'?'ย้ายไป “ไม่ต้องตาม” แล้ว':(st==='follow'?'ย้ายกลับมาในรายการที่ต้องตามแล้ว':'คืนค่าเป็นแบบอัตโนมัติแล้ว'));
  if(FU_MODE==='pay')renderPay();else renderFU();}
 function fuRows(){ if(!FU)return [];
  return (FU[CH]||[]).map(r=>{const o={tid:r[0],name:r[1],type:r[2],kind:r[15]||'A',auto0:r[15]||'A',wait:r[3],first:r[4],last:r[5],week:r[6],n:r[7],said:r[8],tags:r[9]||[],auto:r[10],nauto:r[11],prior:r[12],src:r[13],mo:r[14],owner:r[16]||'',reg:r[17]||0,admins:r[18]||[]};
@@ -2273,6 +2319,10 @@ function fuStatus(){const S=((FU||{}).status||{})[CH];if(!S)return '';
  return `<div class="fustat"><span class="lab">อ่านทั้งห้องแชท (ทุกเดือนต่อกัน) · ${nf(tot)} ห้องที่ลูกค้าเคยทัก · <b>กดตัวเลขที่มีกรอบ</b>เพื่อเปิดรายชื่อแชท</span>`+
   it('won','ปิดการขายแล้ว','ok')+it('answered','แอดมินตอบรอบล่าสุดแล้ว','ok')+it('closing','ลูกค้าปิดท้ายเอง (ขอบคุณ/โอเค/สติกเกอร์)','ok')+
   go('never','รอตอบ · ไม่เคยมีแอดมินคุย','risk')+go('prior','รอตอบ · เคยคุยแล้ว แต่ถามรอบใหม่ยังไม่มีคนตอบ','warn')+go('skip','ไม่ต้องตาม (รูป/สติกเกอร์/ทักทาย/ข้อความไม่ชัด/แอดมินย้าย)','')+`</div>`;}
+function fuFlow(){return flowBox(((FU.arflow||{})[CH]||{})[FU_FLD],FU_FLD,FU_FLK,'afk','afd',
+  [['answered','แอดมินตอบแล้ว','ok'],['won','ปิดการขาย','ok'],['closing','ลูกค้าปิดท้ายเอง','ok'],['x','กลายเป็นไม่ต้องตาม','']],
+  [['more','ลูกค้าทักเพิ่ม ยังไม่มีคนตอบ','risk'],['still','ยังไม่มีใครตอบ','risk']],
+  '<p class="nsm flsum">นับรวมทั้งแชทที่ไม่เคยมีแอดมินคุย และเคยคุยแล้ว (ค้าง 7 วันขึ้นไป ไม่นับกลุ่มไม่ต้องตาม) · แชทที่แอดมินกดย้ายเองไม่อยู่ในตารางนี้</p>');}
 async function renderFU(){
  const el=$('#fu'), sc=$('#fuscope');
  if(!FU){el.innerHTML='<p class="note">กำลังโหลดรายการแชท…</p>';
@@ -2301,7 +2351,7 @@ async function renderFU(){
  const cards=fuModeBar()+`<div class="fucards">`+
   card('7','warn',gl+' · 7–29 วัน',c7,'ลูกค้าทักล่าสุดเมื่อ 7–29 วันก่อน · ยังตามได้ทัน',noD?'':dd(c7,prevH&&prevH[hi]))+
   card('30','risk',gl+' · 30 วันขึ้นไป',c30,(FU_G==='skip'?'':'เป้าหมาย = 0 · ')+(LN?'ตอบแล้วแชทจะหายเมื่อดึงข้อมูล LINE เดือนถัดไป':'ตอบแล้วแชทจะหายจากรายการในรอบอัปเดตถัดไป'),noD?'':dd(c30,prevH&&prevH[hi+1]))+
-  `</div>${fuStatus()}<p class="note fusm">ตัวเลขในการ์ด = กลุ่ม <b>${FU_GN[FU_G]}</b> · ยังไม่ถึง 7 วัน ${nf(c0)} แชท (ยังไม่เข้ารายการ) · ${ngive?'ไม่นับแชท Giveaway '+nf(ngive)+' แชท (บอทส่งของแถมให้แล้ว ไม่ต้องตาม) · ':''}${LN?'LINE เกือบทุกห้องเคยคุยกับแอดมิน จึงเริ่มที่ “รวมสองกลุ่ม”':''}</p>`+
+  `</div>${fuStatus()}${fuFlow()}<p class="note fusm">ตัวเลขในการ์ด = กลุ่ม <b>${FU_GN[FU_G]}</b> · ยังไม่ถึง 7 วัน ${nf(c0)} แชท (ยังไม่เข้ารายการ) · ${ngive?'ไม่นับแชท Giveaway '+nf(ngive)+' แชท (บอทส่งของแถมให้แล้ว ไม่ต้องตาม) · ':''}${LN?'LINE เกือบทุกห้องเคยคุยกับแอดมิน จึงเริ่มที่ “รวมสองกลุ่ม”':''}</p>`+
   (LN?`<p class="note fusm lnwarn">⚠️ LINE OA ดึงข้อมูลเดือนละครั้ง (ไม่มีรอบอัปเดตรายวัน) · ข้อมูลชุดนี้ถึง <b>${endT}</b> · “ค้างมาแล้ว” นับถึงวันนั้น ไม่ใช่วันนี้ · ห้องที่แอดมินตอบหลังวันนั้นแล้วจะยังอยู่ในรายการจนกว่าจะดึงเดือนถัดไป — กดเปิดแชทเช็กก่อนตามทุกครั้ง</p>`:'');
 
  /* weekly strip for the chosen bucket (ignores the week filter itself) */
@@ -2379,6 +2429,8 @@ async function renderFU(){
  el.querySelectorAll('[data-fugo]').forEach(b=>b.addEventListener('click',()=>{FU_G=b.dataset.fugo;FU_B='all';FU_K='all';FU_W='';FU_T='';FU_PAGE=0;renderFU();
   const t=$('#fulist');if(t&&t.scrollIntoView)t.scrollIntoView({behavior:'smooth',block:'start'});}));
  fuModeBind(el);
+ el.querySelectorAll('[data-afk]').forEach(b=>b.addEventListener('click',()=>{FU_FLK=FU_FLK===b.dataset.afk?'':b.dataset.afk;renderFU();}));
+ el.querySelectorAll('[data-afd]').forEach(b=>b.addEventListener('click',()=>{FU_FLD=b.dataset.afd;FU_FLK='';renderFU();}));
  const q=$('#fuq');if(q){q.addEventListener('input',()=>{FU_Q=q.value;FU_PAGE=0;clearTimeout(q._t);q._t=setTimeout(()=>{renderFU();const n=$('#fuq');if(n){n.focus();n.setSelectionRange(n.value.length,n.value.length);}},250);});}
  const dl=$('#fudl');if(dl)dl.addEventListener('click',fuExport);
  el.querySelectorAll('.fuovs').forEach(sv=>sv.addEventListener('change',async()=>{const why=sv.value;if(!why)return;
@@ -2395,7 +2447,7 @@ async function renderFU(){
 function fuModeCounts(){
  const LN=CH==='line';
  const ar=fuRows().filter(o=>o.type!=='give'&&fuInG(o,LN?'both':'never')&&o.wait>=7).length;
- const pay=FU&&FU.pay?puRows().filter(o=>o.g!=='X'&&o.wait>=1&&o.wait<30).length:null;
+ const pay=FU&&FU.pay?puRows().filter(o=>PU_TODO.includes(o.g)&&o.wait>=1&&o.wait<30).length:null;
  return {ar,pay};}
 function fuModeBar(){const c=fuModeCounts();
  const b=(m,cls,ic,t,s,n,nl)=>`<button type="button" class="fumb ${cls}" data-fumode="${m}" aria-pressed="${FU_MODE===m}"><span class="ic" aria-hidden="true">${ic}</span><span class="t">${t}</span><span class="s">${s}</span><span class="n">${n==null?'—':nf(n)}<small>${nl}</small></span></button>`;
@@ -2406,24 +2458,50 @@ function fuModeBind(el){el.querySelectorAll('[data-fumode]').forEach(b=>b.addEve
  if(FU_MODE===b.dataset.fumode)return;FU_MODE=b.dataset.fumode;try{localStorage.setItem('bp_fu_mode',FU_MODE);}catch(e){}
  FU_PAGE=0;PU_PAGE=0;renderFU();}));}
 
-let PU_B='1', PU_G='all', PU_T='', PU_W='', PU_Q='', PU_PAGE=0, PU_L=[];
-const PU_GN={all:'ทั้งหมดที่ต้องตาม',R:'ลูกค้าถามค้าง · ตอบก่อน',A:'สรุปยอดแล้ว · รอโอน',B:'คุยต่อหลังได้ราคา แล้วเงียบ',C:'ได้ราคาแล้วเงียบเลย',X:'ไม่ต้องตาม'};
-const PU_GS={R:'ถามค้าง',A:'สรุปยอดแล้ว',B:'คุยต่อแล้วเงียบ',C:'เงียบเลย'};
+let PU_B='1', PU_G='all', PU_T='', PU_W='', PU_Q='', PU_PAGE=0, PU_L=[], PU_FLD='7', PU_FLK='', FU_FLD='7', FU_FLK='';
+/* flow box (Sep 23 2026): the to-do list as it stood 1 / 7 days ago -> where each of those chats is now.
+   F = {from,to,start,end,new:[[tid,name]],out:{key:[[tid,name]]}} built by build_fu.py / build_pay.py */
+function flowBox(F,day,sel,kAttr,dAttr,outs,stays,extra){
+ if(!F)return '<p class="note fusm">ตาราง “แชทไปไหน” จะขึ้นหลังรอบอัปเดตถัดไป</p>';
+ const n=k=>k==='new'?(F.new||[]).length:((F.out||{})[k]||[]).length;
+ const chip=(k,lab,cls)=>`<button type="button" class="flc ${cls}" data-${kAttr}="${k}" aria-pressed="${sel===k}"><b>${nf(n(k))}</b> ${lab}</button>`;
+ const outN=outs.reduce((a,x)=>a+n(x[0]),0);
+ let names='';
+ if(sel){const L=sel==='new'?(F.new||[]):((F.out||{})[sel]||[]);const lab=(outs.concat(stays,[['new','เข้าใหม่']]).find(x=>x[0]===sel)||[])[1]||'';
+  names=`<div class="flnames"><div class="fuhd"><b>${esc(lab)}</b> <span class="nsm">${nf(L.length)} แชท${L.length>300?' · แสดง 300 แชทแรก':''}</span></div>`+
+   L.slice(0,300).map(x=>`<div class="flrow"><span>${CH==='ig'?'@':''}${esc(x[1]||'(ไม่มีชื่อ)')}</span>${fuBtn({tid:x[0],name:x[1]})}</div>`).join('')+`</div>`;}
+ return `<div class="flow"><div class="flhd"><b>แชทไปไหน</b> <span class="nsm">รายการที่ต้องตามเมื่อ ${day==='1'?'1 วัน':'7 วัน'}ก่อน (${fuDay(F.from)} ${F.from.slice(11,16)}) เทียบกับตอนนี้ · กดตัวเลขเพื่อดูรายชื่อ</span>
+  <span class="flday">${['1','7'].map(d=>`<button type="button" class="chip" data-${dAttr}="${d}" aria-pressed="${day===d}">${d==='1'?'1 วัน':'7 วัน'}</button>`).join('')}</span></div>
+  <div class="flline"><span class="flbox"><span class="nsm">ต้นรอบ</span><b>${nf(F.start)}</b></span><span class="flar">→</span>
+   <span class="flgrp"><span class="nsm">ออกจากรายการ ${nf(outN)}</span>${outs.map(x=>chip(x[0],x[1],x[2])).join('')}</span>
+   <span class="flgrp"><span class="nsm">ยังอยู่ในรายการ</span>${stays.map(x=>chip(x[0],x[1],x[2])).join('')}</span>
+   <span class="flgrp"><span class="nsm">เข้ามาใหม่</span>${chip('new','แชทใหม่','')}</span><span class="flar">→</span>
+   <span class="flbox"><span class="nsm">ตอนนี้</span><b>${nf(F.end)}</b></span></div>${extra||''}${names}</div>`;}
+const PU_GN={all:'ทั้งหมดที่ต้องตาม',R:'ลูกค้าถามค้าง · ตอบก่อน',A:'สรุปยอดแล้ว · รอโอน',B:'คุยต่อหลังได้ราคา แล้วเงียบ',C:'ได้ราคาแล้วเงียบเลย',F:'ตามแล้ว · รอลูกค้าตอบ',X:'ไม่ต้องตาม'};
+const PU_GS={R:'ถามค้าง',A:'สรุปยอดแล้ว',B:'คุยต่อแล้วเงียบ',C:'เงียบเลย',F:'ตามแล้ว'};
 const PU_GD={R:'ลูกค้าพิมพ์ถามหลังได้ราคา แต่ยังไม่มีแอดมินตอบ — ตอบก่อนตามโอน',
  A:'แอดมินส่ง “ยอดชำระ / สรุปรายละเอียด / เลขบัญชี” แล้ว = ลูกค้าตกลงแล้ว เหลือแค่โอน',
  B:'ลูกค้าคุยต่อหลังได้ราคา แอดมินตอบแล้ว แล้วลูกค้าเงียบไป',
  C:'ส่งราคาไปแล้ว ลูกค้าไม่ได้ตอบอะไรเลย (หรือแค่ขอบคุณ/สติกเกอร์)',
+ F:'แอดมินทักตามแล้วหลังลูกค้าเงียบ 12 ชม.ขึ้นไป (หรือกด “ตามแล้ว” เอง) และลูกค้ายังไม่ตอบ — ครบ 7 วันยังเงียบ แชทกลับไปรายการที่ต้องตามพร้อมป้าย “ครบกำหนดตามรอบถัดไป”',
  X:'ลูกค้าบอกว่าโอนแล้ว · ดูเป็นนักเรียนแล้ว · ปฏิเสธ/ขอคิดก่อน · ย้ายไปคุย LINE · หรือแอดมินย้ายเอง'};
 const PU_ORD=['R','A','B','C'];
-const PU_WHY=['โอนแล้ว / สมัครแล้ว (ทางอื่น)','ตามแล้ว รอลูกค้าตัดสินใจ','ลูกค้าไม่สนใจแล้ว / ขอคิดก่อน','คุยต่อทางช่องทางอื่นแล้ว (LINE / โทร)','ถามกวน / ไม่ใช่ลูกค้า','อื่น ๆ'];
+const PU_WHY=['โอนแล้ว / สมัครแล้ว (ทางอื่น)','ลูกค้าไม่สนใจแล้ว / ขอคิดก่อน','คุยต่อทางช่องทางอื่นแล้ว (LINE / โทร)','ถามกวน / ไม่ใช่ลูกค้า','อื่น ๆ'];
 function puRows(){if(!FU||!FU.pay)return [];
  return (FU.pay[CH]||[]).map(r=>{const o={tid:r[0],name:r[1],g:r[2],g0:r[2],wait:r[3],q0:r[4],q1:r[5],last:r[6],lastc:r[7],bill:r[8],amt:r[9]||'',qt:r[10]||'',nq:r[11],
-   said:r[12]||'',after:r[13]||'',ball:r[14],tags:r[15]||[],flags:r[16]||[],src:r[17]||'',owner:r[18]||'',week:r[19]};
+   said:r[12]||'',after:r[13]||'',ball:r[14],tags:r[15]||[],flags:r[16]||[],src:r[17]||'',owner:r[18]||'',week:r[19],
+   nfu:r[20]||0,fu1:r[21]||'',due:r[22]||0,bg:r[23]||r[2]};
   o.ovtid='pay:'+o.tid; o.ovlast=o.q1+'/'+o.lastc;          /* a new quote or a new customer message brings a moved chat back */
-  const ov=OV[ovKey(CH,o.ovtid,o.ovlast)];if(ov){o.ov=ov;if(ov.st==='skip')o.g='X';else if(ov.st==='follow'&&o.g0==='X')o.g='C';}
+  const ov=OV[ovKey(CH,o.ovtid,o.ovlast)];
+  if(ov){o.ov=ov;
+   if(ov.st==='skip'&&/^ตามแล้ว/.test(ov.why||'')){        /* "ตามแล้ว (นอกแชท)": counts as followed for 7 days from the click */
+    const age=(Date.now()-new Date(ov.at||0).getTime())/864e5;o.fuMan=1;
+    if(age<7&&o.g!=='X'&&o.g!=='R'){o.g='F';o.due=0;}else if(o.g!=='X'&&o.g!=='R'){o.g=o.bg==='F'?'C':o.bg;o.due=1;}}
+   else if(ov.st==='skip')o.g='X';else if(ov.st==='follow'&&o.g0==='X')o.g='C';}
   return o;});}
 function puInB(o,b){return b==='all'?true:(b==='1'?(o.wait>=1&&o.wait<7):(b==='7'?(o.wait>=7&&o.wait<30):(o.wait>=30&&o.wait<90)));}
-function puInG(o,g){return g==='all'?o.g!=='X':o.g===g;}
+const PU_TODO=['R','A','B','C'];
+function puInG(o,g){return g==='all'?PU_TODO.includes(o.g):o.g===g;}
 function puFilt(skipWeek){const q=PU_Q.trim().toLowerCase();
  return puRows().filter(o=>puInB(o,PU_B)&&puInG(o,PU_G)&&(!FU_O||o.owner===FU_O)&&(!PU_T||o.amt===PU_T)&&(skipWeek||!PU_W||o.week===PU_W)
   &&(!q||String(o.name).toLowerCase().includes(q)||String(o.said).toLowerCase().includes(q)||String(o.amt).includes(q)));}
@@ -2440,7 +2518,8 @@ function puOvCtl(o,i){
  if(o.ov&&o.ov.st==='skip')return `<div class="fuov on">ย้ายเป็นไม่ต้องตาม${o.ov.by?' โดย '+esc(o.ov.by):''}${o.ov.why?'<br><span class="nsm">'+esc(o.ov.why)+'</span>':''}<button class="fuovb" data-pui="${i}" data-ovst="clear">ยกเลิก</button></div>`;
  if(o.ov&&o.ov.st==='follow')return `<div class="fuov">ย้ายกลับมาตาม${o.ov.by?' โดย '+esc(o.ov.by):''}<button class="fuovb" data-pui="${i}" data-ovst="clear">ยกเลิก</button></div>`;
  if(o.g==='X')return `<div class="fuov"><button class="fuovb" data-pui="${i}" data-ovst="follow">ย้ายกลับมาตาม</button></div>`;
- return `<div class="fuov"><select class="fuovs" data-pui="${i}" aria-label="ย้ายไปไม่ต้องตาม"><option value="">ย้ายไป “ไม่ต้องตาม”…</option>${PU_WHY.map(w=>`<option>${esc(w)}</option>`).join('')}</select></div>`;}
+ if(o.fuMan&&o.g==='F')return `<div class="fuov">บันทึกว่าตามแล้ว${o.ov.by?' โดย '+esc(o.ov.by):''}<button class="fuovb" data-pui="${i}" data-ovst="clear">ยกเลิก</button></div>`;
+ return `<div class="fuov">${o.g==='F'||o.g==='R'?'':`<button class="fuovb fudone" data-pui="${i}" data-ovst="skip" data-why="ตามแล้ว (นอกแชท: โทร / LINE / อื่น ๆ)" title="ตามทางอื่นที่ระบบมองไม่เห็น เช่น โทร หรือทัก LINE">✓ ตามแล้ว (นอกแชท)</button>`}<select class="fuovs" data-pui="${i}" aria-label="ย้ายไปไม่ต้องตาม"><option value="">ย้ายไป “ไม่ต้องตาม”…</option>${PU_WHY.map(w=>`<option>${esc(w)}</option>`).join('')}</select></div>`;}
 
 function renderPay(){
  const el=$('#fu'), sc=$('#fuscope'), LN=CH==='line', chn=CH==='ig'?'Instagram':(LN?'LINE OA':'Facebook');
@@ -2453,7 +2532,7 @@ function renderPay(){
  const c1=inG.filter(o=>puInB(o,'1')).length,c7=inG.filter(o=>puInB(o,'7')).length,c30=inG.filter(o=>puInB(o,'30')).length;
  const c0=inG.filter(o=>o.wait<1).length,P90=((FU.pay90||{})[CH])||{},c90=PU_G==='all'?PU_ORD.reduce((a,k)=>a+(P90[k]||0),0):(P90[PU_G]||0);
  const H=(FU.payhist||[]),hi=CH==='ig'?4:(LN?7:1),prevH=H.length>1?H[H.length-2]:null;
- const dd=(now,prev)=>prev==null||PU_G!=='all'||FU_O?'':(now-prev===0?'<span class="fud0">เท่าเดิม</span>':(now<prev?'<span class="fudok">▼ '+nf(prev-now)+'</span>':'<span class="fudbad">▲ '+nf(now-prev)+'</span>'))+' <span class="nsm">เทียบรอบ '+fuDay(prevH[0])+'</span>';
+ const dd=(now,prev)=>prev==null||PU_G!=='all'||FU_O||!prevH?'':(now-prev===0?'<span class="fud0">เท่าเดิม</span>':(now<prev?'<span class="fudok">▼ '+nf(prev-now)+'</span>':'<span class="fudbad">▲ '+nf(now-prev)+'</span>'))+' <span class="nsm">เทียบรอบ '+fuDay(prevH[0])+'</span>';
  const card=(b,cls,lab,v,sub,d)=>`<button class="fucard ${cls}" data-pub="${b}" aria-pressed="${PU_B===b}"><span class="lab">${lab}</span><span class="v">${nf(v)}</span><span class="s">${sub}</span>${d?'<span class="d">'+d+'</span>':''}</button>`;
  const gl=PU_G==='all'?'ส่งราคาแล้วยังไม่โอน':PU_GN[PU_G];
  const cards=fuModeBar()+`<div class="fucards c3">`+
@@ -2466,11 +2545,17 @@ function renderPay(){
  const go=(g,lab,cls)=>{const n=R.filter(o=>o.g===g).length;return `<button type="button" class="fust go ${cls||''}" data-pugo="${g}" aria-pressed="${PU_G===g&&PU_B==='all'}" title="กดเพื่อดูรายชื่อแชทกลุ่มนี้ (ส่งราคาภายใน 90 วัน)"><b>${nf(n)}</b> ${lab}</button>`;};
  const stat=`<div class="fustat"><span class="lab">อ่านทั้งห้องแชท (ทุกเดือนต่อกัน) · ${nf(quoted)} ห้องที่ฝั่งเราเคยส่งราคาตั้งแต่ ม.ค. 2026 · ปิดได้ ${quoted?Math.round((S.paid||0)/quoted*1000)/10:0}% · <b>กดตัวเลขที่มีกรอบ</b>เพื่อเปิดรายชื่อแชท (นับเฉพาะที่ส่งราคาภายใน 90 วัน)</span>`+
   `<span class="fust ok"><b>${nf(S.paid||0)}</b> โอนแล้ว (สลิปผ่านหลังได้ราคา${LN?' หรือแท็กสมัครแล้ว':''})</span>`+
-  go('R','ลูกค้าถามค้าง','risk')+go('A','สรุปยอดแล้ว รอโอน','warn')+go('B','คุยต่อแล้วเงียบ','')+go('C','ได้ราคาแล้วเงียบเลย','')+go('X','ไม่ต้องตาม','')+`</div>`;
+  go('R','ลูกค้าถามค้าง','risk')+go('A','สรุปยอดแล้ว รอโอน','warn')+go('B','คุยต่อแล้วเงียบ','')+go('C','ได้ราคาแล้วเงียบเลย','')+go('F','ตามแล้ว รอลูกค้าตอบ','ok')+go('X','ไม่ต้องตาม','')+`</div>`;
+ const PF=((FU.payfu||{})[CH])||{};
+ const flow=flowBox(((FU.payflow||{})[CH]||{})[PU_FLD],PU_FLD,PU_FLK,'flk','fld',
+  [['paid','โอนแล้ว','ok'],['fu','ตามแล้ว → รอลูกค้าตอบ','ok'],['x','ไม่ต้องตาม',''],['aged','เกิน 90 วัน','']],
+  [['reply','ลูกค้าตอบกลับ (ย้ายกลุ่ม)','warn'],['fudue','ตามแล้วแต่ครบกำหนดอีก','warn'],['still','ยังไม่มีใครตาม','risk']],
+  `<p class="nsm flsum">ย้อนหลัง 7 วัน แอดมินทักตามในแชท <b>${nf(PF.fu_7d||0)}</b> แชท · ตั้งแต่ ม.ค. โอนแล้ว ${nf(S.paid||0)} แชท ในนั้น <b>${nf(S.paid_fu||0)}</b> แชทโอนหลังแอดมินทักตาม · ตัวเลขนี้นับจากข้อความในแชทอย่างเดียว การกด “ตามแล้ว (นอกแชท)” ไม่อยู่ในตารางนี้</p>`);
  const kw=`<details class="fhelp" style="margin:8px 0 16px"><summary>Keyword ที่ใช้จับ “ส่งราคา” และ “โอนแล้ว”</summary><dl>
   <dt>ส่งราคา (ข้อความฝั่งเรา แอดมินหรือข้อความอัตโนมัติ)</dt><dd><div class="fukw"><code>ตัวเลข + บาท</code><code>ตัวเลข + ฿</code><code>ตัวเลข + .-</code><code>ค่าเรียน + ตัวเลข</code><code>ราคา + ตัวเลข</code></div>ตัวเลข 4–5 หลัก เช่น 5,700.- · 6,900 บาท · 12,000฿</dd>
   <dt>สรุปยอด = ลูกค้าตกลงแล้ว (กลุ่ม “สรุปยอดแล้ว · รอโอน”)</dt><dd><div class="fukw"><code>ยอดชำระ</code><code>สรุปรายละเอียด</code><code>เลขบัญชี / เลขที่บัญชี</code><code>166-3-63464-6</code></div></dd>
   <dt>โอนแล้ว = หลุดจากรายการ</dt><dd><div class="fukw"><code>สถานะ: ตรวจสอบสลิปสำเร็จ</code><code>ชื่อผู้รับ: บจก. ไบโอปาล์ม</code>${LN?'<code>แท็ก LINE “สมัครแล้ว”</code>':''}</div>ต้องมา<b>หลัง</b>ข้อความราคารอบนั้น · ถ้าส่งราคาใหม่หลังเคยโอน (ซื้อคอร์สต่อ) จะนับเป็นรอบใหม่ และติดป้าย “เคยโอนแล้ว”</dd>
+  <dt>ตามแล้ว (ระบบจับเอง)</dt><dd>ข้อความที่<b>แอดมินกดส่งเอง</b> หลังลูกค้าเงียบ <b>12 ชม.ขึ้นไป</b> และหลังส่งราคาแล้ว 12 ชม.ขึ้นไป (ข้อความอัตโนมัติไม่นับ · ส่งหลายข้อความภายใน 30 นาทีนับ 1 ครั้ง) · ส่งการ์ดราคาซ้ำแบบนี้ก็นับเป็นการตาม <b>ไม่</b>นับเป็นส่งราคาใหม่ วันที่ “ส่งราคามาแล้ว” จึงไม่รีเซ็ต · ลูกค้ายังไม่ตอบ = อยู่ “ตามแล้ว · รอลูกค้าตอบ” 7 วัน ครบแล้วยังเงียบ = กลับมาในรายการพร้อมป้าย “ครบกำหนดตามรอบถัดไป” · ลูกค้าตอบ = ย้ายไปถามค้าง/คุยต่อ · ตามทางโทรหรือ LINE ที่ระบบมองไม่เห็น กดปุ่ม <b>✓ ตามแล้ว (นอกแชท)</b> มีผล 7 วันเหมือนกัน</dd>
   <dt>ไม่ต้องตาม</dt><dd><div class="fukw"><code>โอนแล้ว / แนบสลิป / ชำระแล้ว</code><code>ถามเรื่องไฟล์ ลิงก์เข้าเรียน ชีท</code><code>ไม่สนใจ / ไว้ก่อน / แพง / ยกเลิก</code><code>ชวนไปคุย LINE แล้ว</code></div>(ลูกค้าพิมพ์หลังได้ราคา) · หรือแอดมินย้ายเอง</dd></dl></details>`;
  const note=`<p class="note fusm">ตัวเลขในการ์ด = กลุ่ม <b>${PU_GN[PU_G]}</b> · ส่งราคาไม่ถึง 1 วัน ${nf(c0)} แชท (ยังคุยกันอยู่ ยังไม่เข้ารายการ) · ส่งราคาเก่ากว่า 90 วัน ${nf(c90)} แชท (นับไว้เฉย ๆ ไม่ใส่ในรายการ)${LN?' · LINE ดึงเดือนละครั้ง “มาแล้ว” นับถึง '+endT:''}</p>`;
  /* weekly strip by the week of the latest quote */
@@ -2487,14 +2572,14 @@ function renderPay(){
  const amt=`<div class="fuhd"><b>ราคาที่ส่งไปแล้วยังไม่โอน</b> <span class="nsm">ราคาในข้อความราคาล่าสุด · กดเพื่อกรอง</span></div>
   <div class="fuwant">${ams.length?ams.map(a=>`<button class="fuw ${PU_T===a?'on':''}" data-put="${esc(a)}"><span class="t">${esc(a)}</span><span class="track"><span class="bar" style="width:${Math.round(am[a]/amax*100)}%"></span></span><span class="n">${nf(am[a])}</span></button>`).join(''):'<span class="nsm">ไม่พบตัวเลขราคา — ส่วนใหญ่เป็นข้อความสรุปยอด/เลขบัญชี</span>'}</div>`;
  /* list */
- const QR={R:0,A:1,B:2,C:3,X:4};
- const L=puFilt(false).sort((a,b)=>(QR[a.g]-QR[b.g])||(b.q1<a.q1?-1:1));
+ const QR={R:0,A:1,B:2,C:3,F:4,X:5};
+ const L=puFilt(false).sort((a,b)=>(QR[a.g]-QR[b.g])||((b.due||0)-(a.due||0))||(b.q1<a.q1?-1:1));
  const PER=50,pages=Math.max(1,Math.ceil(L.length/PER));if(PU_PAGE>=pages)PU_PAGE=0;
  PU_L=[];
  const fl=f=>`<span class="puflag ${/ปฏิเสธ|แพง/.test(f)?'bad':(/โอนแล้ว|นักเรียน|สมัคร/.test(f)?'ok':'')}">${esc(f)}</span>`;
  const lrows=L.slice(PU_PAGE*PER,PU_PAGE*PER+PER).map(o=>`<tr>
    <td><b>${CH==='ig'?'@':''}${esc(o.name||'(ไม่มีชื่อ)')}</b><div class="nsm">${LN?'ผู้ดูแล <b>'+esc(o.owner||'-')+'</b>':(o.src==='ad'?'มาจากโฆษณา':(o.src==='comment'?'มาจากคอมเมนต์':'ทักเข้ามาเอง'))}</div>
-    <div><span class="badge puk-${o.g}">${PU_GN[o.g]}</span></div>${o.flags.length?'<div>'+o.flags.map(fl).join('')+'</div>':''}</td>
+    <div><span class="badge puk-${o.g}">${PU_GN[o.g]}</span>${o.due?' <span class="badge risk">ครบกำหนดตามรอบถัดไป</span>':''}</div>${o.nfu||o.fuMan?'<div class="nsm fuinfo">✓ '+(o.nfu?'ตามในแชท '+o.nfu+' ครั้ง · ล่าสุด '+fuDay(o.fu1)+' '+o.fu1.slice(11,16):'')+(o.fuMan?(o.nfu?' · ':'')+'กดตามแล้ว (นอกแชท)'+(o.ov&&o.ov.by?' โดย '+esc(o.ov.by):''):'')+'</div>':''}${o.flags.length?'<div>'+o.flags.map(fl).join('')+'</div>':''}</td>
    <td class="n"><b class="${o.wait<7?'furisk':'fuwarn'}">${Math.floor(o.wait)}</b> วัน<div class="nsm">${fuDay(o.q1)} ${o.q1.slice(11,16)}</div>${o.nq>1?'<div class="nsm">ส่งราคา '+o.nq+' ครั้ง</div>':''}</td>
    <td class="w"><span class="puamt">${esc(o.amt||(o.bill?'สรุปยอด/เลขบัญชี':'—'))}</span> ${o.tags.map(t=>'<span class="badge">'+esc(t)+'</span>').join(' ')}<div class="puq">${esc(o.qt)}</div></td>
    <td class="w puafter">${o.after?esc(o.after):'<span class="nsm">ยังไม่ได้ตอบอะไรหลังได้ราคา</span>'}<span class="nsm">ลูกค้าทักล่าสุด ${fuDay(o.lastc)} ${o.lastc.slice(11,16)}</span></td>
@@ -2506,7 +2591,7 @@ function renderPay(){
   ownRow=`<div class="chips fuown"><span class="nsm">แอดมินผู้ดูแลห้อง:</span> <button class="chip" data-fuo="" aria-pressed="${!FU_O}">ทุกคน</button>${os.map(n=>`<button class="chip" data-fuo="${esc(n)}" aria-pressed="${FU_O===n}">${esc(n)} ${nf(oc[n])}</button>`).join('')}</div>`;}
  const bOK=o=>puInB(o,PU_B);
  const grp=`<div class="fugrp" role="group" aria-label="เลือกกลุ่มแชท"><span class="lab">กลุ่มแชท</span>`+
-  ['all'].concat(PU_ORD,['X']).map(g=>`<button type="button" class="fug g-${g}" data-pug="${g}" aria-pressed="${PU_G===g}" title="${esc(PU_GD[g]||'R + A + B + C')}">${PU_GN[g]} <b>${nf(R.filter(o=>bOK(o)&&puInG(o,g)).length)}</b></button>`).join('')+`</div>`;
+  ['all'].concat(PU_ORD,['F','X']).map(g=>`<button type="button" class="fug g-${g}" data-pug="${g}" aria-pressed="${PU_G===g}" title="${esc(PU_GD[g]||'ถามค้าง + สรุปยอดแล้ว + คุยต่อแล้วเงียบ + เงียบเลย (ไม่รวมตามแล้ว และไม่ต้องตาม)')}">${PU_GN[g]} <b>${nf(R.filter(o=>bOK(o)&&puInG(o,g)).length)}</b></button>`).join('')+`</div>`;
  const bl=PU_B==='all'?'ทุกช่วงเวลา (ส่งราคาภายใน 90 วัน)':(PU_B==='1'?'ส่งราคา 1–6 วันก่อน':(PU_B==='7'?'ส่งราคา 7–29 วันก่อน':'ส่งราคา 30–89 วันก่อน'));
  const show=`<div class="fushow" id="pulist">กำลังดู <b>${PU_GN[PU_G]}</b> · ${bl}${PU_T?' · ราคา '+esc(PU_T):''} · <b>${nf(L.length)}</b> แชท${PU_G!=='all'&&PU_GD[PU_G]?'<span class="nsm" style="flex-basis:100%;color:var(--ink-2)">'+PU_GD[PU_G]+'</span>':''}${PU_B==='all'?' <button class="chip" data-pub="1" aria-pressed="false">กลับไปดู 1–6 วัน</button>':''}</div>`;
  const list=`<div class="fuhd"><b>รายชื่อแชทที่ต้องตามโอน</b> <span class="nsm">ถามค้างขึ้นก่อน → สรุปยอดแล้ว → คุยต่อแล้วเงียบ → เงียบเลย · ในกลุ่มเรียงจากส่งราคาล่าสุด</span></div>
@@ -2518,7 +2603,7 @@ function renderPay(){
    <button class="dlbtn fudl" id="pudl" type="button">⤓ ดาวน์โหลดรายการนี้ (CSV) · ${nf(L.length)} แชท</button><span class="fupager">${pager}</span></div></div>`;
  const hist=H.length>1?`<div class="fuhd"><b>ค้างโอนรายรอบอัปเดต</b> <span class="nsm">ทุกกลุ่มยกเว้นไม่ต้องตาม</span></div><div class="tw"><table><thead><tr><th>ข้อมูลถึง</th><th class="n">1–6 วัน</th><th class="n">7–29 วัน</th><th class="n">30–89 วัน</th></tr></thead><tbody>${H.slice(-8).reverse().map(h=>`<tr><td>${fuDay(h[0])}</td><td class="n">${nf(h[hi]||0)}</td><td class="n">${nf(h[hi+1]||0)}</td><td class="n">${nf(h[hi+2]||0)}</td></tr>`).join('')}</tbody></table></div>`:
   `<p class="note fusm">ตัวเลขเทียบรายรอบจะเริ่มขึ้นหลังรอบอัปเดตถัดไป</p>`;
- el.innerHTML=cards+stat+note+kw+`<div class="fugrid"><div>${wtable}</div><div>${amt}</div></div>`+list+hist;
+ el.innerHTML=cards+stat+flow+note+kw+`<div class="fugrid"><div>${wtable}</div><div>${amt}</div></div>`+list+hist;
  fuModeBind(el);
  el.querySelectorAll('[data-pub]').forEach(b=>b.addEventListener('click',()=>{PU_B=b.dataset.pub;PU_W='';PU_PAGE=0;renderPay();}));
  el.querySelectorAll('[data-pug]').forEach(b=>b.addEventListener('click',()=>{PU_G=b.dataset.pug;PU_W='';PU_T='';PU_PAGE=0;renderPay();}));
@@ -2536,8 +2621,10 @@ function renderPay(){
   const o=PU_L[+sv.dataset.pui];const r=await ovMove(o,'skip',why);
   if(!r){sv.value='';toast('ยังไม่ได้ย้าย');return;}
   ovSet(o,'skip',r.why,r.by);}));
- el.querySelectorAll('.fuovb[data-pui]').forEach(b=>b.addEventListener('click',async()=>{const o=PU_L[+b.dataset.pui],st=b.dataset.ovst;
-  const r=await ovMove(o,st,'');if(!r){toast('ยังไม่ได้เปลี่ยน');return;}ovSet(o,st,'',r.by);}));
+ el.querySelectorAll('.fuovb[data-pui]').forEach(b=>b.addEventListener('click',async()=>{const o=PU_L[+b.dataset.pui],st=b.dataset.ovst,why=b.dataset.why||'';
+  const r=await ovMove(o,st,why);if(!r){toast('ยังไม่ได้เปลี่ยน');return;}ovSet(o,st,why?r.why:'',r.by);}));
+ el.querySelectorAll('[data-flk]').forEach(b=>b.addEventListener('click',()=>{PU_FLK=PU_FLK===b.dataset.flk?'':b.dataset.flk;renderPay();}));
+ el.querySelectorAll('[data-fld]').forEach(b=>b.addEventListener('click',()=>{PU_FLD=b.dataset.fld;PU_FLK='';renderPay();}));
 }
 
 /* ---------- orchestration ---------- */
@@ -2556,7 +2643,7 @@ function applyView(){
 
 function refresh(){buildMonths();setNow();applyView();}
 $('#chseg').querySelectorAll('button').forEach(b=>b.addEventListener('click',()=>{
- CH=b.dataset.ch;PAGE=0;SEL=0;TERM='';FILTER='all';RWHO='all';LN_PAGE=0;LN_SEL=0;LN_TERM='';LN_F='all';
+ CH=b.dataset.ch;PAGE=0;SEL=0;TERM='';FILTER='all';RWHO='all';RFU='all';LN_PAGE=0;LN_SEL=0;LN_TERM='';LN_F='all';
  $('#chseg').querySelectorAll('button').forEach(x=>x.setAttribute('aria-pressed',String(x.dataset.ch===CH)));
  PAGE=0;SEL=0;refresh();}));
 $('#vseg').querySelectorAll('button').forEach(b=>b.addEventListener('click',()=>{
