@@ -19,7 +19,7 @@ list as soon as an admin types after the customer's latest message in any later 
   hist   = [date, fb 7-29, fb 30+, ig 7-29, ig 30+] per build, carried over from the last publish,
            so the page can show whether the 30+ pile is actually shrinking week to week
 
-Writes src/followup.json. Run AFTER build_v5.py / post_v5_speed.py, BEFORE build.py.
+Writes src/followup.json (then runs build_pay.py, which adds the payment follow-up list). Run AFTER build_v5.py / post_v5_speed.py, BEFORE build.py.
 Memory-lean on purpose: one month file in memory at a time (the Composio sandbox has ~1 GB).
 """
 import json, glob, re, datetime, collections, gc
@@ -83,7 +83,51 @@ try:
     for k, v in json.load(open('pre2026.json', encoding='utf-8')).items(): PRE[k] |= set(v)
 except Exception: pass
 STATUS = {}
+ARFLOW = {}
+SLIPX = re.compile(r'ตรวจสอบสลิปสำเร็จ')
 del agg; gc.collect()
+
+def ar_at(tid, e, cut, ch):
+    """(Sep 23 2026, flow table) was this thread on the to-do list at minute `cut`? -> customer's last minute or None"""
+    ms = [x for x in e['m'] if x[0] <= cut]
+    cus = [x for x in ms if x[1] == 0]
+    if not cus: return None
+    if any(x[1] == 2 and SLIPX.search(x[2]) for x in ms): return None
+    hum = [x[0] for x in ms if x[1] == 1]
+    lastH = hum[-1] if hum else None
+    prior = bool(hum) or tid in PRE[ch]
+    ep = [x for x in cus if lastH is None or x[0] > lastH]
+    if not ep: return None
+    said = [x[2] for x in ep if x[2] not in NOISE]
+    if prior and all(LOW.match(x) for x in said): return None
+    if quality(said) == 'C' or KIND.get(e['st']) == 'give': return None
+    if (cut - ep[-1][0]) / 1440.0 < 7: return None
+    return ep[-1][0]
+
+def ar_flow(th, now, ch):
+    """start + new - out = end, exactly: a start chat still on the list today is a 'stay', otherwise an 'out'.
+       every entry is [thread id, name, had an admin before (1/0)] so the page can split never / prior"""
+    out = {}
+    pri = lambda t: 1 if (any(x[1] == 1 for x in th[t]['m']) or t in PRE[ch]) else 0
+    endset = {tid for tid, n in now.items() if n[2]}
+    for days in (1, 7):
+        cut = END - days * 1440
+        start = {}
+        for tid, e in th.items():
+            if not any(x[1] == 0 for x in e['m']): continue
+            lc = ar_at(tid, e, cut, ch)
+            if lc is not None: start[tid] = lc
+        res = collections.defaultdict(list)
+        for tid, lc in start.items():
+            n = now.get(tid)
+            if tid in endset: k = 'more' if n[1] > lc else 'still'
+            elif not n: k = 'answered'
+            elif n[0] in ('won', 'answered', 'closing'): k = n[0]
+            else: k = 'x'
+            res[k].append([tid, th[tid].get('name') or '', pri(tid)])
+        out[str(days)] = {'from': stamp(cut), 'to': stamp(END),
+                          'new': [[t, th[t].get('name') or '', pri(t)] for t in endset if t not in start], 'out': dict(res)}
+    ARFLOW[ch] = out
 
 def feed(th, mo, rows, t):
     b = base(mo)
@@ -107,20 +151,21 @@ def finish(th, ch):
                 already talked -> the conversation ended politely, nothing to follow up
        waiting  the customer's latest round got automatic replies only -> listed (prior = had an admin
                 before, in 2026 or earlier)"""
-    out = []; st = collections.Counter()
+    out = []; st = collections.Counter(); now = {}
     for tid, e in th.items():
         ms = e['m']
         cus = [x for x in ms if x[1] == 0]
         if not cus: continue
         ms.sort(key=lambda x: x[0])
+        cus = [x for x in ms if x[1] == 0]
         hum = [x[0] for x in ms if x[1] == 1]
         lastH = hum[-1] if hum else None
         prior = bool(hum) or tid in PRE[ch]
-        if e['st'] == 'W': st['won'] += 1; continue
+        if e['st'] == 'W': st['won'] += 1; now[tid] = ('won', 0, False); continue
         ep = [x for x in cus if lastH is None or x[0] > lastH]
-        if not ep: st['answered'] += 1; continue          # an admin replied after the customer's last message
+        if not ep: st['answered'] += 1; now[tid] = ('answered', 0, False); continue          # an admin replied after the customer's last message
         said = [x[2] for x in ep if x[2] not in NOISE]
-        if prior and all(LOW.match(x) for x in said): st['closing'] += 1; continue
+        if prior and all(LOW.match(x) for x in said): st['closing'] += 1; now[tid] = ('closing', 0, False); continue
         auto = [x for x in ms if x[1] == 2 and x[0] >= ep[0][0]]   # all role-2 after this round = automatic by construction
         lastC = ep[-1][0]
         seen = []
@@ -133,12 +178,14 @@ def finish(th, ch):
         wk = (d0 - datetime.timedelta(days=d0.weekday())).strftime('%Y-%m-%d')
         q = quality(said)
         st['noise' if q == 'C' else ('waiting_prior' if prior else 'waiting_never')] += 1
+        now[tid] = ('noise' if q == 'C' else 'waiting', lastC, q != 'C' and kind != 'give' and (END - lastC) / 1440.0 >= 7)
         out.append([tid, e['name'] or '', kind, round((END - lastC) / 1440.0, 1),
                     stamp(ep[0][0]), stamp(lastC), wk, len(ep), ' | '.join(seen)[:400],
                     [n for n, rx in TAGS if rx.search(joined)],
                     (auto[-1][2] if auto else ''), len(auto), 1 if prior else 0, e['src'] or 'organic', e['mo'], q])
     out.sort(key=lambda r: r[5], reverse=True)
     STATUS[ch] = dict(st)
+    ar_flow(th, now, ch)
     return out
 
 th = collections.OrderedDict()
@@ -166,7 +213,7 @@ print('multi-month threads', {k: len(v) for k, v in THR.items()}, 'status', STAT
 LN = []; LEND = None; LBOT = ''
 lfiles = sorted(glob.glob('src/line_*.json'))
 if lfiles:
-    th = collections.OrderedDict(); ADM = {}
+    th = collections.OrderedDict(); ADM = {}; LMAX = 0
     for pth in lfiles:
         mo = pth[-12:-5]; f = json.load(open(pth, encoding='utf-8')); t = tx_of(f['dict']); LBOT = f.get('bot') or LBOT
         y = int(mo[:4])
@@ -179,7 +226,7 @@ if lfiles:
             for m in r['tr']:
                 try: ts = int((datetime.datetime(y, int(m[0][:2]), int(m[0][3:5]), int(m[0][6:8]), int(m[0][9:11])) - T0).total_seconds() // 60)
                 except Exception: continue
-                sx = str(t(m[2])).strip(); who = m[1]
+                sx = str(t(m[2])).strip(); who = m[1]; LMAX = max(LMAX, ts)
                 if who == 'C': e['m'].append((ts, 0, sx)); nc += 1
                 elif who == 'B':
                     if sx not in NOISE: e['m'].append((ts, 2, sx[:160]))
@@ -190,6 +237,8 @@ if lfiles:
     lm = lfiles[-1][-12:-5]; ly, lmn = int(lm[:4]), int(lm[5:7])
     nxt = datetime.datetime(ly + (lmn == 12), lmn % 12 + 1, 1)
     LEND = int((nxt - T0).total_seconds() // 60) - 1                     # 23:59 on the last day of that month
+    # Sep 23 2026: a month pulled part-way (e.g. ก.ย. 1-22) must not age every room to the 30th -> end = last message seen
+    if LMAX and LMAX < LEND: LEND = LMAX
     END_SAVE = END; END = LEND
     LN = finish(th, 'line')
     END = END_SAVE
@@ -217,8 +266,15 @@ hist = sorted(hist)[-120:]
 COLS = ['tid', 'name', 'kind', 'wait', 'first', 'last', 'week', 'n', 'said', 'tags', 'auto', 'nauto', 'prior', 'src', 'mo', 'q',
         'owner', 'reg', 'admins']   # last three: LINE only
 json.dump({'end': stamp(END), 'hist': hist, 'status': STATUS, 'pre': {k: sorted(v) for k, v in PRE.items()},
-           'cols': COLS, 'fb': FB, 'ig': IG, 'line': LN, 'lend': stamp(LEND) if LEND else None, 'lbot': LBOT},
+           'cols': COLS, 'arflow': ARFLOW, 'fb': FB, 'ig': IG, 'line': LN, 'lend': stamp(LEND) if LEND else None, 'lbot': LBOT},
           open('src/followup.json', 'w', encoding='utf-8'), separators=(',', ':'), ensure_ascii=False)
 for ch, L in (('fb', FB), ('ig', IG), ('line', LN)):
     c = collections.Counter(('<7' if r[3] < 7 else ('7-29' if r[3] < 30 else '30+'), r[12], r[15]) for r in L if r[2] != 'give')
     print(ch, len(L), sorted(c.items()))
+
+# ---- payment follow-up (Sep 23 2026): chats sent a price with no verified slip after it -> key "pay" ----
+del FB, IG, LN; gc.collect()
+try:
+    import build_pay; build_pay.main()
+except Exception as ex:          # the auto-reply list above is already saved; never let the payment list break it
+    print('build_pay FAILED', repr(ex))

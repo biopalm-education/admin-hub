@@ -397,6 +397,151 @@ body{background:
 .fustat{display:flex;flex-wrap:wrap;gap:6px 14px;align-items:baseline;margin:10px 0 2px;padding:10px 13px;background:var(--card);border:1px solid var(--line);border-radius:10px;font-size:13px}
 .fustat>.lab{flex-basis:100%}
 .fust b{font-family:"IBM Plex Mono",monospace} .fust.ok b{color:var(--teal-ink)} .fust.risk b{color:var(--risk)} .fust.warn b{color:var(--warn)}
+/* Follow up hub (Sep 23 2026): mode switch · group chips · payment list */
+.fumode{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:12px;margin:2px 0 16px}
+@media(max-width:620px){.fumode{grid-template-columns:repeat(2,minmax(0,1fr));gap:8px}.fumb{grid-template-columns:minmax(0,1fr);padding:10px 11px;gap:1px;min-width:0}.fumb .n small{white-space:normal}.fumb .ic,.fumb .s{display:none}.fumb .t{font-size:13px;line-height:1.3}.fumb .n{grid-row:auto;grid-column:1;text-align:left;font-size:21px;margin-top:4px}}
+.fumb{font:inherit;text-align:left;cursor:pointer;background:var(--card);border:1px solid var(--line);border-radius:13px;padding:14px 16px 13px;color:var(--ink);display:grid;grid-template-columns:auto 1fr auto;gap:2px 12px;align-items:center;box-shadow:var(--shadow)}
+.fumb .ic{grid-row:1/3;width:38px;height:38px;border-radius:10px;display:grid;place-items:center;font-size:19px;background:var(--sunk)}
+.fumb .t{font-weight:600;font-size:15px}
+.fumb .s{grid-column:2;font-size:12.5px;color:var(--ink-3);line-height:1.35}
+.fumb .n{grid-row:1/3;grid-column:3;text-align:right;font-family:"IBM Plex Mono",monospace;font-size:24px;font-weight:600;line-height:1.1}
+.fumb .n small{display:block;font-family:inherit;font-size:11px;font-weight:400;color:var(--ink-3)}
+.fumb[aria-pressed="true"]{border-color:var(--leaf);box-shadow:inset 0 0 0 2px var(--leaf),var(--shadow)}
+.fumb[aria-pressed="true"] .ic{background:var(--leaf);color:#fff}
+.fumb.pay[aria-pressed="true"]{border-color:var(--warn);box-shadow:inset 0 0 0 2px var(--warn),var(--shadow)}
+.fumb.pay[aria-pressed="true"] .ic{background:var(--warn-bar);color:var(--ink)}
+.fumb:focus-visible{outline:2px solid var(--leaf);outline-offset:2px}
+.fucards.c3{grid-template-columns:repeat(3,minmax(0,1fr))} @media(max-width:760px){.fucards.c3{grid-template-columns:1fr}}
+.fucur{display:flex;align-items:center;gap:12px;flex-wrap:wrap;margin:2px 0 16px;padding:12px 14px;background:var(--card);border:1px solid var(--line);border-left:4px solid var(--leaf);border-radius:12px;box-shadow:var(--shadow)}
+.fucur.pay{border-left-color:var(--warn)}.fucur.np{border-left-color:#6b8fd6}
+.fucur .ic{font-size:22px;line-height:1}
+.fucur .tx{flex:1 1 220px;min-width:0}.fucur .tx b{display:block;font-size:15px}.fucur .tx span{font-size:12.5px;color:var(--ink-3)}
+.fupkb{font:inherit;font-size:13.5px;font-weight:600;cursor:pointer;border:1px solid var(--leaf);color:var(--leaf);background:var(--leaf-soft);border-radius:999px;padding:7px 14px;white-space:nowrap}
+.fupkb:focus-visible,.fupko:focus-visible,.fupkx:focus-visible{outline:2px solid var(--leaf);outline-offset:2px}
+.fupk-bg{position:fixed;inset:0;z-index:80;background:rgba(20,28,24,.45);display:flex;align-items:center;justify-content:center;padding:16px}
+.fupk{background:var(--card);color:var(--ink);border-radius:16px;max-width:560px;width:100%;max-height:calc(100vh - 32px);overflow:auto;padding:18px 18px 14px;box-shadow:0 20px 60px rgba(0,0,0,.3)}
+.fupk h3{margin:0 0 2px;font-size:18px}.fupk .sub{margin:0 0 14px;font-size:13px;color:var(--ink-3)}
+.fupko{font:inherit;text-align:left;cursor:pointer;width:100%;display:grid;grid-template-columns:auto 1fr auto;gap:2px 12px;align-items:center;background:var(--card);border:1px solid var(--line);border-radius:12px;padding:12px 14px;margin:0 0 10px;color:var(--ink)}
+.fupko:hover{border-color:var(--leaf)}
+.fupko .ic{grid-row:1/3;width:38px;height:38px;border-radius:10px;display:grid;place-items:center;font-size:19px;background:var(--sunk)}
+.fupko .t{font-weight:600;font-size:15px}.fupko .s{grid-column:2;font-size:12.5px;color:var(--ink-3);line-height:1.35}
+.fupko .n{grid-row:1/3;grid-column:3;text-align:right;font-family:"IBM Plex Mono",monospace;font-size:22px;font-weight:600;line-height:1.1}
+.fupko .n small{display:block;font-family:inherit;font-size:11px;font-weight:400;color:var(--ink-3)}
+.fupko[aria-current="true"]{border-color:var(--leaf);box-shadow:inset 0 0 0 2px var(--leaf)}
+.fupk .foot{display:flex;justify-content:space-between;align-items:center;gap:8px;font-size:12px;color:var(--ink-3)}
+.fupkx{font:inherit;cursor:pointer;border:1px solid var(--line);background:var(--sunk);color:var(--ink);border-radius:999px;padding:6px 14px}
+@media(max-width:620px){.fupko{padding:10px 11px}.fupko .s{display:none}.fupko .n{font-size:19px}}
+.fugrp{display:flex;flex-wrap:wrap;gap:6px;align-items:center;margin:0 0 4px}
+.fugrp>.lab{margin-right:2px}
+.fug{font:inherit;font-size:12.5px;cursor:pointer;padding:5px 11px;border-radius:9px;border:1px solid var(--line-2);background:var(--card);color:var(--ink-2);display:inline-flex;gap:6px;align-items:baseline}
+.fug b{font-family:"IBM Plex Mono",monospace;font-weight:600;color:var(--ink)}
+.fug[aria-pressed="true"]{background:var(--ink);border-color:var(--ink);color:var(--paper)} .fug[aria-pressed="true"] b{color:var(--paper)}
+.fug.g-R b,.fug.g-never b{color:var(--risk)} .fug.g-A b,.fug.g-prior b{color:var(--warn)} .fug.g-skip b,.fug.g-X b{color:var(--ink-3)}
+.fug[aria-pressed="true"].g-R b,.fug[aria-pressed="true"].g-never b,.fug[aria-pressed="true"].g-A b,.fug[aria-pressed="true"].g-prior b,.fug[aria-pressed="true"].g-skip b,.fug[aria-pressed="true"].g-X b{color:var(--paper)}
+.fust.go{font:inherit;cursor:pointer;background:var(--sunk);border:1px solid var(--line-2);border-radius:999px;padding:2px 10px;color:var(--ink)}
+.fust.go:hover{border-color:var(--ink-3)} .fust.go[aria-pressed="true"]{background:var(--ink);color:var(--paper);border-color:var(--ink)}
+.fust.go[aria-pressed="true"] b{color:var(--paper)} .fust.go::after{content:" ›";color:var(--ink-3)}
+.fushow{display:flex;flex-wrap:wrap;gap:6px;align-items:center;margin:0 0 8px;padding:8px 12px;border-radius:9px;background:var(--leaf-soft);font-size:13px;color:var(--leaf)}
+.fushow b{color:var(--ink)} .fushow .chip{margin-left:auto}
+.badge.prior{color:var(--warn);background:var(--warn-soft);border-color:transparent}
+.badge.skip{color:var(--ink-3);background:var(--sunk);border-color:transparent}
+.puk-R{color:#fff;background:var(--risk);border-color:transparent}
+.puk-A{color:var(--warn);background:var(--warn-soft);border-color:transparent}
+.puk-B{color:var(--fb);background:var(--fb-soft);border-color:transparent}
+.puk-C,.puk-X{color:var(--ink-3);background:var(--sunk);border-color:transparent}
+.puk-F{color:var(--teal-ink);background:var(--teal-soft);border-color:transparent}
+.fust.go.ok b{color:var(--teal-ink)}
+.fukw{display:flex;flex-wrap:wrap;gap:5px;margin:6px 0 2px}
+.fukw code{font-family:"IBM Plex Mono",monospace;font-size:11.5px;background:var(--sunk);border:1px solid var(--line);border-radius:6px;padding:1px 7px;color:var(--ink-2)}
+.puamt{font-family:"IBM Plex Mono",monospace;font-weight:600;font-size:14px;color:var(--ink)}
+.puq{color:var(--ink-3);font-size:12px;line-height:1.4;margin-top:3px;max-height:3.9em;overflow:hidden}
+.tnfhd{margin:2px 0 12px}.tnfsum b{font-size:24px}.tnfsum .nsm{display:block;margin-top:2px}
+.tnfbar{display:flex;height:9px;border-radius:5px;overflow:hidden;margin-top:8px;background:var(--line,#eee)}
+.tnfbar .ok{background:#1D9E75}.tnfbar .a{background:#E24B4A}.tnfbar .b{background:#EF9F27}.tnfbar .c{background:#B4B2A9}
+.tnfpick{display:grid;grid-template-columns:repeat(auto-fit,minmax(215px,1fr));gap:8px;margin:0 0 10px}
+.tnfg{display:flex;flex-direction:column;gap:2px;text-align:left;padding:10px 12px;border:1px solid var(--line,#e2e2e2);border-radius:10px;background:var(--card,#fff);cursor:pointer;border-left-width:4px}
+.tnfg .k{font-weight:600;font-size:13px}.tnfg .n{font-size:20px;font-weight:700;line-height:1.1}
+.tnfg .s{font-size:11px;color:var(--mut,#666);min-height:14px}
+.tnfg.tg-xx{border-left-color:#E24B4A}.tnfg.tg-Tx{border-left-color:#EF9F27}.tnfg.tg-xN{border-left-color:#B4B2A9}
+.tnfg.tg-done{border-left-color:#1D9E75}.tnfg.tg-skip{border-left-color:var(--line,#ccc)}
+.tnfg[aria-pressed="true"]{outline:2px solid currentColor;outline-offset:-2px}
+.tnfwhy{margin:0 0 12px;font-size:13px;color:var(--ink-2,#555)}
+.tngo2{display:flex;flex-wrap:wrap;align-items:stretch;gap:8px;margin:0 0 14px}
+.tngo2 .lab{flex-basis:100%;font-size:12px;font-weight:600;color:var(--ink-2,#555)}
+.tngb{display:flex;flex-direction:column;gap:1px;text-align:left;padding:8px 12px;border:1px solid var(--line,#e2e2e2);border-left-width:4px;border-radius:9px;background:var(--card,#fff);cursor:pointer}
+.tngb .t{font-size:12px;font-weight:600}.tngb .n{font-size:19px;font-weight:700;line-height:1.1}
+.tngb .s{font-size:11px;color:var(--mut,#666)}
+.tngb:hover{background:var(--line,#f5f5f5)}
+.tngb.inline{display:inline-flex;padding:3px 9px;border-left-width:3px;border-left-color:#B4B2A9;vertical-align:middle}
+.tngb.inline .t{font-size:12px}
+.rvbar{height:6px;border-radius:3px;background:var(--line,#eee);overflow:hidden;margin-top:4px;min-width:70px}
+.rvbar span{display:block;height:100%;background:var(--ok,#1D9E75)}
+.rvcell{width:130px}.rvtab td.name{white-space:nowrap}
+.rvnote{border:1px solid var(--line);border-left:3px solid var(--ln,#0B7E93);border-radius:9px;padding:10px 14px;margin:14px 0 18px;font-size:13px;background:var(--card,#fff)}
+.rvnote b{font-weight:600}.rvnote p{margin:6px 0 0;color:var(--ink-2,#48606E)}
+.rvnote .rvwarn{color:var(--ink,#14252F)}
+.rvleg{display:flex;flex-wrap:wrap;align-items:center;gap:6px 10px;margin:2px 0 4px;font-size:12px}
+.rvk{display:inline-flex;align-items:center;gap:6px;border:1px solid var(--line);background:var(--card,#fff);border-radius:999px;padding:3px 11px;cursor:pointer;font-size:12px;color:var(--ink,#14252F)}
+.rvk i{width:11px;height:11px;border-radius:3px;display:inline-block}
+.rvk.on{border-color:var(--ink,#14252F);font-weight:600}
+.rvk.clr{color:var(--ink-2,#48606E)}
+.rvplot{position:relative;padding:22px 0 0 66px;margin:2px 0 6px}
+.rvarea{position:relative;border-bottom:1px solid var(--line-2,#C6D7E1)}
+.rvgrid{position:absolute;inset:0;pointer-events:none}
+.rvgl{position:absolute;left:0;right:0;border-top:1px solid var(--line);height:0}
+.rvgl span{position:absolute;right:calc(100% + 9px);top:-9px;font-size:11px;color:var(--ink-3,#7B919E);white-space:nowrap;font-variant-numeric:tabular-nums}
+.rvcols{position:absolute;inset:0;display:flex;align-items:flex-end;gap:6px}
+.rvcol{flex:1;display:flex;flex-direction:column;justify-content:flex-end;align-items:center;min-width:0}
+.rvxs{display:flex;gap:6px;margin-top:7px}
+.rvxc{flex:1;text-align:center;font-size:11px;color:var(--ink-2,#48606E);min-width:0;white-space:nowrap}
+.rvstack{display:flex;flex-direction:column;gap:2px;width:24px}
+.rvseg{display:block;width:100%}
+.rvseg.cap{border-radius:4px 4px 0 0}
+.rvnum{font-size:11px;color:var(--ink-2,#48606E);margin-bottom:4px;font-variant-numeric:tabular-nums;white-space:nowrap}
+.rvtbl{margin-top:14px}.rvdot{display:inline-block;width:9px;height:9px;border-radius:2px;margin-right:4px;vertical-align:-1px}
+@media(max-width:620px){.rvnum{font-size:9.5px}.rvstack{width:14px}.rvplot{padding-left:52px}.rvxc{font-size:10px}}
+tr.rvon td{background:var(--line,#f6f6f4)}
+tr.rvmiss td{opacity:.65}
+.tnfdo{font-size:12px;margin-top:4px}
+.chip.hot{font-weight:700}
+.tnst{display:inline-block;font-size:11.5px;font-weight:600;border-radius:999px;padding:1px 9px;border:1px solid var(--line,#ddd)}
+.tnst.perm{background:var(--sunk,#eee);color:var(--ink-2,#48606E)}
+.tnst.wait{background:var(--warn-soft,#FFF5DA);color:var(--warn,#8A5D00);border-color:transparent}
+.tnst.bad{background:var(--risk-soft,#FBEAE9);color:var(--risk,#C42B28);border-color:transparent}
+tr.tnrlate td{background:var(--risk-soft,#FBEAE9)}
+.tnlate{margin:0 0 10px;font-size:13px;border:1px solid var(--risk,#C42B28);border-left-width:3px;border-radius:9px;padding:8px 12px;background:var(--risk-soft,#FBEAE9);color:var(--ink,#14252F)}
+.tnok{margin:0 0 10px;font-size:13px;color:var(--ink-2,#48606E)}
+.puafter{font-size:13px;line-height:1.45} .puafter .nsm{display:block}
+.puflag{display:inline-block;font-size:11px;padding:1px 7px;border-radius:999px;background:var(--warn-soft);color:var(--warn);margin:3px 4px 0 0}
+.puflag.bad{background:var(--risk-soft);color:var(--risk)} .puflag.ok{background:var(--leaf-soft);color:var(--leaf)}
+.flow{margin:10px 0 4px;padding:11px 13px;background:var(--card);border:1px solid var(--line);border-radius:10px}
+.flhd{display:flex;flex-wrap:wrap;gap:6px 10px;align-items:baseline;font-size:13.5px;margin-bottom:8px}.flday{margin-left:auto;display:flex;gap:4px}
+.flline{display:flex;flex-wrap:wrap;gap:8px 10px;align-items:stretch}
+.flbox{display:flex;flex-direction:column;justify-content:center;padding:6px 12px;border-radius:9px;background:var(--sunk);min-width:74px}
+.flbox b{font-family:"IBM Plex Mono",monospace;font-size:20px}
+.flar{align-self:center;color:var(--ink-3);font-size:18px}
+.flgrp{display:flex;flex-wrap:wrap;gap:5px;align-items:center;padding:5px 8px;border:1px dashed var(--line-2);border-radius:9px}
+.flgrp>.nsm{flex-basis:100%}
+.flc{font:inherit;font-size:12.5px;cursor:pointer;padding:3px 10px;border-radius:999px;border:1px solid var(--line-2);background:var(--card);color:var(--ink-2)}
+.flc b{font-family:"IBM Plex Mono",monospace;color:var(--ink)} .flc.ok b{color:var(--teal-ink)} .flc.risk b{color:var(--risk)} .flc.warn b{color:var(--warn)}
+.flc[aria-pressed="true"]{background:var(--ink);color:var(--paper);border-color:var(--ink)} .flc[aria-pressed="true"] b{color:var(--paper)}
+.flsum{margin:8px 0 0}
+.flkpi{display:flex;flex-wrap:wrap;gap:10px 26px;align-items:flex-end;margin:4px 0 10px}
+.fk{display:flex;flex-direction:column;gap:1px;font:inherit;text-align:left;background:none;border:0;padding:0;color:var(--ink)}
+.fk b{font-family:"IBM Plex Mono",monospace;font-size:22px;font-weight:600;line-height:1.15}
+.fk.main b{font-size:32px} .fksub{font-size:12.5px;color:var(--ink-3)}
+.fkbtn{cursor:pointer;border-bottom:1px dashed var(--line-2)} .fkbtn[aria-pressed="true"] b{color:var(--leaf)}
+.fldok{color:var(--teal-ink);font-weight:600} .fldbad{color:var(--risk);font-weight:600} .fld0{color:var(--ink-2)}
+.flbar{display:flex;height:12px;border-radius:6px;overflow:hidden;background:var(--sunk)}
+.flbar i{display:block;height:100%} .flbar i.o,.fllg i.o{background:var(--teal-ink)} .flbar i.s,.fllg i.s{background:var(--risk)} .flbar i.nw,.fllg i.nw{background:var(--line-2)} .flbar i.ag,.fllg i.ag{background:var(--ink-3)} .flc.ag{color:var(--ink-3)}
+.fllg{display:flex;flex-wrap:wrap;gap:4px 16px;margin:6px 0 8px} .fllg i{display:inline-block;width:9px;height:9px;border-radius:2px;margin-right:5px;vertical-align:0}
+.flv0{margin:2px 0 6px;font-size:13.5px} .flv{font-weight:500} .flv.bad{color:var(--risk)} .flv.ok{color:var(--teal-ink)}
+.flwhere{display:flex;flex-wrap:wrap;gap:5px;align-items:center;margin-top:6px}
+.flhelp{margin-top:8px} .flhelp summary{font-size:12.5px}
+.fustd{margin:10px 0 2px} .fustd>summary{cursor:pointer;font-size:13px;color:var(--ink-2)} .fustd[open]>summary{margin-bottom:4px}
+.flsent{font-size:14px;margin:0 0 10px;line-height:1.6} .flsent b{font-family:"IBM Plex Mono",monospace} .okc{color:var(--teal-ink)} .riskc{color:var(--risk)} .flnames{margin-top:10px;max-height:320px;overflow-y:auto;border-top:1px dashed var(--line);padding-top:8px}
+.flrow{display:flex;justify-content:space-between;align-items:center;gap:8px;padding:4px 0;border-bottom:1px solid var(--line);font-size:13px}
+.fuinfo{color:var(--teal-ink);margin-top:3px} .fudone{margin:0 6px 6px 0;color:var(--teal-ink)}
 .fuk-A{color:var(--risk);background:var(--risk-soft);border-color:transparent}
 .fuk-B{color:var(--fb);background:var(--fb-soft);border-color:transparent}
 .fuk-C{color:var(--ink-3);background:var(--sunk)}
@@ -465,7 +610,7 @@ body{background:
   <div class="seg" id="vseg" role="group" aria-label="เลือกหน้า">
    <button data-v="ov" aria-pressed="true">ภาพรวม</button>
    <button data-v="raw" aria-pressed="false">ข้อมูลดิบ</button>
-   <button data-v="fu" aria-pressed="false" id="vfu" hidden>ตามแชท Auto reply</button>
+   <button data-v="fu" aria-pressed="false" id="vfu" hidden>Follow up</button>
   </div></div>
  <div class="now" id="now"></div>
 </div></div>
@@ -475,10 +620,11 @@ body{background:
  <section id="s-v4f"><div class="shead"><h2>แยกแชททั้งหมด</h2><span class="lab" id="v4fscope"></span></div><div id="v4f"></div></section>
  <section id="s-v4n"><div class="shead"><h2>แชทที่ติดแท็ก / ติดโน้ต · LINE OA</h2><span class="lab" id="v4nscope"></span></div><div id="v4n"></div></section>
  <section id="s-v4s"><div class="shead"><h2>ความเร็วตอบแชท</h2><span class="lab" id="v4sscope"></span></div><div id="v4s"></div></section>
+ <section id="s-v4r"><div class="shead"><h2>ยอดปิดการขายรายแอดมิน · LINE OA</h2><span class="lab" id="v4rscope"></span></div><div id="lnrev"></div></section>
  <section id="s-v4a"><div class="shead"><h2>ภาระงานรายแอดมิน · LINE OA</h2><span class="lab" id="v4ascope"></span></div><div id="lnwork"></div></section>
  <section id="s-v4h"><div class="shead"><h2>ช่วงเวลาที่ลูกค้าทักเข้ามา · LINE OA</h2><span class="lab">เวลาไทย</span></div><div id="lnhour"></div></section>
  <section id="s-v4t"><div class="shead"><h2>แท็กที่ทีมติดไว้ · LINE OA</h2><span class="lab" id="v4tscope"></span></div><div id="lntag"></div></section>
- <section id="s-fu" hidden><div class="shead"><h2>แชทที่มีแต่ Auto reply · ยังไม่มีแอดมินตอบ</h2><span class="lab" id="fuscope"></span></div><div id="fu"></div></section>
+ <section id="s-fu" hidden><div class="shead"><h2 id="fuh2">Follow up</h2><span class="lab" id="fuscope"></span></div><div id="fu"></div></section>
  <section id="s-raw"><div class="shead"><h2>ข้อมูลดิบ</h2><span class="lab" id="rawscope"></span></div><div id="raw"></div></section>
 </div>
 <footer><div class="wrap">
@@ -1256,6 +1402,26 @@ function lnWho(o){if(o._who)return o._who;const tr=o.tr||[];const c0=tr.findInde
  o._who=w;return w;}
 const whoOk=(w)=>RWHO==='all'||w===RWHO;
 const SHOW_WHO=false;
+/* ---- raw data: Follow up status per chat (Sep 23 2026) — read from the whole-thread follow-up lists ---- */
+let RFU='all', FUMAP=null, FUMAP_K='';
+const SHOW_RFU=false;   /* Sep 23 2026: owner asked to remove the Follow up row from the raw views (flip to true to restore) */
+const RFU_N={all:'ทุกแชท',ar:'รอตอบ (Auto reply)',todo:'ตามโอน · ต้องตาม',f:'ตามโอน · ตามแล้ว',x:'ตามโอน · ไม่ต้องตาม',none:'ไม่อยู่ในรายการ Follow up'};
+const RFU_ORD=['all','ar','todo','f','x','none'];
+function fuMapGet(){if(!FU)return null;const k=CH+'|'+Object.keys(OV).length;if(FUMAP&&FUMAP_K===k)return FUMAP;const m={};
+ for(const o of fuRows())if(o.type!=='give'&&o.kind!=='C'&&o.wait>=7)(m[String(o.tid)]=m[String(o.tid)]||{}).ar=o;
+ for(const o of puRows('pay'))if(o.wait>=1&&o.wait<90)(m[String(o.tid)]=m[String(o.tid)]||{}).pay=o;
+ FUMAP=m;FUMAP_K=k;return m;}
+function rfuHit(tid,f){if(f==='all')return true;const M=fuMapGet();if(!M)return true;const m=M[String(tid)];
+ if(f==='none')return !m;if(!m)return false;if(f==='ar')return !!m.ar;if(!m.pay)return false;
+ const g=m.pay.g;return f==='f'?g==='F':(f==='x'?g==='X':PAYCFG.TODO.includes(g));}
+function rfuBadges(tid){if(!SHOW_RFU)return '';const M=fuMapGet();if(!M)return '';const m=M[String(tid)];if(!m)return '';let h='';
+ if(m.ar)h+='<span class="badge risk">Follow up · รอตอบ '+Math.floor(m.ar.wait)+' วัน</span>';
+ if(m.pay)h+='<span class="badge puk-'+m.pay.g+'">ตามโอน · '+(PAYCFG.GS[m.pay.g]||PAYCFG.GN[m.pay.g])+(m.pay.due?' · ครบกำหนด':'')+'</span>';return h;}
+function rfuRow(countOf){if(!SHOW_RFU)return '';if(!FU)return '<div class="chips whochips"><span class="lab">Follow up</span><span class="nsm">กำลังโหลดสถานะ follow up…</span></div>';
+ return `<div class="chips whochips" id="rfuchips"><span class="lab">Follow up</span>${RFU_ORD.map(k=>`<button class="chip" data-rfu="${k}" aria-pressed="${RFU===k}">${RFU_N[k]} (${nf(countOf(k))})</button>`).join('')}</div>`+
+  (RFU!=='all'?`<p class="fdesc"><b>${RFU_N[RFU]}</b> — สถานะปัจจุบันของทั้งห้องแชท (อ่านทุกเดือนต่อกัน) จากหน้า Follow up · ห้องที่คุยหลายเดือนจะขึ้นสถานะเดียวกันทุกเดือน</p>`:'');}
+function rfuEnsure(then){if(!SHOW_RFU||(FU&&OVREADY))return false;
+ (FU?Promise.resolve(FU):getFile('followup')).then(d=>{FU=d;return OVREADY?0:ovLoad();}).then(then).catch(()=>{});return true;}
 function whoRow(counts){if(!SHOW_WHO)return '';return `<div class="chips whochips" id="whochips"><span class="lab">ใครตอบ</span>${RWHO_ORD.map(k=>`<button class="chip" data-w="${k}" aria-pressed="${RWHO===k}">${RWHO_N[k]} (${nf(counts[k]||0)})</button>`).join('')}</div>`+
  (RWHO!=='all'?`<p class="fdesc"><b>${RWHO_N[RWHO]}</b> — ${RWHO_D[RWHO]}</p>`:'');}
 
@@ -1277,7 +1443,8 @@ const hitBody=(r,t,m)=>(r[18]||[]).some(e=>String(txt(e[2],m)).toLowerCase().inc
 const hitTerm=(r,t,m)=>!t||hitName(r,t)||(DEEP&&hitBody(r,t,m));
 function hitChip(r,f){if(f.slice(0,3)==='mx:'){const q=f.split(':');return mxHit(q[1],q[2],r[38],r[37],r[40]);}if(['QW','VT','V','T','H','OTH','NA','W'].includes(f))return stHit(f,r[37],r[40]);if(f==='leadsonly')return isRealLead(r);if(f==='t1')return r[34]==='L1';if(f==='t2')return r[34]==='L2';if(f==='t3')return r[34]==='L3';if(f==='t4')return r[34]==='L4';if(f==='t5')return r[34]==='L5';if(f==='hot')return r[34]==='L5'&&!r[17];if(f==='nohuman')return r[10]<0;if(f==='risk')return r[12]===1;
  if(f==='price')return r[15]===1;if(f==='dup')return r[14]>=2;if(f==='won')return r[17]===1;return true;}
-function filtered(){const t=norm(TERM);return leads().filter(o=>hitTerm(o.r,t,o.m)&&hitChip(o.r,FILTER)&&whoOk(whoOf(o.r,o.m)));}
+function filtered(){const t=norm(TERM);return leads().filter(o=>hitTerm(o.r,t,o.m)&&hitChip(o.r,FILTER)&&whoOk(whoOf(o.r,o.m))&&rfuHit(o.r[19],RFU));}
+function rfuCounts(k){const t=norm(TERM);let n=0;for(const o of leads())if(hitTerm(o.r,t,o.m)&&hitChip(o.r,FILTER)&&rfuHit(o.r[19],k))n++;return n;}
 function whoCounts(){const t=norm(TERM),c={all:0,adm:0,bot:0,none:0};
  for(const o of leads())if(hitTerm(o.r,t,o.m)&&hitChip(o.r,FILTER)){c.all++;const w=whoOf(o.r,o.m);if(c[w]!=null)c[w]++;}return c;}
 function everywhere(t){let n=0;
@@ -1306,6 +1473,7 @@ function igBrowserShell(){
    ${(FORDER.includes(FILTER)?FORDER:FORDER.concat([FILTER])).map(k=>`<button class="chip" data-f="${k}" aria-pressed="${FILTER===k}">${FNAME[k]}</button>`).join('')}</div>
   <p class="fdesc"><b>${FNAME[FILTER]||'ทั้งหมด'}</b> — ${fdescOf(FILTER)}</p>
   ${SHOW_WHO?whoRow(whoCounts()):''}
+  ${rfuRow(rfuCounts)}
   <details class="fhelp"><summary>คำอธิบายทุกแท็บ</summary><dl>${FORDER.map(k=>'<dt>'+FNAME[k]+'</dt><dd>'+fdescOf(k)+'</dd>').join('')}</dl></details>
   <label class="deeprow"><input type="checkbox" id="deep"${DEEP?' checked':''}> ค้นในเนื้อข้อความด้วย</label>
  </div><div class="plist" id="plist"></div>
@@ -1324,6 +1492,7 @@ function renderList(){
   if(STGN[r[37]])fl.push('<span class="badge'+(r[37]==='W'?' ok':'')+'">'+STGN[r[37]]+(r[39]?' · ฿'+nf(r[39]):'')+'</span>');if(r[37]!=='X')fl.push('<span class="badge">แอดมินตอบครั้งแรก '+(r[40]==null||r[40]<0?'ไม่มี':minTxt(r[40]))+'</span>');
   if(CH==='fb'&&r[20])fl.push('<span class="badge">จากโฆษณา</span>');
   if(CH==='fb'&&FBU[String(r[19])])fl.push('<span class="badge ok">🔗 ลิงก์ตรง</span>');
+  {const b=rfuBadges(r[19]);if(b)fl.push(b);}
   return `<button class="prow" data-i="${gi}" aria-current="${gi===SEL}">
    <span class="nm">${CH==='fb'?'':'@'}${esc(r[0]||'(ไม่มีชื่อผู้ใช้)')}</span>
    <span class="sb">${MSHORT[o.m]} ${r[3]} · ${String(r[4]).padStart(2,'0')}:00 (${DOWN[r[5]]}) · ${r[6]}/${r[7]} ข้อความ</span>
@@ -1406,6 +1575,8 @@ function renderRaw(){
   el.querySelectorAll('#chips .chip').forEach(c=>c.addEventListener('click',()=>{
    FILTER=c.dataset.f;PAGE=0;SEL=0;renderRaw();}));
   el.querySelectorAll('#whochips .chip').forEach(c=>c.addEventListener('click',()=>{RWHO=c.dataset.w;PAGE=0;SEL=0;renderRaw();}));
+  el.querySelectorAll('[data-rfu]').forEach(c=>c.addEventListener('click',()=>{RFU=c.dataset.rfu;PAGE=0;SEL=0;renderRaw();}));
+  rfuEnsure(()=>{if(VIEW==='raw'&&(CH==='fb'||CH==='ig'))renderRaw();});
   const dl=$('#dlcsv'); if(dl)dl.addEventListener('click',exportChats);
   if(JUMP_TID){const L=filtered(),i=L.findIndex(x=>String(x.r[19])===JUMP_TID);if(i>=0){SEL=i;PAGE=Math.floor(i/PER);}JUMP_TID=null;}
   renderList();renderChat();
@@ -1446,6 +1617,7 @@ function lnFiltered(){const t=LN_TERM.trim().toLowerCase();
   if(LN_F==='open'&&o.st!=='ยังไม่สมัคร')return false;
   if(LN_F==='notag'&&o.st!=='ไม่ติดแท็ก')return false;
   if(!whoOk(lnWho(o)))return false;
+  if(!rfuHit(o.id,RFU))return false;
   return lnHit(o,t);});}
 function lnWhoCounts(){const keep=RWHO;RWHO='all';const L=lnFiltered();RWHO=keep;const c={all:L.length,adm:0,bot:0,none:0};
  for(const o of L){const w=lnWho(o);if(c[w]!=null)c[w]++;}return c;}
@@ -1465,6 +1637,7 @@ function lnShell(){
   <div class="chips" id="lnchips">${(LN_FORDER.includes(LN_F)?LN_FORDER:LN_FORDER.concat([LN_F])).map(k=>`<button class="chip" data-f="${k}" aria-pressed="${LN_F===k}">${LN_FNAME[k]} (${nf(lnCount(k))})</button>`).join('')}</div>
   <p class="fdesc"><b>${LN_FNAME[LN_F]}</b> — ${LN_FDESC[LN_F]}</p>
   ${SHOW_WHO?whoRow(lnWhoCounts()):''}
+  ${rfuRow(k=>{const keep=RFU;RFU=k;const n=lnFiltered().length;RFU=keep;return n;})}
   <details class="fhelp"><summary>คำอธิบายทุกแท็บ</summary><dl>${LN_FORDER.map(k=>'<dt>'+LN_FNAME[k]+'</dt><dd>'+LN_FDESC[k]+'</dd>').join('')}</dl></details>
   <label class="deeprow"><input type="checkbox" id="lndeep"${LN_DEEP?' checked':''}> ค้นในเนื้อข้อความด้วย</label>
  </div><div class="plist" id="lnlist"></div>
@@ -1482,6 +1655,7 @@ function lnRenderList(){
   if(lineMonths().length>1)fl.push('<span class="badge">'+(MSHORT[o._m]||o._m||'')+'</span>');
   fl.push('<span class="badge">แอดมินตอบครั้งแรก '+(o.fr==null||o.fr<0?'ไม่มี':minTxt(o.fr))+'</span>');
   (o.ad||[]).slice(0,3).forEach(a=>fl.push('<span class="badge">👤 '+esc(a)+'</span>'));
+  {const b=rfuBadges(o.id);if(b)fl.push(b);}
   return `<button class="prow" data-i="${gi}" aria-current="${gi===LN_SEL}">
    <span class="nm">${esc(o.n||'(ไม่มีชื่อ)')}</span>
    <span class="meta">${esc(o.f)} → ${esc(o.t)} · ลูกค้า ${o.c} · แอดมิน ${o.h} · บอท ${o.b}</span>
@@ -1536,6 +1710,8 @@ function lnRenderRaw(){
  $('#lndeep').addEventListener('change',e=>{LN_DEEP=e.target.checked;LN_PAGE=0;LN_SEL=0;lnRenderList();lnRenderChat();});
  el.querySelectorAll('#lnchips .chip').forEach(c=>c.addEventListener('click',()=>{LN_F=c.dataset.f;LN_PAGE=0;LN_SEL=0;lnRenderRaw();}));
  el.querySelectorAll('#whochips .chip').forEach(c=>c.addEventListener('click',()=>{RWHO=c.dataset.w;LN_PAGE=0;LN_SEL=0;lnRenderRaw();}));
+ el.querySelectorAll('[data-rfu]').forEach(c=>c.addEventListener('click',()=>{RFU=c.dataset.rfu;LN_PAGE=0;LN_SEL=0;lnRenderRaw();}));
+ rfuEnsure(()=>{if(VIEW==='raw'&&CH==='line')lnRenderRaw();});
  const lndl=$('#lndlcsv'); if(lndl)lndl.addEventListener('click',exportLine);
  lnRenderList();lnRenderChat();}
 function lnBar(lab,v,max,extra){return `<div class="lnbar"><span>${esc(lab)}</span><span class="track"><span class="t" style="width:${max?Math.max(2,Math.round(v*100/max)):0}%"></span></span><span>${nf(v)}${extra||''}</span></div>`;}
@@ -1938,6 +2114,113 @@ function renderV4Adm(){
  $('#v4ascope').textContent=lab;$('#v4tscope').textContent=lab;
  lnPanels(chSum('line',ks),ks);}
 
+
+/* ---------- ยอดปิดการขายรายแอดมิน · LINE OA (v4.line[เดือน].adm) ----------
+   adm = [ชื่อ, ห้องที่เข้าไปตอบ, ห้องที่คนนี้ส่งราคา, ห้องที่ปิดได้, ยอดเงินบาท, จำนวนข้อความ]
+   ปิดการขาย = มีสลิป "ตรวจสอบสลิปสำเร็จ" ในห้อง · เครดิตให้แอดมิน (คน) คนสุดท้ายที่คุยก่อนสลิปเข้า
+   เลขอ้างอิงสลิปเดียวกันนับครั้งเดียว ตามกฎเดียวกับกรวย 4 ขั้น  */
+function lnRevSum(ks){
+ const A={}; let revAll=0, wAll=0, mo=[];
+ for(const k of ks){const o=(V4.line||{})[k]; if(!o)continue;
+  revAll+=o.rev||0; wAll+=o.W||0; mo.push([k,o.W||0,o.rev||0]);
+  for(const x of (o.adm||[])){const a=A[x[0]]||(A[x[0]]={rooms:0,Q:0,W:0,rev:0,msgs:0});
+   a.rooms+=x[1];a.Q+=x[2];a.W+=x[3];a.rev+=x[4];a.msgs+=x[5];}}
+ const L=Object.keys(A).map(n=>[n,A[n]]).sort((a,b)=>(b[1].rev-a[1].rev)||(b[1].W-a[1].W));
+ const T={rooms:0,Q:0,W:0,rev:0,msgs:0};
+ for(const x of L){T.rooms+=x[1].rooms;T.Q+=x[1].Q;T.W+=x[1].W;T.rev+=x[1].rev;T.msgs+=x[1].msgs;}
+ return {L,T,mo,miss:{W:wAll-T.W,rev:revAll-T.rev}};}
+/* ---------- กราฟแท่ง: ยอดปิดการขายรายเดือน แยกรายแอดมิน ----------
+   สีชุดนี้ผ่านการตรวจ contrast / ตาบอดสีแล้ว (ΔE คู่ติดกันต่ำสุด 9.1 ตาพร่องสี, 19.6 ตาปกติ)
+   ลำดับสีผูกกับตัวคน ไม่ใช่อันดับ — กดเลือกคนแล้วสีของคนอื่นไม่ขยับ  */
+const RVC=['#2a78d6','#eb6834','#1baf7a','#eda100','#e87ba4','#008300'], RVOTHER='#7B919E';
+let RV_SEL='';
+function rvSeries(){
+ const all=LINEKEYS.filter(k=>(V4.line||{})[k]);
+ const tot={};
+ for(const k of all)for(const x of (((V4.line||{})[k])||{}).adm||[])tot[x[0]]=(tot[x[0]]||0)+x[4];
+ const top=Object.keys(tot).sort((a,b)=>tot[b]-tot[a]).filter(n=>tot[n]>0).slice(0,RVC.length);
+ const idx={}; top.forEach((n,i)=>idx[n]=i);
+ const months=all.map(k=>{
+  const o=(V4.line||{})[k], v=new Array(top.length).fill(0); let other=0;
+  for(const x of (o.adm||[]))(idx[x[0]]!=null)?v[idx[x[0]]]+=x[4]:other+=x[4];
+  other+=(o.rev||0)-(o.adm||[]).reduce((s,x)=>s+x[4],0);   /* ยอดที่ไม่มีแอดมินระบุ */
+  return {k,v,other,tot:o.rev||0,w:o.W||0};});
+ return {names:top,months};}
+function rvChart(){
+ const S=rvSeries(); if(!S.months.length)return '';
+ const names=S.names, sel=RV_SEL&&(names.includes(RV_SEL)||RV_SEL==='อื่น ๆ')?RV_SEL:'';
+ const val=m=>sel?(sel==='อื่น ๆ'?m.other:m.v[names.indexOf(sel)]):m.tot;
+ const peak=Math.max(1,...S.months.map(val));
+ const step=Math.pow(10,Math.floor(Math.log10(peak)))/2;
+ const top=Math.ceil(peak/step)*step, H=200;
+ const baht=v=>nf(Math.round(v));
+ const grid=[0,.25,.5,.75,1].map(f=>`<div class="rvgl" style="bottom:${f*H}px"><span>${f?baht(top*f):'0'}</span></div>`).join('');
+ const colOf=i=>i<0?RVOTHER:RVC[i];
+ const cols=S.months.map(m=>{
+  const parts=sel?[[sel==='อื่น ๆ'?-1:names.indexOf(sel),val(m)]]
+    :names.map((n,i)=>[i,m.v[i]]).concat(m.other>0?[[-1,m.other]]:[]).filter(x=>x[1]>0);
+  const segs=parts.slice().reverse().map(([i,v],j)=>`<span class="rvseg${j===0?' cap':''}" style="height:${Math.max(2,v/top*H)}px;background:${colOf(i)}" title="${esc(MLABEL[m.k]||m.k)} · ${esc(i<0?'อื่น ๆ / ไม่ระบุแอดมิน':names[i])} — ${baht(v)} บาท"></span>`).join('');
+  const lab=sel?baht(val(m)):baht(m.tot);
+  return `<div class="rvcol"><div class="rvnum">${lab}</div><div class="rvstack">${segs}</div></div>`;}).join('');
+ const xs=S.months.map(m=>`<div class="rvxc">${esc(MSHORT[m.k]||m.k)}</div>`).join('');
+ const keys=names.map((n,i)=>[n,RVC[i]]).concat(S.months.some(m=>m.other>0)?[['อื่น ๆ',RVOTHER]]:[]);
+ const leg=`<div class="rvleg"><span class="nsm">กดชื่อเพื่อดูเฉพาะคนนั้น:</span>`+
+  keys.map(([n,c])=>`<button type="button" class="rvk${sel===n?' on':''}" data-rvk="${esc(n)}"><i style="background:${c}"></i>${esc(n)}</button>`).join('')+
+  (sel?`<button type="button" class="rvk clr" data-rvk="">↺ ดูรวมทุกคน</button>`:'')+`</div>`;
+ const tbl=`<details class="fhelp rvtbl"><summary>ดูเป็นตาราง (เดือน × แอดมิน)</summary><div class="tw"><table><thead><tr><th>เดือน</th>`+
+  keys.map(([n,c])=>`<th class="n"><i class="rvdot" style="background:${c}"></i>${esc(n)}</th>`).join('')+`<th class="n">รวม</th></tr></thead><tbody>`+
+  S.months.map(m=>`<tr><td class="name">${esc(MLABEL[m.k]||m.k)}</td>`+
+   names.map((n,i)=>`<td class="n">${m.v[i]?baht(m.v[i]):'<span class="nsm">·</span>'}</td>`).join('')+
+   (keys.length>names.length?`<td class="n">${m.other?baht(m.other):'<span class="nsm">·</span>'}</td>`:'')+
+   `<td class="n"><b>${baht(m.tot)}</b></td></tr>`).join('')+`</tbody></table></div></details>`;
+ return `<div class="fuhd"><b>ยอดปิดการขายรายเดือน แยกรายแอดมิน</b> <span class="nsm">ทุกเดือนที่มีข้อมูล LINE · ไม่ขึ้นกับเดือนที่เลือกด้านบน${sel?' · กำลังดูเฉพาะ <b>'+esc(sel)+'</b>':' · ความสูงทั้งแท่ง = ยอดรวมของเดือนนั้น'}</span></div>`+
+  leg+`<div class="rvplot"><div class="rvarea" style="height:${H}px"><div class="rvgrid">${grid}</div><div class="rvcols">${cols}</div></div><div class="rvxs">${xs}</div></div>`+tbl;}
+
+function renderLnRev(){
+ const sec=document.getElementById('s-v4r'), el=$('#lnrev');
+ const ks=scopeOf(LINEKEYS), show=(CH==='all'||CH==='line')&&ks.length>0;
+ if(sec)sec.hidden=!show;
+ if(!show){if(el)el.innerHTML='';return;}
+ const sc=$('#v4rscope'); if(sc)sc.textContent='LINE OA · '+rangeLabel(ks);
+ const S=lnRevSum(ks), L=S.L, T=S.T;
+ if(!L.length){el.innerHTML='<div class="empty">ไม่มีข้อมูลในช่วงที่เลือก</div>';return;}
+ const mx=Math.max(1,...L.map(x=>x[1].rev));
+ const baht=v=>nf(Math.round(v));
+ const per=(a,b)=>b?baht(a/b):'—';
+ const row=(n,v,cls)=>`<tr${cls?' class="'+cls+'"':''}>
+  <td class="name">${esc(n)}${v.msgs?'<div class="spsm">'+nf(v.msgs)+' ข้อความ</div>':''}</td>
+  <td class="n">${nf(v.rooms)}</td><td class="n">${nf(v.Q)}</td>
+  <td class="n"><b>${nf(v.W)}</b><div class="spsm">${pctS(v.W,v.Q)} ของห้องที่ส่งราคา</div></td>
+  <td class="n"><b>${baht(v.rev)}</b><div class="spsm">เฉลี่ย ${per(v.rev,v.W)} / ห้องที่ปิดได้</div>
+   <div class="rvbar"><span style="width:${Math.max(2,Math.round(v.rev*100/mx))}%"></span></div></td>
+  <td class="n">${pctS(v.rev,T.rev)}</td></tr>`;
+ const missRow=S.miss.rev>0||S.miss.W>0?`<tr class="rvmiss"><td class="name">ไม่ระบุแอดมิน<div class="spsm">สลิปเข้าโดยไม่มีแอดมิน (คน) คุยก่อนหน้า</div></td>
+  <td class="n">—</td><td class="n">—</td><td class="n">${nf(S.miss.W)}</td><td class="n">${baht(S.miss.rev)}</td><td class="n">—</td></tr>`:'';
+ const tot=`<tr class="sptot"><td class="name"><b>รวมทุกคน</b></td><td class="n">${nf(T.rooms)}</td><td class="n">${nf(T.Q)}</td>
+  <td class="n"><b>${nf(T.W+S.miss.W)}</b></td><td class="n"><b>${baht(T.rev+S.miss.rev)}</b><div class="spsm">เฉลี่ย ${per(T.rev+S.miss.rev,T.W+S.miss.W)} / ห้อง</div></td><td class="n">100%</td></tr>`;
+ const multi=ks.length>1?' · <b>โหมดหลายเดือนรวมกัน</b> ห้องเดียวกันที่คุยหลายเดือนถูกนับแยกเดือน':'';
+ const t1=`<p class="note">ยอดที่ปิดได้จริงของแอดมินแต่ละคนใน <b>${esc(rangeLabel(ks))}</b> — นับจากสลิปที่ระบบตรวจสอบผ่านในห้องแชท ไม่ใช่ยอดที่เขียนไว้ในโน้ต${multi}</p>
+  <div class="tw"><table class="rvtab"><thead><tr><th>แอดมิน</th><th class="n">ห้องที่เข้าไปตอบ</th><th class="n">ห้องที่ส่งราคา</th><th class="n">ปิดการขายได้</th><th class="n">ยอดเงิน (บาท)</th><th class="n">สัดส่วนยอด</th></tr></thead>
+  <tbody>${L.map(x=>row(x[0],x[1])).join('')}${missRow}${tot}</tbody></table></div>`;
+ const M=[];
+ const mmx=Math.max(1,...M.map(x=>x[2]));
+ const t2x=M.length>1?`<div class="fuhd"><b>ยอดปิดการขายรายเดือน</b> <span class="nsm">ทุกเดือนที่มีข้อมูล LINE ไม่ขึ้นกับเดือนที่เลือกด้านบน</span></div>
+  <div class="tw"><table><thead><tr><th>เดือน</th><th class="n">ปิดการขายได้</th><th class="n">ยอดเงิน (บาท)</th><th class="n">เฉลี่ยต่อห้อง</th><th></th></tr></thead><tbody>`+
+  M.map(x=>`<tr${ks.includes(x[0])?' class="rvon"':''}><td class="name">${esc(MLABEL[x[0]]||x[0])}</td><td class="n">${nf(x[1])}</td><td class="n"><b>${baht(x[2])}</b></td><td class="n">${per(x[2],x[1])}</td>
+   <td class="rvcell"><div class="rvbar"><span style="width:${Math.max(2,Math.round(x[2]*100/mmx))}%"></span></div></td></tr>`).join('')+
+  `</tbody></table></div>`:'';
+ const note=`<div class="rvnote"><b>อ่านตัวเลขนี้ยังไง</b>
+  <p><b>ปิดการขายได้</b> = ห้องที่มีสลิปแล้วระบบขึ้น “สถานะ: ตรวจสอบสลิปสำเร็จ” · เลขอ้างอิงสลิปเดียวกันนับครั้งเดียว ถึงจะส่งซ้ำหรือส่งข้ามช่องทาง · ยอดเงินคือยอดที่อ่านได้จากสลิปใบนั้น ไม่ใช่ยอดที่พิมพ์ไว้ในโน้ต</p>
+  <p><b>ให้เครดิตใคร</b> = แอดมินที่เป็นคนจริง <b>คนสุดท้ายที่พิมพ์ในห้องก่อนสลิปจะเข้า</b> ไม่นับบอทและข้อความอัตโนมัติ ถ้าไม่มีใครพิมพ์เลยก่อนสลิปเข้า จะไปอยู่แถว “ไม่ระบุแอดมิน”</p>
+  <p class="rvwarn"><b>ข้อควรระวัง</b> — กติกา “คนสุดท้ายก่อนสลิป” ไม่เท่ากับ “คนที่ขาย” เสมอไป จากที่ตรวจห้องที่ปิดได้ ก.ค.–ก.ย. <b>411 ห้อง มี 123 ห้อง (30%)</b> ที่คนได้เครดิตเป็นคนละคนกับคนที่ส่งราคา — ส่วนใหญ่คือส่งต่อกันในทีม เช่น อีกคนมารับช่วงตอบตอนท้าย ถ้าจะดูว่าใคร “ขาย” จริง ให้ดูคอลัมน์ <b>ห้องที่ส่งราคา</b> ควบคู่ไปด้วย</p></div>`;
+ const help=`<details class="fhelp"><summary>รายละเอียดเพิ่มเติม</summary><dl>
+  <dt>“ปิดการขายได้” คือ</dt><dd>ห้องที่มีสลิปแล้วระบบขึ้นว่า <b>ตรวจสอบสลิปสำเร็จ</b> และผู้รับคือ บจก. ไบโอปาล์ม เอ็ดดูเคชั่น · เลขอ้างอิงสลิปเดียวกันนับครั้งเดียว ถึงจะส่งซ้ำหรือส่งข้ามช่องทาง</dd>
+  <dt>ให้เครดิตใคร</dt><dd>แอดมินที่เป็น <b>คนจริง</b> คนสุดท้ายที่พิมพ์ในห้องก่อนสลิปจะเข้า — ไม่นับบอทและข้อความอัตโนมัติ ถ้าไม่มีใครคุยเลยก่อนสลิปเข้า จะไปอยู่แถว “ไม่ระบุแอดมิน”</dd>
+  <dt>“ห้องที่ส่งราคา” คือ</dt><dd>ห้องที่จบเป็นส่งราคาแล้วหรือปิดได้ และคนนี้คือคนแรกที่พิมพ์ราคาในห้องนั้น ใช้ดูอัตราปิดของแต่ละคน</dd>
+  <dt>ต่างจากยอดที่แอดมินจดในโน้ตยังไง</dt><dd>ตารางนี้นับจาก<b>สลิปจริงในแชท</b> ส่วนยอดที่แอดมินพิมพ์ไว้ในโน้ตเป็นคนละตัวเลข สองอย่างไม่เท่ากันเป็นเรื่องปกติ — โอนนอกแชท ลงโน้ตคนละเดือนกับที่โอน หรือพิมพ์ยอดผิด</dd></dl></details>`;
+ el.innerHTML=t1+note+rvChart()+help;
+ el.querySelectorAll('[data-rvk]').forEach(b=>b.addEventListener('click',()=>{RV_SEL=b.dataset.rvk===RV_SEL?'':b.dataset.rvk;renderLnRev();}));}
+
 /* ---------- v4: reply speed ---------- */
 const SPB=['น้อยกว่า 15 นาที','15–30 นาที','30–60 นาที','มากกว่า 60 นาที','ไม่มีแอดมินตอบ'];
 const SPC=['var(--leaf)','var(--fb)','var(--warn)','var(--risk)','var(--ink-3)'];
@@ -2010,21 +2293,23 @@ function tnTable(ks){
   const bar=`<div class="tnbar">${C.map(c=>`<span style="width:${d.rooms?d[c[0]]/d.rooms*100:0}%;background:${c[1]}"></span>`).join('')}</div>`;
   const cell=(g)=>{const n=d[g]; let sub=pctS(n,d.rooms);
    if(g==='Tx'&&d.txs&&d.txs['สมัครแล้ว'])sub+=`<div class="spsm">สมัครแล้ว ${nf(d.txs['สมัครแล้ว'])} · ยังไม่สมัคร ${nf(d.txs['ยังไม่สมัคร']||0)}</div>`;
-   const go=(g==='xx'||g==='xN')&&n?` role="button" tabindex="0" data-go="tnL-${g}-${k}" class="n tngo"`:' class="n"';
-   return `<td${go}><b>${nf(n)}</b><div class="spsm">${sub}</div></td>`;};
+   
+   return `<td class="n"><b>${nf(n)}</b><div class="spsm">${sub}</div></td>`;};
   return `<tr${lo?' class="tnlo"':''}><td class="name">${MLABEL[k]||k}${lo?'<div class="spsm">เดือนนี้มีโน้ตน้อยผิดปกติ ยังสรุปไม่ได้</div>':''}${bar}</td><td class="n">${nf(d.rooms)}</td>${['TN','Tx','xx','xN'].map(cell).join('')}</tr>`;};
- const lists=ks.map(k=>['xx','xN'].map(g=>{const L=((TN()[k].lists||{})[g])||[]; if(!L.length)return '';
-  const t=g==='xx'?'ไม่มีทั้งแท็กและโน้ต':'มีโน้ต แต่ไม่ได้ติดแท็ก';
-  return `<details class="ntdet" id="tnL-${g}-${k}"><summary><b>${MLABEL[k]||k}</b> · ${t} ${nf(L.length)} ห้อง</summary><div class="tw"><table><thead><tr><th>ลูกค้า</th><th>แอดมินที่ดูแล</th><th></th></tr></thead><tbody>`+
-   L.map(r=>`<tr><td class="name">${ntNm(r[0])||'<span class="ntold">(ไม่มีชื่อ)</span>'}</td><td>${ntNm(r[2])||'—'}</td><td>${ntOpen(r[1])}</td></tr>`).join('')+`</tbody></table></div></details>`;}).join('')).join('');
+ const F=AGG.tnfu, fc=g=>F?(F.rooms||[]).filter(r=>r[5]===g).length:0;
+ const todo=F?`<div class="tngo2"><span class="lab">งานที่ค้างอยู่ตอนนี้ <span class="nsm">(ทุกเดือนรวมกัน · ข้อมูล ${esc(F.stamp||'')})</span></span>`+
+  [['xx','ไม่มีทั้งแท็กและโน้ต','#E24B4A'],['Tx','ติดแท็ก ไม่มีโน้ต','#EF9F27'],['xN','มีโน้ต ไม่ติดแท็ก','#B4B2A9']]
+   .map(c=>`<button type="button" class="tngb" data-tnfu="${c[0]}" style="border-left-color:${c[2]}"><span class="t">${c[1]}</span><span class="n">${nf(fc(c[0]))}</span><span class="s">ห้อง · กดไปตามเก็บ →</span></button>`).join('')+
+  `</div>`:'';
  const help=`<details class="fhelp"><summary>ตารางนี้นับอย่างไร</summary><dl>`+
   `<dt>นับอะไร</dt><dd>ทุกห้องแชท LINE OA ที่มีข้อความในเดือนนั้น แบ่งเป็น 4 กลุ่ม ห้องหนึ่งอยู่ได้กลุ่มเดียว บวกกันแล้วเท่ากับห้องทั้งหมดพอดี</dd>`+
   `<dt>“ติดแท็ก” คือ</dt><dd>ห้องนั้นมีแท็กสถานะติดอยู่ จะเป็นแท็กไหนก็ได้ — สมัครแล้ว / ยังไม่สมัคร / ถามกับระบบ</dd>`+
   `<dt>“มีโน้ต” คือ</dt><dd>ห้องนั้นมีโน้ตอย่างน้อย 1 ใบ ที่เขียนไว้ <b>ภายในสิ้นเดือนนั้น</b> — โน้ตที่เขียนไว้ตั้งแต่เดือนก่อนก็นับ เพราะยังติดอยู่ในห้อง และนับโน้ตทุกแบบ ไม่ใช่เฉพาะใบลงทะเบียน</dd>`+
-  `<dt>ควรดูช่องไหน</dt><dd><b>ติดแท็ก ไม่มีโน้ต</b> ที่แท็กว่า “สมัครแล้ว” = สมัครแล้วแต่ยังไม่มีใครจดรายละเอียดไว้ · <b>ไม่มีทั้งแท็กและโน้ต</b> = ห้องที่ยังไม่ได้ตามเก็บเลย กดที่ตัวเลขสีแดงหรือสีเทาเพื่อดูรายชื่อห้อง</dd>`+
+  `<dt>ควรดูช่องไหน</dt><dd><b>ติดแท็ก ไม่มีโน้ต</b> ที่แท็กว่า “สมัครแล้ว” = สมัครแล้วแต่ยังไม่มีใครจดรายละเอียดไว้ · <b>ไม่มีทั้งแท็กและโน้ต</b> = ห้องที่ยังไม่ได้ตามเก็บเลย</dd>`+
+  `<dt>ตารางนี้ต่างกับปุ่ม “งานที่ค้างอยู่ตอนนี้” ยังไง</dt><dd>ตารางคือ<b>ประวัติรายเดือน</b> ว่าเดือนนั้นบันทึกครบแค่ไหน ส่วนปุ่มด้านบนคือ<b>ห้องที่ยังค้างอยู่ ณ ตอนนี้</b> ทุกเดือนรวมกัน กดแล้วไปหน้า Follow up เพื่อไล่เก็บเป็นรายห้อง</dd>`+
   `<dt>ที่มา</dt><dd>แท็กมาจากชีท “Biopalm LINE Chat Log — 2026” ส่วนวันที่ของโน้ตอ่านจากข้อมูลดิบที่ดึงจาก LINE โดยตรง จึงนับโน้ตเก่าย้อนถึง ก.พ. 2025 ได้ครบ (ชีทเก็บเฉพาะโน้ตปี 2026)</dd>`+
   `<dt>ข้อจำกัด</dt><dd>ก.ย. 2026 ยังไม่จบเดือน ห้องที่เพิ่งเข้ามาอาจยังไม่ทันติดแท็ก ช่อง “ไม่มีทั้งแท็กและโน้ต” จึงสูงกว่าปกติ</dd></dl></details>`;
- return `<div class="tnleg">${leg}</div><div class="tw"><table class="tntab"><thead><tr><th>เดือน</th><th class="n">ห้องทั้งหมด</th>${C.map(c=>`<th class="n">${c[2]}<div class="spsm" style="font-weight:400">${c[3]}</div></th>`).join('')}</tr></thead><tbody>${ks.map(row).join('')}</tbody></table></div>`+help+lists;}
+ return todo+`<div class="tnleg">${leg}</div><div class="tw"><table class="tntab"><thead><tr><th>เดือน</th><th class="n">ห้องทั้งหมด</th>${C.map(c=>`<th class="n">${c[2]}<div class="spsm" style="font-weight:400">${c[3]}</div></th>`).join('')}</tr></thead><tbody>${ks.map(row).join('')}</tbody></table></div>`+help;}
 /* ---------- แท็กปะทะโน้ต (LINE OA notes vs tags) ---------- */
 const NT=()=>(AGG.notes||{});
 const ntMonths=()=>scopeOf(LINEKEYS).filter(k=>(NT().months||{})[k]);
@@ -2034,113 +2319,38 @@ const ntOpen=id=>`<a class="ntlink" href="${ntLink(id)}" target="_blank" rel="no
 const ntAdm=a=>a==='OLD'?'<span class="ntold">แอดมินเก่า</span>':ntNm(a);
 function ntGo(id){const e=document.getElementById(id);if(e){e.open=true;e.scrollIntoView({behavior:'smooth',block:'start'});}}
 
+
+/* กดปุ่ม "งานที่ค้างอยู่ตอนนี้" ในหน้าภาพรวม -> เข้า Follow up หมวดติดแท็ก/ใส่โน้ต กลุ่มที่กด */
+function tnfuGo(g){
+ if(CH!=='line'){const t=document.querySelector('#chseg button[data-ch="line"]');if(t){t.click();}}
+ FU_MODE='tn';try{localStorage.setItem('bp_fu_mode','tn');}catch(e){}
+ FU_ASK=false; VIEW='fu';
+ $('#vseg').querySelectorAll('button').forEach(x=>x.setAttribute('aria-pressed',String(x.dataset.v==='fu')));
+ refresh();
+ setTimeout(()=>{TNF_G=g;TNF_T='';TNF_O='';TNF_Q='';TNF_PAGE=0;renderTN();
+  const e=document.getElementById('s-fu');if(e&&e.scrollIntoView)e.scrollIntoView({behavior:'smooth',block:'start'});},60);}
+function tnfuBind(el){el.querySelectorAll('[data-tnfu]').forEach(b=>b.addEventListener('click',()=>tnfuGo(b.dataset.tnfu)));}
 function renderV4Notes(){
  const el=$('#v4n'), sec=document.getElementById('s-v4n');
- const ks=ntMonths(), tks=tnMonths(), show=CH==='line'&&(ks.length>0||tks.length>0);
+ const tks=tnMonths(), show=CH==='line'&&tks.length>0;
  if(sec)sec.hidden=!show;
  if(!show){if(el)el.innerHTML='';return;}
  $('#v4nscope').textContent=CHN[CH]+' · '+moLabel();
  const N=NT(), P=N.parse||{}; const tnH=tnTable(tks);
- if(!ks.length){el.innerHTML=tnH;el.querySelectorAll('[data-go]').forEach(b=>{const go=()=>ntGo(b.dataset.go);b.onclick=go;b.onkeydown=e=>{if(e.key==='Enter')go();};});return;}
-
- /* 1 — monthly registration summary */
- const sumRow=k=>{const d=N.months[k];
-  return `<tr><td class="name">${MLABEL[k]||k}</td><td class="n">${nf(d.rooms)}</td>`+
-   `<td class="n"><b>${nf(d.reg.rooms)}</b><div class="spsm">${nf(d.reg.notes)} ใบ</div></td>`+
-   `<td class="n">${nf(d.reg.amt)}</td>`+
-   `<td class="n">${nf(d.tagged)}<div class="spsm">ไม่มีวันที่</div></td>`+
-   `<td class="n">${nf(d.slip)}</td>`+
-   `<td class="n">${pctS(d.reg.rooms,d.rooms)}</td>`+
-   `<td class="n">${nf(d.reg.byCreated)}<div class="spsm">${d.reg.byCreated-d.reg.notes>=0?'+':''}${d.reg.byCreated-d.reg.notes}</div></td></tr>`;};
- const t1=`<div class="tw"><table><thead><tr><th>เดือน</th><th class="n">ห้องทั้งหมด</th>`+
-  `<th class="n">สมัครจากโน้ต<div class="spsm" style="font-weight:400">นับด้วยวันที่ในโน้ต</div></th>`+
-  `<th class="n">ยอดรวมในโน้ต (บาท)</th><th class="n">ติดแท็กสมัครแล้ว</th>`+
-  `<th class="n">ปิดการขายจากสลิป</th><th class="n">อัตราสมัคร</th>`+
-  `<th class="n">ถ้านับด้วย createdAt</th></tr></thead><tbody>${ks.map(sumRow).join('')}</tbody></table></div>`;
-
- /* 2 — the 2x2, one block per month in scope */
- const cross=k=>{const d=N.months[k], c=d.cross, rs=d.redsum;
-  const cell=(cls,n,t,dd,go)=>`<div class="ntc ${cls}"${go?` role="button" tabindex="0" data-go="${go}"`:''}>`+
-   `<span class="ntn">${nf(n)}</span><span class="ntt">${t}</span><span class="ntd">${dd}</span>`+
-   (go?'<span class="ntgo">ดูรายห้อง ↓</span>':'')+`</div>`;
-  return `<div class="ntblock"><div class="ntmo">${MLABEL[k]||k} · ${nf(d.rooms)} ห้อง · สมัครจริง (แท็ก ∪ โน้ต) <b>${nf(d.realreg)}</b> ห้อง</div>`+
-  `<div class="ntgrid"><div class="nth"></div><div class="nth">มีโน้ตลงทะเบียน</div><div class="nth">ไม่มีโน้ตลงทะเบียน</div>`+
-  `<div class="ntr">ติดแท็ก<br>Q-สมัครแล้ว</div>`+
-  cell('ok',c.sr,'ยืนยันได้สองทาง','แท็กและโน้ตตรงกัน เชื่อได้',0)+
-  cell('warn',c.sx,'แท็กว่าสมัคร แต่ไม่มีใบลงทะเบียน','ส่วนใหญ่มีโน้ตแบบย่อ ไม่ใช่ความผิดพลาดทุกแถว','ntY-'+k)+
-  `<div class="ntr">ไม่ได้ติดแท็ก</div>`+
-  cell('crit',c.nr,'มีใบลงทะเบียน แต่แท็กตกหล่น',`ในนี้เป็นยอดของ ${MSHORT[k]||k} จริง ${rs.A1.n} ห้อง`,'ntR-'+k)+
-  cell('calm',c.nx,'ยังไม่สมัครจริง','ไม่มีทั้งแท็กและโน้ต — ตามต่อได้',0)+
-  `</div></div>`;};
-
- /* 3 — red, split three ways */
- const redTbl=rows=>rows.length?`<div class="tw"><table><thead><tr><th>ลูกค้า</th><th>แท็กที่ติดอยู่</th><th>รหัสคอร์ส</th>`+
-   `<th class="n">ยอดชำระ</th><th class="n">วันที่ในโน้ต</th><th class="n">โน้ตถูกเขียน</th><th>คนเขียนโน้ต</th><th>แอดมินที่ดูแล</th><th></th></tr></thead><tbody>`+
-   rows.map(r=>`<tr><td class="name">${ntNm(r.name)||'<span class="ntold">(ไม่มีชื่อ)</span>'}</td>`+
-    `<td><span class="badge">${ntNm(r.lead||'ไม่ติดแท็ก')}</span></td><td class="mono">${ntNm(r.g)}${r.mode?` <span class="spsm">${r.mode}</span>`:''}</td>`+
-    `<td class="n"><b>${nf(r.amt)}</b></td><td class="n">${r.td||'<span class="ntold">—</span>'}</td><td class="n">${r.ca}</td>`+
-    `<td>${ntAdm(r.by)}</td><td>${ntNm(r.owner)}</td><td>${ntOpen(r.cid)}</td></tr>`).join('')+
-   `</tbody></table></div>`:'<div class="empty">ไม่มีห้องในกลุ่มนี้</div>';
- const redBlock=k=>{const d=N.months[k], rs=d.redsum;
-  const head=(t,n,amt,cls)=>`<div class="nthd ${cls||''}">${t} — <b>${nf(n)}</b> ห้อง · ${nf(amt)} บาท</div>`;
-  return `<details class="ntdet" id="ntR-${k}" open><summary><b>🔴 ${MLABEL[k]||k}</b> · ไม่ได้ติดแท็ก แต่มีใบลงทะเบียน ${nf(d.cross.nr)} ห้อง</summary>`+
-   head(`A1 · โน้ตลงวันที่ใน ${MSHORT[k]||k} = ยอดของเดือนนี้ที่หายไป`,rs.A1.n,rs.A1.amt,'crit')+redTbl(d.red.A1)+
-   head(`A2 · โน้ตลงวันที่ก่อน ${MSHORT[k]||k} = ยอดของเดือนก่อน (ติดแท็กได้ แต่ห้ามนับซ้ำ)`,rs.A2.n,rs.A2.amt)+redTbl(d.red.A2)+
-   head(`B · โน้ตถูกเขียนหลัง ${MSHORT[k]||k} = ยอดของเดือนถัดไป`,rs.B.n,rs.B.amt)+redTbl(d.red.B)+
-   `</details>`;};
-
- /* 4 — yellow */
- const yelBlock=k=>{const d=N.months[k];
-  const cats=Object.entries(d.ycat).sort((a,b)=>b[1]-a[1]);
-  return `<details class="ntdet" id="ntY-${k}"><summary><b>⚠️ ${MLABEL[k]||k}</b> · ติดแท็กสมัครแล้ว แต่ไม่มีใบลงทะเบียน ${nf(d.cross.sx)} ห้อง</summary>`+
-   `<div class="ntcats">${cats.map(([c,n])=>`<span class="badge${c==='ไม่มีโน้ตเลย'?' risk':''}">${ntNm(c)} <b>${n}</b></span>`).join(' ')}</div>`+
-   (d.yellow.length?`<div class="tw"><table><thead><tr><th>ลูกค้า</th><th>วินิจฉัย</th><th>โน้ตที่มี</th><th>แท็กทั้งหมด</th><th>แอดมินที่ดูแล</th><th></th></tr></thead><tbody>`+
-    d.yellow.map(r=>`<tr><td class="name">${ntNm(r.name)||'<span class="ntold">(ไม่มีชื่อ)</span>'}</td>`+
-     `<td><span class="badge${r.cat==='ไม่มีโน้ตเลย'?' risk':(r.cat==='โน้ตยืนยันสมัคร ไม่ลงยอด'?' ok':'')}">${ntNm(r.cat)}</span></td>`+
-     `<td class="ntq">${ntNm(r.note)||'<span class="ntold">—</span>'}</td><td class="ntq">${ntNm(r.tags)}</td>`+
-     `<td>${ntNm(r.owner)}</td><td>${ntOpen(r.cid)}</td></tr>`).join('')+`</tbody></table></div>`:'<div class="empty">ไม่มีห้องในกลุ่มนี้</div>')+
-   `</details>`;};
-
- /* 5 — two discipline panels */
- const discBlock=k=>{const d=N.months[k];
-  const t=`<div class="tw"><table><thead><tr><th>แอดมินที่ดูแล</th><th class="n">ห้องที่ดูแล</th><th class="n">สมัครจริง</th><th class="n">ลืมติดแท็ก</th><th class="n">ความครบถ้วน</th></tr></thead><tbody>`+
-   d.tagd.filter(r=>r.reg>0).map(r=>`<tr><td class="name">${ntNm(r.adm)}</td><td class="n">${nf(r.rooms)}</td><td class="n">${nf(r.reg)}</td>`+
-    `<td class="n${r.miss?' sphot':''}">${nf(r.miss)}</td><td class="n"><b>${r.pct}%</b></td></tr>`).join('')+`</tbody></table></div>`;
-  const w=`<div class="tw"><table><thead><tr><th>คนเขียนโน้ต</th><th class="n">ใบลงทะเบียนที่เขียนในเดือนนี้</th><th class="n">ยอดรวมที่จดไว้ (บาท)</th></tr></thead><tbody>`+
-   (d.noted.length?d.noted.map(r=>`<tr><td class="name">${ntAdm(r.adm)}</td><td class="n"><b>${nf(r.notes)}</b></td><td class="n">${nf(r.amt)}</td></tr>`).join('')
-    :'<tr><td colspan="3" class="ntold">ไม่มีใบลงทะเบียนที่เขียนในเดือนนี้</td></tr>')+`</tbody></table></div>`;
-  const wrote=new Set(d.noted.map(r=>r.adm));
-  const silent=d.tagd.filter(r=>r.rooms>=20&&!wrote.has(r.adm)).map(r=>r.adm);
-  return `<details class="ntdet" id="ntD-${k}"><summary><b>${MLABEL[k]||k}</b> · วินัยการบันทึก</summary>`+
-   `<div class="nthd">วินัยการติดแท็ก — นับตาม <b>แอดมินที่ดูแลห้อง</b></div>${t}`+
-   `<div class="nthd">วินัยการเขียนโน้ต — นับตาม <b>คนที่พิมพ์โน้ต</b> (คนละเรื่องกับตารางบน)</div>${w}`+
-   (silent.length?`<p class="note" style="margin-top:10px">⚠️ ดูแลห้องตั้งแต่ 20 ห้องขึ้นไป แต่ไม่ได้เขียนใบลงทะเบียนเลยในเดือนนี้: <b>${silent.map(ntNm).join(' · ')}</b></p>`:'')+
-   `</details>`;};
-
- const help=`<details class="fhelp"><summary>ส่วนนี้อ่านอย่างไร</summary><dl>`+
-  `<dt>ทำไมส่วนนี้อยู่แค่ในช่อง LINE OA</dt><dd>ระบบโน้ตรายห้องมีแค่ใน LINE OA — Facebook และ Instagram ไม่มี จึงแยกไว้ในช่องนี้ช่องเดียว หน้า “ทุกช่องทาง” จะไม่ขึ้นส่วนนี้เพื่อไม่ให้รก</dd><dt>ทำไมต้องเทียบแท็กกับโน้ต</dt><dd>ทีมบันทึกการสมัครไว้สองที่ — แท็ก <code>Q-สมัครแล้ว</code> ในระบบ LINE และโน้ตที่แอดมินพิมพ์เองในห้องแชท แท็กไม่มีวันที่ ส่วนโน้ตมี <code>createdAt</code> ของตัวเองและมักมีวันที่ที่แอดมินพิมพ์ไว้ด้วย จึงเป็นครั้งแรกที่ LINE มีตัวเลข “สมัครในเดือนนี้” ที่วางข้าง Facebook ได้</dd>`+
-  `<dt>“โน้ตลงทะเบียน” นับแบบไหน</dt><dd>นิยามเข้ม — โน้ตต้องมีทั้ง <b>รหัสคอร์ส G-number</b> และ <b>จำนวนเงินพร้อมหน่วยบาท</b> โน้ตที่จดแค่รหัสคอร์สโดยไม่มียอด (เช่น <code>G186 Module 1</code>) ไม่นับเป็นใบลงทะเบียน แต่ยังโชว์อยู่ในช่องเหลืองว่ามีโน้ตอะไร</dd>`+
-  `<dt>ยอดชำระเอามาจากไหน</dt><dd>ตัวเลขสุดท้ายที่ตามด้วยคำว่า “บาท” ในโน้ตใบนั้น เพราะใบที่ลงหลายคอร์สจะไล่ยอดแต่ละคอร์สก่อนแล้วสรุปยอดสุทธิท้ายสุด</dd>`+
-  `<dt>ทำไมช่องแดงต้องแยก A1 / A2 / B</dt><dd>โน้ตและแท็กผูกกับ “ห้อง” ไม่มีวันหมดอายุ ห้องที่สมัครแล้วไม่มีใครไปติดแท็กจะโผล่ในช่องแดงของ <b>ทุกเดือนถัดไป</b> ถ้าไม่แยกกลุ่มจะนับซ้ำ — A1 คือโน้ตที่ลงวันที่ในเดือนที่กำลังดู (ยอดของเดือนนี้ที่หายไป เอาไปบวกได้) · A2 คือโน้ตลงวันที่ก่อนหน้า (เป็นยอดของเดือนนั้น) · B คือโน้ตที่เพิ่งถูกเขียนหลังเดือนนี้ (เป็นยอดของเดือนถัดไป) ทั้งสามกลุ่มควรไปติดแท็กย้อนหลังเหมือนกัน แต่คนละเดือน</dd>`+
-  `<dt>ช่องเหลืองไม่ใช่ความผิดพลาดทุกแถว</dt><dd>ส่วนใหญ่มีโน้ตยืนยันการสมัครอยู่แล้ว แค่ไม่ได้ลงยอดเงิน หรือสมัครผ่าน Facebook/Messenger ซึ่งใบลงทะเบียนไปอยู่ช่องทางนั้น แถวที่ควรตามจริงคือ <b>ไม่มีโน้ตเลย</b></dd>`+
-  `<dt>สองตารางวินัยต่างกันอย่างไร</dt><dd>“วินัยการติดแท็ก” นับตามแอดมินที่ดูแลห้องนั้น ส่วน “วินัยการเขียนโน้ต” นับตามคนที่พิมพ์โน้ต — คนละคนกันได้ และในทางปฏิบัติมีแอดมินไม่กี่คนที่เขียนโน้ตให้ทั้งทีม ถ้าดูรวมกันตัวเลขจะทำให้เข้าใจผิด</dd>`+
-  `<dt>ยังไม่แตะนิยาม “ปิดการขาย”</dt><dd>คอลัมน์ “ปิดการขายจากสลิป” คือนิยามที่แดชบอร์ดใช้อยู่ (ข้อความ <code>สถานะ: ตรวจสอบสลิปสำเร็จ</code> หรือผู้รับ <code>บจก. ไบโอปาล์ม เอ็ดดูเคชั่น</code>) วางไว้ข้างกันเพื่อเทียบว่าสัญญาณไหนจับได้มากกว่า ยังไม่ได้รวมกัน</dd>`+
-  `<dt>คุณภาพการอ่านโน้ต</dt><dd>ดึงจาก ${nf(P.roomsPulled||0)} ห้อง · โน้ตทั้งหมด ${nf((P.regNotes||0)+(P.nonReg||0))} ใบ · เป็นใบลงทะเบียน ${nf(P.regNotes||0)} ใบ · ยอดเงินที่อ่านไม่ชัด ${nf(P.ambiguous||0)} ใบ (${pctS(P.ambiguous||0,P.regNotes||1)}) · ไม่มีวันที่พิมพ์ในโน้ต ${nf(P.noTypedDate||0)} ใบ (${pctS(P.noTypedDate||0,P.regNotes||1)}) จะใช้ <code>createdAt</code> แทน · ไม่มีตัวเลขที่เดา</dd>`+
-  `<dt>เรื่องส่งตัวอย่างข้อสอบ</dt><dd>สแกนโน้ตทุกใบแล้ว <b>ไม่พบการบันทึกเรื่องส่งตัวอย่างข้อสอบเลย</b> (คำว่า “ข้อสอบ” ปรากฏ 0 ครั้ง) มีเทมเพลตเก่าที่มีช่อง “ส่งตัวอย่างคอร์สเรียน” แต่ปล่อยว่างทุกใบ จึงไม่มีตัวชี้วัดนี้ในส่วนนี้</dd>`+
-  `</dl></details>`;
-
- el.innerHTML=tnH+`<h3 style="font-size:15px;margin:22px 0 6px">ใบลงทะเบียนจากโน้ต</h3><p class="note" style="margin-bottom:8px">มีเฉพาะเดือนที่ตรวจโน้ตละเอียดแล้ว (${ks.map(k=>MSHORT[k]||k).join(' · ')})</p>`+t1+
-   ks.map(redBlock).join('')+ks.map(yelBlock).join('')+ks.map(discBlock).join('')+help;
- el.querySelectorAll('[data-go]').forEach(b=>{
-   const go=()=>ntGo(b.dataset.go);
-   b.addEventListener('click',go);
-   b.addEventListener('keydown',e=>{if(e.key==='Enter'||e.key===' '){e.preventDefault();go();}});
- });
+ el.innerHTML=tnH;tnfuBind(el);return;
 }
-
 /* ---------- follow-up: chats that only ever got automatic replies (FB / IG) ---------- */
 let FU_O='';
-let FU=null, FU_C=false, FU_B='7', FU_K='all', FU_T='', FU_W='', FU_P=false, FU_Q='', FU_PAGE=0;
+let FU=null, FU_B='7', FU_K='all', FU_T='', FU_W='', FU_Q='', FU_PAGE=0;
+/* Sep 23 2026: the two checkboxes ("รวมแชทที่เคยคุยกับแอดมินแล้ว…" / "แสดงแชทที่ไม่ต้องตาม") only ADDED rows into the
+   same list (sorted in among the rest, the ไม่ต้องตาม ones on the last pages), so ticking them looked like nothing
+   happened. They are replaced by ONE exclusive group picker: each group shows only its own chats.
+     never = ไม่เคยมีแอดมินคุย · prior = เคยคุยแล้ว ถามรอบใหม่ไม่มีคนตอบ · both = สองกลุ่มรวมกัน · skip = ไม่ต้องตาม
+   FU_B 'all' = every age (used when a status-box number is clicked). */
+let FU_G='never', FU_MODE='ar';
+let FU_ASK=false;   /* Sep 23 2026: opening Follow up asks which list first (popup) */
+try{const m=localStorage.getItem('bp_fu_mode');if(m==='pay'||m==='ar'||m==='np'||m==='tn')FU_MODE=m;}catch(e){}
+const FU_GN={never:'ไม่เคยมีแอดมินคุย',prior:'เคยคุยแล้ว · ถามรอบใหม่ยังไม่มีคนตอบ',both:'รวมสองกลุ่ม',skip:'ไม่ต้องตาม',done:'กดตอบแล้ว · รอรอบ 05:00 ยืนยัน'};
 const FU_KN={all:'ทั้งหมด',A:'ถามจริง · ตามก่อน',B:'กดปุ่มสนใจคอร์ส',C:'ไม่ต้องตาม'};
 let FU_KORD=['A','B'];
 const FU_KS={A:'ถามจริง',B:'กดปุ่มสนใจ',C:'ไม่ต้องตาม'};
@@ -2153,7 +2363,7 @@ function fuWeek(w){const a=fuD(w),b=new Date(a);b.setDate(a.getDate()+6);
    Shared through a Google Apps Script web app when AGG.ovurl is set (everyone sees it), otherwise kept
    in this browser only. Keyed by the customer's latest message time, so a NEW message from the same
    customer brings the chat back automatically. Latest record per key wins; st 'clear' = back to auto. */
-let OV={}, OVURL=null, OVREADY=false, OVERR='';
+let OV={}, OVURL=null, OVREADY=false, OVERR='', OVROWS=[];
 const OV_WHY=['ถามกวน / มาปั่น','ไม่ใช่ลูกค้า / ส่งผิด / สแปม','คุยต่อทางช่องทางอื่นแล้ว (LINE / โทร)','แอดมินตอบแล้วแต่ระบบจับไม่ได้','อื่น ๆ'];
 const ovKey=(ch,tid,last)=>ch+'|'+tid+'|'+last;
 function ovName(){try{return localStorage.getItem('bp_admin_name')||'';}catch(e){return '';}}
@@ -2174,12 +2384,14 @@ function ovAsk(title,sub,min,def,multi){return new Promise(res=>{
  bg.addEventListener('click',e=>{if(e.target===bg)done('');});
  upd();setTimeout(()=>i.focus(),30);});}
 const OV_ADMINS=[['pat',''],['Gambumm',''],['ARM',''],['🚲',''],['🌙',''],['PPALM','owner'],['khing','operator'],['Pball','operator']];
-function ovMove(o,st,why){return new Promise(res=>{
+function ovMove(o,st,why,opt){return new Promise(res=>{
+ opt=opt||{};
  const other=st==='skip'&&why==='อื่น ๆ';
- const ttl=st==='skip'?'ย้ายไป “ไม่ต้องตาม”':(st==='follow'?'ย้ายกลับมาในรายการที่ต้องตาม':'ยกเลิกการย้าย (คืนค่าอัตโนมัติ)');
+ const fuDone=st==='skip'&&/^ตามแล้ว/.test(why||''), ansDone=st==='skip'&&/^ตอบแล้ว/.test(why||'');
+ const ttl=opt.title||(ansDone?'บันทึกว่าตอบแล้ว':fuDone?'บันทึกว่าตามแล้ว':(st==='skip'?'ย้ายไป “ไม่ต้องตาม”':(st==='follow'?'ย้ายกลับมาในรายการที่ต้องตาม':'ยกเลิกการย้าย (คืนค่าอัตโนมัติ)')));
  const bg=document.createElement('div');bg.className='ovdlg-bg';
  bg.innerHTML=`<div class="ovdlg" role="dialog" aria-modal="true"><h4>${ttl}</h4>
-  <p class="nsm">แชท: <b>${esc(o&&o.name||'')}</b>${st==='skip'?'<br>เหตุผล: <b>'+esc(why)+'</b>':''}</p>
+  <p class="nsm">แชท: <b>${esc(o&&o.name||'')}</b>${opt.desc?'<br>'+esc(opt.desc)+(st==='skip'&&why&&!/^ทำแล้ว/.test(why)?'<br>เหตุผล: <b>'+esc(why)+'</b>':''):ansDone?'<br>แชทจะออกจากรายการที่ต้องตอบทันที (ไม่ต้องรอรอบ 05:00) · ถ้าลูกค้าทักมาใหม่ แชทจะกลับเข้ารายการเอง':fuDone?'<br>แชทจะไปอยู่ “ตามแล้ว · รอลูกค้าตอบ” 7 วัน ถ้าลูกค้ายังเงียบจะกลับมาในรายการที่ต้องตาม':(st==='skip'?'<br>เหตุผล: <b>'+esc(why)+'</b>':'')}</p>
   ${other?'<label class="ovlab">อธิบายเหตุผล <span class="nsm">(จำเป็น อย่างน้อย 5 ตัวอักษร)</span></label><textarea rows="3" class="ovin"></textarea><div class="ovcnt nsm"></div>':''}
   <label class="ovlab">แอดมินที่ปรับ <span class="nsm">(จำเป็น)</span></label>
   <div class="ovadm">${OV_ADMINS.map(([n,r])=>`<button type="button" class="ovad" data-n="${esc(n)}">${esc(n)}${r?' <span>'+r+'</span>':''}</button>`).join('')}</div>
@@ -2204,21 +2416,24 @@ async function ovLoad(){OVURL=(AGG&&AGG.ovurl)||null;OV={};
  if(!OVURL){try{OV=JSON.parse(localStorage.getItem('bp_ov')||'{}')||{};}catch(e){OV={};}OVREADY=true;return;}
  try{const r=await fetch(OVURL+'?t='+encodeURIComponent(window.OVT||''),{cache:'no-store'});const j=await r.json();
   if(j.error)throw new Error(j.error);
+  OVROWS=(j.rows||[]).slice();   /* แถวดิบ = ประวัติเต็ม ใช้ในหมวดติดแท็ก/ใส่โน้ต */
   for(const x of (j.rows||[])){const k=ovKey(x[0],x[1],x[2]);if(x[3]==='clear')delete OV[k];else OV[k]={st:x[3],why:x[4],by:x[5],at:x[6]};}
   OVERR='';}catch(e){OVERR=String(e.message||e);}
  OVREADY=true;}
-function ovSet(o,st,why,by){const k=ovKey(CH,o.tid,o.last);
+function ovSet(o,st,why,by){const k=ovKey(CH,o.ovtid||o.tid,o.ovlast||o.last);
  if(st==='clear')delete OV[k];else OV[k]={st,why:why||'',by:by||'',at:new Date().toISOString()};
- if(OVURL){fetch(OVURL,{method:'POST',headers:{'Content-Type':'text/plain;charset=utf-8'},body:JSON.stringify({t:window.OVT,ch:CH,tid:o.tid,last:o.last,st,why:why||'',name:o.name,by:by||''})})
+ OVROWS.push([CH,o.ovtid||o.tid,o.ovlast||o.last,st,why||'',by||'',new Date().toISOString()]);
+ if(OVURL){fetch(OVURL,{method:'POST',headers:{'Content-Type':'text/plain;charset=utf-8'},body:JSON.stringify({t:window.OVT,ch:CH,tid:o.ovtid||o.tid,last:o.ovlast||o.last,st,why:why||'',name:o.name,by:by||''})})
    .then(r=>r.json()).then(j=>{if(!j.ok)toast('บันทึกไม่สำเร็จ ('+(j.error||'?')+')');}).catch(()=>toast('บันทึกไม่สำเร็จ — ตรวจอินเทอร์เน็ตแล้วลองใหม่'));}
  else{try{localStorage.setItem('bp_ov',JSON.stringify(OV));}catch(e){}}
- toast(st==='skip'?'ย้ายไป “ไม่ต้องตาม” แล้ว':(st==='follow'?'ย้ายกลับมาในรายการที่ต้องตามแล้ว':'คืนค่าเป็นแบบอัตโนมัติแล้ว'));
- renderFU();}
+ toast(st==='skip'&&/^ทำแล้ว/.test(why||'')?'บันทึกว่าทำแล้ว':st==='skip'&&/^ตอบแล้ว/.test(why||'')?'บันทึกว่าตอบแล้ว':st==='skip'&&/^ตามแล้ว/.test(why||'')?'บันทึกว่าตามแล้ว':st==='skip'?'ย้ายไป “ไม่ต้องตาม” แล้ว':(st==='follow'?'ย้ายกลับมาในรายการที่ต้องตามแล้ว':'คืนค่าเป็นแบบอัตโนมัติแล้ว'));
+ if(FU_MODE==='tn')renderTN();else if(FU_MODE!=='ar')renderPay();else renderFU();}
 function fuRows(){ if(!FU)return [];
  return (FU[CH]||[]).map(r=>{const o={tid:r[0],name:r[1],type:r[2],kind:r[15]||'A',auto0:r[15]||'A',wait:r[3],first:r[4],last:r[5],week:r[6],n:r[7],said:r[8],tags:r[9]||[],auto:r[10],nauto:r[11],prior:r[12],src:r[13],mo:r[14],owner:r[16]||'',reg:r[17]||0,admins:r[18]||[]};
-  const ov=OV[ovKey(CH,o.tid,o.last)];if(ov){o.ov=ov;if(ov.st==='skip')o.kind='C';else if(ov.st==='follow'&&o.kind==='C')o.kind='A';}return o;});}
-function fuInB(o,b){return b==='7'?(o.wait>=7&&o.wait<30):(b==='30'?o.wait>=30:o.wait<7);}
-function fuBase(){return fuRows().filter(o=>o.type!=='give'&&(FU_C||o.kind!=='C')&&(FU_P||!o.prior||CH==='line'));}
+  const ov=OV[ovKey(CH,o.tid,o.last)];if(ov){o.ov=ov;if(ov.st==='skip'&&/^ตอบแล้ว/.test(ov.why||''))o.kind='D';else if(ov.st==='skip')o.kind='C';else if(ov.st==='follow'&&o.kind==='C')o.kind='A';}return o;});}
+function fuInB(o,b){return b==='all'?true:(b==='7'?(o.wait>=7&&o.wait<30):(b==='30'?o.wait>=30:o.wait<7));}
+function fuInG(o,g){if(o.kind==='D'||g==='done')return o.kind==='D'&&g==='done';return g==='skip'?o.kind==='C':(o.kind!=='C'&&(g==='both'||(g==='prior'?!!o.prior:!o.prior)));}
+function fuBase(g){return fuRows().filter(o=>o.type!=='give'&&fuInG(o,g||FU_G));}
 function fuFilt(skipWeek){const q=FU_Q.trim().toLowerCase();
  return fuBase().filter(o=>fuInB(o,FU_B)&&(FU_K==='all'||o.kind===FU_K)&&(!FU_T||o.tags.includes(FU_T))&&(!FU_O||o.owner===FU_O)&&(skipWeek||!FU_W||o.week===FU_W)
   &&(!q||String(o.name).toLowerCase().includes(q)||String(o.said).toLowerCase().includes(q)));}
@@ -2236,43 +2451,68 @@ function fuExport(){const rows=fuFilt(false);
   fuWeek(o.week),o.first,o.last,o.n,o.said,o.tags.join(' · '),FU_KN[o.kind]||o.kind,String(o.auto||'').replace(/\n+/g,' '),o.prior?'Y':'',
   CH==='line'?('LINE · ผู้ดูแล '+(o.owner||'-')+(o.reg?' · แท็กสมัครแล้ว':'')):(o.src==='ad'?'โฆษณา':(o.src==='comment'?'คอมเมนต์':'ทักเอง')),fuLink(o)||'',o.ov?((o.ov.st==='skip'?'ไม่ต้องตาม':'กลับมาตาม')+(o.ov.why?' · '+o.ov.why:'')+(o.ov.by?' · '+o.ov.by:'')):'','','','']);
  const end=FU?FU.end.slice(0,10):'';
- downloadCSV('followup-'+(CH==='ig'?'instagram':(CH==='line'?'line':'facebook'))+(FU_O?'-'+FU_O:'')+'-'+(FU_B==='30'?'ค้าง30วันขึ้นไป':'ค้าง7-29วัน')+(FU_W?'-สัปดาห์'+FU_W:'')+(FU_K!=='all'?'-'+FU_KN[FU_K]:'')+'-'+end+'.csv',out);}
+ downloadCSV('followup-'+(CH==='ig'?'instagram':(CH==='line'?'line':'facebook'))+(FU_O?'-'+FU_O:'')+'-'+FU_GN[FU_G].replace(/[^฀-๿a-zA-Z0-9]+/g,'')+'-'+(FU_B==='30'?'ค้าง30วันขึ้นไป':(FU_B==='all'?'ทุกช่วง':'ค้าง7-29วัน'))+(FU_W?'-สัปดาห์'+FU_W:'')+(FU_K!=='all'?'-'+FU_KN[FU_K]:'')+'-'+end+'.csv',out);}
 let FU_L=[];
 function fuOvCtl(o,i){
+ if(o.kind==='D')return `<div class="fuov">✓ กดตอบแล้ว${o.ov&&o.ov.by?' โดย '+esc(o.ov.by):''}<br><span class="nsm">รอบ 05:00 จะเช็กจากแชทจริงอีกครั้ง</span><button class="fuovb" data-ovi="${i}" data-ovst="clear">ยกเลิก</button></div>`;
  if(o.ov&&o.ov.st==='skip')return `<div class="fuov on">ย้ายเป็นไม่ต้องตาม${o.ov.by?' โดย '+esc(o.ov.by):''}${o.ov.why?'<br><span class="nsm">'+esc(o.ov.why)+'</span>':''}<button class="fuovb" data-ovi="${i}" data-ovst="clear">ยกเลิก</button></div>`;
  if(o.ov&&o.ov.st==='follow')return `<div class="fuov">ย้ายกลับมาตาม${o.ov.by?' โดย '+esc(o.ov.by):''}<button class="fuovb" data-ovi="${i}" data-ovst="clear">ยกเลิก</button></div>`;
  if(o.kind==='C')return `<div class="fuov"><button class="fuovb" data-ovi="${i}" data-ovst="follow">ย้ายกลับมาตาม</button></div>`;
- return `<div class="fuov"><select class="fuovs" data-ovi="${i}" aria-label="ย้ายไปไม่ต้องตาม"><option value="">ย้ายไป “ไม่ต้องตาม”…</option>${OV_WHY.map(w=>`<option>${esc(w)}</option>`).join('')}</select></div>`;}
+ return `<div class="fuov"><button class="fuovb fudone" data-ovi="${i}" data-ovst="skip" data-why="ตอบแล้ว (กดเอง)" title="ตอบลูกค้าแล้ว — แชทออกจากรายการทันที ไม่ต้องรอรอบ 05:00">✓ ตอบแล้ว</button><select class="fuovs" data-ovi="${i}" aria-label="ย้ายไปไม่ต้องตาม"><option value="">ย้ายไป “ไม่ต้องตาม”…</option>${OV_WHY.map(w=>`<option>${esc(w)}</option>`).join('')}</select></div>`;}
 function fuStatus(){const S=((FU||{}).status||{})[CH];if(!S)return '';
  const tot=Object.values(S).reduce((a,b)=>a+b,0);
  const it=(k,lab,cls)=>`<span class="fust ${cls||''}"><b>${nf(S[k]||0)}</b> ${lab}</span>`;
- return `<div class="fustat"><span class="lab">อ่านทั้งห้องแชท (ทุกเดือนต่อกัน) · ${nf(tot)} ห้องที่ลูกค้าเคยทัก</span>`+
+ /* the three "still open" numbers are buttons: they open exactly those chats (every age) in the list below.
+    Counted from the list rows themselves (manual moves applied, Giveaway excluded) so the click matches the number. */
+ const R=fuRows().filter(o=>o.type!=='give'&&(!FU_O||o.owner===FU_O));
+ const go=(g,lab,cls)=>{const n=R.filter(o=>fuInG(o,g)).length;
+  return `<button type="button" class="fust go ${cls||''}" data-fugo="${g}" aria-pressed="${FU_G===g&&FU_B==='all'}" title="กดเพื่อดูรายชื่อแชทกลุ่มนี้ทุกช่วงเวลา"><b>${nf(n)}</b> ${lab}</button>`;};
+ return `<details class="fustd" data-std="ar"${FU_STD?' open':''}><summary>สถานะทุกห้องตั้งแต่ ม.ค. · ${nf(tot)} ห้อง</summary><div class="fustat"><span class="lab">อ่านทั้งห้องแชท (ทุกเดือนต่อกัน) · <b>กดตัวเลขที่มีกรอบ</b>เพื่อเปิดรายชื่อแชท</span>`+
   it('won','ปิดการขายแล้ว','ok')+it('answered','แอดมินตอบรอบล่าสุดแล้ว','ok')+it('closing','ลูกค้าปิดท้ายเอง (ขอบคุณ/โอเค/สติกเกอร์)','ok')+
-  it('noise','ไม่ต้องตาม (รูป/สติกเกอร์/ทักทาย/ข้อความไม่ชัด)','')+it('waiting_never','รอตอบ · ไม่เคยมีแอดมินคุย','risk')+it('waiting_prior','รอตอบ · เคยคุยแล้ว แต่ถามรอบใหม่ยังไม่มีคนตอบ','warn')+`</div>`;}
+  go('never','รอตอบ · ไม่เคยมีแอดมินคุย','risk')+go('prior','รอตอบ · เคยคุยแล้ว แต่ถามรอบใหม่ยังไม่มีคนตอบ','warn')+go('skip','ไม่ต้องตาม (รูป/สติกเกอร์/ทักทาย/ข้อความไม่ชัด/แอดมินย้าย)','')+`</div></details>`;}
+function fuFlow(){
+ if(FU_G==='skip')return '<p class="note fusm">ตาราง “แชทไปไหน” ไม่มีสำหรับกลุ่มไม่ต้องตาม — เลือกกลุ่มอื่นเพื่อดู</p>';
+ const flt=FU_G==='never'?(x=>!x[2]):(FU_G==='prior'?(x=>!!x[2]):null);
+ if(FU_O)return '<p class="note fusm">สรุป “แชทค้างไปไหน” ดูได้เมื่อเลือกแอดมินผู้ดูแล “ทุกคน”</p>';
+ const nowSet=new Map(fuBase().filter(o=>o.wait>=7).map(o=>[String(o.tid),o.name||'']));
+ return flowBox(((FU.arflow||{})[CH]||{})[FU_FLD],FU_FLD,FU_FLK,'afk','afd',
+  [['answered','แอดมินตอบแล้ว','ok'],['won','ปิดการขาย','ok'],['closing','ลูกค้าปิดท้ายเอง','ok'],['x','กลายเป็นไม่ต้องตาม',''],['moved','แอดมินกดเอง (ตอบแล้ว / ไม่ต้องตาม)','ok']],
+  [['more','ลูกค้าทักเพิ่ม ยังไม่มีคนตอบ','risk'],['still','ยังไม่มีใครตอบ','risk']],
+  '',
+  {filter:flt,nowSet,scope:FU_GN[FU_G],clearLab:'เคลียร์ได้',clearVerb:'ตอบ',newLab:'ค้างใหม่',
+   how:'“ค้างตอนนี้” = การ์ด 7–29 วัน + 30 วันขึ้นไป ด้านบน · “เคลียร์ได้” = แชทที่ค้างอยู่เมื่อ 7 วัน/เมื่อวานก่อน แล้วตอนนี้หลุดจากรายการ (แอดมินตอบ · ปิดการขาย · ลูกค้าปิดท้ายเอง · กลายเป็นไม่ต้องตาม) · “ค้างใหม่” = แชทที่เพิ่งค้างครบ 7 วันในช่วงนี้ · ค้างตอนนี้ = ค้างเดิม − เคลียร์ได้ + ค้างใหม่ · แชทที่แอดมินกดย้ายไป “ไม่ต้องตาม” นับเป็นเคลียร์ได้แบบ “แอดมินย้ายเอง”'});}
 async function renderFU(){
  const el=$('#fu'), sc=$('#fuscope');
  if(!FU){el.innerHTML='<p class="note">กำลังโหลดรายการแชท…</p>';
   try{FU=await getFile('followup');}catch(e){el.innerHTML='<p class="note">ยังไม่มีข้อมูลรายการนี้ในชุดข้อมูล ('+esc(e.message)+')</p>';return;}}
  if(!OVREADY){el.innerHTML='<p class="note">กำลังโหลดรายการที่แอดมินย้ายเอง…</p>';await ovLoad();}
  if(VIEW!=='fu')return;
+ if(FU_MODE==='tn'&&CH!=='line'){FU_MODE='ar';try{localStorage.setItem('bp_fu_mode','ar');}catch(e){}}
+ if(FU_ASK){FU_ASK=false;setTimeout(fuPicker,0);}
+ if(FU_MODE==='tn')return renderTN();
+ if(FU_MODE!=='ar'){puSetMode(FU_MODE);return renderPay();}
  const LN=CH==='line', chn=CH==='ig'?'Instagram':(LN?'LINE OA':'Facebook');
+ $('#fuh2').textContent='Follow up · แชทที่มีแต่ Auto reply ยังไม่มีแอดมินตอบ';
  const endS=LN?FU.lend:FU.end;
- if(LN&&!endS){el.innerHTML='<p class="note">ยังไม่มีข้อมูล LINE OA ในรายการนี้ — จะขึ้นหลังรอบอัปเดตถัดไป</p>';sc.textContent='LINE OA';return;}
+ if(LN&&!endS){el.innerHTML=fuModeBar()+'<p class="note">ยังไม่มีข้อมูล LINE OA ในรายการนี้ — จะขึ้นหลังรอบอัปเดตถัดไป</p>';fuModeBind(el);sc.textContent='LINE OA';return;}
  const endT=endS?fuDay(endS)+' '+endS.slice(11,16)+' น.':'';
  sc.textContent=chn+' · ข้อมูลถึง '+endT;
  const base=fuBase().filter(o=>!FU_O||o.owner===FU_O);
- FU_KORD=FU_C?['A','B','C']:['A','B'];
- const ngive=fuRows().filter(o=>o.type==='give'&&(FU_P||!o.prior)&&o.wait>=7).length;
- const nC=fuRows().filter(o=>o.type!=='give'&&o.kind==='C'&&(FU_P||!o.prior)&&fuInB(o,FU_B)).length;
+ FU_KORD=FU_G==='skip'?['C']:['A','B'];
+ const ngive=fuRows().filter(o=>o.type==='give'&&o.wait>=7).length;
+ const gOf=g=>fuRows().filter(o=>o.type!=='give'&&fuInG(o,g)&&(!FU_O||o.owner===FU_O)&&fuInB(o,FU_B)).length;
  const c7=base.filter(o=>fuInB(o,'7')).length, c30=base.filter(o=>fuInB(o,'30')).length, c0=base.filter(o=>fuInB(o,'0')).length;
+ const histG=LN?'both':'never';   /* the weekly history is stored for this group only */
  const hi=CH==='ig'?3:(LN?5:1), H=(FU.hist||[]).filter(h=>h[hi]!=null);
  const prevH=H.length>1?H[H.length-2]:null;
  const dd=(now,prev)=>prev==null?'':(now-prev===0?'<span class="fud0">เท่าเดิม</span>':(now<prev?'<span class="fudok">▼ '+nf(prev-now)+'</span>':'<span class="fudbad">▲ '+nf(now-prev)+'</span>'))+' <span class="nsm">เทียบรอบ '+fuDay(prevH[0])+'</span>';
  const card=(b,cls,lab,v,sub,d)=>`<button class="fucard ${cls}" data-fub="${b}" aria-pressed="${FU_B===b}"><span class="lab">${lab}</span><span class="v">${nf(v)}</span><span class="s">${sub}</span>${d?'<span class="d">'+d+'</span>':''}</button>`;
- const cards=`<div class="fucards">`+
-  card('7','warn','ไม่มีแอดมินตอบ · 7–29 วัน',c7,'ลูกค้าทักล่าสุดเมื่อ 7–29 วันก่อน · ยังตามได้ทัน',(FU_P&&!LN)||FU_O?'':dd(c7,prevH&&prevH[hi]))+
-  card('30','risk','ไม่มีแอดมินตอบ · 30 วันขึ้นไป',c30,'เป้าหมาย = 0 · '+(LN?'ตอบแล้วแชทจะหายเมื่อดึงข้อมูล LINE เดือนถัดไป':'ตอบแล้วแชทจะหายจากรายการในรอบอัปเดตถัดไป'),(FU_P&&!LN)||FU_O?'':dd(c30,prevH&&prevH[hi+1]))+
-  `</div>${fuStatus()}<p class="note fusm">ยังไม่ถึง 7 วัน ${nf(c0)} แชท (ยังไม่เข้ารายการ) · ${ngive?'ไม่นับแชท Giveaway '+nf(ngive)+' แชท (บอทส่งของแถมให้แล้ว ไม่ต้องตาม) · ':''}${LN?'นับ<b>ทั้ง</b>ห้องที่ไม่เคยมีแอดมินคุย และห้องที่เคยคุยแล้วแต่ลูกค้าถามรอบใหม่ยังไม่มีแอดมินตอบ (LINE เกือบทุกห้องเคยคุยกับแอดมิน)':(FU_P?'<b>รวม</b>แชทที่เคยคุยกับแอดมินแล้วแต่รอบล่าสุดไม่มีคนตอบ':'นับเฉพาะแชทที่<b>ไม่เคยมีแอดมินตอบเลย</b> มีแต่ข้อความอัตโนมัติ')}</p>`+
+ const noD=FU_G!==histG||FU_O;
+ const gl=FU_G==='skip'?'ไม่ต้องตาม':'ไม่มีแอดมินตอบ';
+ const cards=fuModeBar()+`<div class="fucards">`+
+  card('7','warn',gl+' · 7–29 วัน',c7,'ลูกค้าทักล่าสุดเมื่อ 7–29 วันก่อน · ยังตามได้ทัน',noD?'':dd(c7,prevH&&prevH[hi]))+
+  card('30','risk',gl+' · 30 วันขึ้นไป',c30,(FU_G==='skip'?'':'เป้าหมาย = 0 · ')+(LN?'ตอบแล้วแชทจะหายเมื่อดึงข้อมูล LINE เดือนถัดไป':'ตอบแล้วแชทจะหายจากรายการในรอบอัปเดตถัดไป'),noD?'':dd(c30,prevH&&prevH[hi+1]))+
+  `</div>${fuFlow()}${fuStatus()}<p class="note fusm">ตัวเลขในการ์ด = กลุ่ม <b>${FU_GN[FU_G]}</b> · ยังไม่ถึง 7 วัน ${nf(c0)} แชท (ยังไม่เข้ารายการ) · ${ngive?'ไม่นับแชท Giveaway '+nf(ngive)+' แชท (บอทส่งของแถมให้แล้ว ไม่ต้องตาม) · ':''}${LN?'LINE เกือบทุกห้องเคยคุยกับแอดมิน จึงเริ่มที่ “รวมสองกลุ่ม”':''}</p>`+
   (LN?`<p class="note fusm lnwarn">⚠️ LINE OA ดึงข้อมูลเดือนละครั้ง (ไม่มีรอบอัปเดตรายวัน) · ข้อมูลชุดนี้ถึง <b>${endT}</b> · “ค้างมาแล้ว” นับถึงวันนั้น ไม่ใช่วันนี้ · ห้องที่แอดมินตอบหลังวันนั้นแล้วจะยังอยู่ในรายการจนกว่าจะดึงเดือนถัดไป — กดเปิดแชทเช็กก่อนตามทุกครั้ง</p>`:'');
 
  /* weekly strip for the chosen bucket (ignores the week filter itself) */
@@ -2298,7 +2538,8 @@ async function renderFU(){
  const kb=k=>`<span class="badge fuk-${k}">${FU_KN[k]||k}</span>`;
  FU_L=[];
  const lrows=L.slice(FU_PAGE*PER,FU_PAGE*PER+PER).map(o=>`<tr>
-   <td><b>${CH==='ig'?'@':''}${esc(o.name||'(ไม่มีชื่อ)')}</b><div class="nsm">${CH==='line'?('ผู้ดูแล <b>'+esc(o.owner||'-')+'</b>'+(o.reg?' · <span class="badge">แท็กสมัครแล้ว</span>':'')+(o.prior?' · เคยคุยกับแอดมิน':' · <b>ไม่เคยมีแอดมินคุย</b>')):((o.src==='ad'?'มาจากโฆษณา':(o.src==='comment'?'มาจากคอมเมนต์':'ทักเข้ามาเอง'))+(o.prior?' · เคยคุยกับแอดมิน':''))}</div></td>
+   <td><b>${CH==='ig'?'@':''}${esc(o.name||'(ไม่มีชื่อ)')}</b><div class="nsm">${CH==='line'?('ผู้ดูแล <b>'+esc(o.owner||'-')+'</b>'+(o.reg?' · <span class="badge">แท็กสมัครแล้ว</span>':'')):(o.src==='ad'?'มาจากโฆษณา':(o.src==='comment'?'มาจากคอมเมนต์':'ทักเข้ามาเอง'))}</div>
+   <div>${o.prior?'<span class="badge prior">เคยคุยกับแอดมิน · ถามรอบใหม่</span>':'<span class="badge risk">ไม่เคยมีแอดมินคุย</span>'}</div></td>
    <td class="n"><b class="${o.wait>=30?'furisk':'fuwarn'}">${Math.floor(o.wait)}</b> วัน<div class="nsm">${fuDay(o.last)} ${o.last.slice(11,16)}</div></td>
    <td class="w fusaid">${kb(o.kind)} ${o.tags.map(t=>'<span class="badge">'+esc(t)+'</span>').join(' ')}<div>${esc(o.said||'(ส่งรูป/สติกเกอร์อย่างเดียว)')}</div></td>
    <td class="w fuauto">${o.auto?esc(o.auto).replace(/\\n|\n/g,' '):'<span class="nsm">ไม่มีข้อความตอบกลับเลย</span>'}<div class="nsm">ข้อความอัตโนมัติ ${o.nauto} ข้อความ</div></td>
@@ -2308,11 +2549,14 @@ async function renderFU(){
  if(LN){const oc={};for(const o of fuBase().filter(o=>fuInB(o,FU_B)))oc[o.owner||'-']=(oc[o.owner||'-']||0)+1;
   const os=Object.keys(oc).sort((a,b)=>oc[b]-oc[a]);
   ownRow=`<div class="chips fuown"><span class="nsm">แอดมินผู้ดูแลห้อง:</span> <button class="chip" data-fuo="" aria-pressed="${!FU_O}">ทุกคน</button>${os.map(n=>`<button class="chip" data-fuo="${esc(n)}" aria-pressed="${FU_O===n}">${esc(n)} ${nf(oc[n])}</button>`).join('')}</div>`;}
- const list=`<div class="fuhd"><b>รายชื่อแชทที่ต้องตาม</b> <span class="nsm">ถามจริงขึ้นก่อน แล้วเรียงจากลูกค้าทักล่าสุด</span></div>
+ const bl=FU_B==='all'?'ทุกช่วงเวลา':(FU_B==='30'?'ค้าง 30 วันขึ้นไป':'ค้าง 7–29 วัน');
+ const grp=`<div class="fugrp" role="group" aria-label="เลือกกลุ่มแชท"><span class="lab">กลุ่มแชท</span>`+
+  ['never','prior','both','skip'].concat(fuRows().some(o=>o.kind==='D')||FU_G==='done'?['done']:[]).map(g=>`<button type="button" class="fug g-${g}" data-fug="${g}" aria-pressed="${FU_G===g}">${g==='done'?'✓ ':''}${FU_GN[g]} <b>${nf(gOf(g))}</b></button>`).join('')+`</div>`;
+ const show=`<div class="fushow" id="fulist">กำลังดู <b>${FU_GN[FU_G]}</b> · ${bl}${FU_K!=='all'?' · '+FU_KN[FU_K]:''} · <b>${nf(L.length)}</b> แชท${FU_B==='all'?' <button class="chip" data-fub="7" aria-pressed="false">กลับไปดูค้าง 7–29 วัน</button>':''}</div>`;
+ const list=`<div class="fuhd"><b>รายชื่อแชทที่ต้องตาม</b> <span class="nsm">เลือกกลุ่มก่อน แล้วกรองต่อได้ · ถามจริงขึ้นก่อน แล้วเรียงจากลูกค้าทักล่าสุด</span></div>
+  ${grp}${show}
   <div class="tw"><div class="ptop"><input type="search" id="fuq" placeholder="ค้นชื่อลูกค้า หรือข้อความที่ลูกค้าพิมพ์" value="${esc(FU_Q)}">
-   <div class="chips">${['all'].concat(FU_KORD).filter(k=>k==='all'||kinds[k]).map(k=>`<button class="chip" data-fuk="${k}" aria-pressed="${FU_K===k}">${FU_KN[k]}${k==='all'?'':' '+nf(kinds[k])}</button>`).join('')}
-    ${LN?'':`<label class="fuprior"><input type="checkbox" id="fuprior" ${FU_P?'checked':''}> รวมแชทที่เคยคุยกับแอดมินแล้ว แต่ลูกค้าถามรอบใหม่ยังไม่มีคนตอบ</label>`}
-    <label class="fuprior"><input type="checkbox" id="fuc" ${FU_C?'checked':''}> แสดงแชทที่ไม่ต้องตาม (${nf(nC)})</label></div>${ownRow}</div>
+   <div class="chips">${FU_G==='skip'?'':['all'].concat(FU_KORD).filter(k=>k==='all'||kinds[k]).map(k=>`<button class="chip" data-fuk="${k}" aria-pressed="${FU_K===k}">${FU_KN[k]}${k==='all'?'':' '+nf(kinds[k])}</button>`).join('')}</div>${ownRow}</div>
   <table class="fulist"><thead><tr><th>ลูกค้า</th><th class="n">ค้างมาแล้ว</th><th>ลูกค้าพิมพ์/กดอะไร</th><th>Auto reply ล่าสุดที่ลูกค้าได้</th><th></th></tr></thead><tbody>${lrows||'<tr><td colspan="5">ไม่มีแชทตามตัวกรองนี้ 🎉</td></tr>'}</tbody></table>
   <p class="nsm fuovnote">ทุกครั้งที่ย้ายต้องเลือกชื่อแอดมินที่ปรับ · ${OVURL?(OVERR?'⚠️ โหลดรายการที่แอดมินย้ายเองไม่สำเร็จ ('+esc(OVERR)+') — การย้ายตอนนี้ยังไม่ถูกบันทึกส่วนกลาง':'การย้ายแชทบันทึกส่วนกลาง ทุกคนในทีมเห็นเหมือนกัน · ย้ายไปแล้ว '+nf(Object.keys(OV).filter(k=>k.startsWith(CH+'|')).length)+' แชท'):'การย้ายแชทตอนนี้บันทึกเฉพาะเครื่องนี้ (ยังไม่ได้เชื่อมที่เก็บส่วนกลาง)'} · ถ้าลูกค้าส่งข้อความใหม่ แชทจะกลับเข้ารายการเอง</p>
   <div class="pfoot"><span class="nsm">${nf(L.length)} แชท${FU_T?' · หัวข้อ '+esc(FU_T):''}${FU_W?' · สัปดาห์ '+fuWeek(FU_W):''}</span>
@@ -2323,8 +2567,10 @@ async function renderFU(){
 
  const help=`<details class="fhelp"><summary>รายการนี้นับอย่างไร</summary><dl>
   <dt>อ่านทั้งห้อง ไม่ใช่รายเดือน</dt><dd>รายการนี้ต่อข้อความทุกเดือนของห้องเดียวกันแล้วดูว่า <b>ตอนนี้</b> ห้องอยู่สถานะไหน — ถ้าแอดมินตอบหลังข้อความล่าสุดของลูกค้าแล้ว (แม้จะคนละเดือน) ห้องนั้นไม่อยู่ในรายการ · ถ้าลูกค้าพิมพ์แค่ขอบคุณ/โอเค/สติกเกอร์หลังจากแอดมินคุยไปแล้ว ถือว่าจบบทสนทนา ไม่ต้องตาม · “เคยคุยกับแอดมิน” นับย้อนไปถึงก่อนปี 2026 ด้วย (Facebook)</dd>
-  <dt>ย้ายแชทเอง</dt><dd>ถ้าเปิดดูแล้วไม่ควรตาม (ถามกวน มาปั่น ไม่ใช่ลูกค้า คุยต่อทางอื่นแล้ว) เลือกเหตุผลในช่อง “ย้ายไป ไม่ต้องตาม” ท้ายแถว (ทุกครั้งต้องเลือกชื่อแอดมินที่ปรับ และถ้าเลือก “อื่น ๆ” ต้องพิมพ์อธิบายเหตุผลอย่างน้อย 5 ตัวอักษร) แชทจะหายจากรายการและตัวเลขทันที · กดยกเลิกเพื่อคืนค่าได้ · ถ้าลูกค้าส่งข้อความใหม่ในภายหลัง แชทจะกลับเข้ารายการเองเพราะเป็นรอบใหม่ · แชทที่ระบบซ่อนไว้ผิด เปิด “แสดงแชทที่ไม่ต้องตาม” แล้วกด “ย้ายกลับมาตาม”</dd>
-  <dt>LINE OA</dt><dd>อ่านทั้งห้องต่อกันทุกเดือนที่ดึงมาแล้ว · LINE บอกชื่อแอดมินที่ส่งทุกข้อความ ข้อความจากบัญชีบอท/ข้อความตอบกลับอัตโนมัติ = อัตโนมัติ · ห้องเข้ารายการเมื่อข้อความล่าสุดของลูกค้ายังไม่มีแอดมินคนไหนตอบ (รวมห้องที่เคยคุยแล้ว เพราะ LINE เกือบทุกห้องเคยคุยกับแอดมิน) · “ผู้ดูแล” = แอดมินที่ LINE ตั้งเป็นผู้รับผิดชอบห้อง กดชื่อเพื่อดูเฉพาะห้องของคนนั้น · ปุ่ม “เปิดแชทนี้” เข้าห้องใน LINE OA Manager ได้ตรง · ข้อมูล LINE ดึงเดือนละครั้ง “ค้างมาแล้ว” จึงนับถึงวันสุดท้ายของเดือนล่าสุดที่ดึง</dd>
+  <dt>ปุ่ม ✓ ตอบแล้ว</dt><dd>ตอบลูกค้าในแชทแล้วกดปุ่มนี้ แชทออกจากรายการและตัวเลขลดทันที (คนอื่นเห็นเมื่อ refresh) ไม่ต้องรอรอบ 05:00 · ดูแชทที่กดไว้ได้ที่กลุ่ม “กดตอบแล้ว · รอรอบ 05:00 ยืนยัน” (กดยกเลิกได้) · รอบ 05:00 จะอ่านแชทจริงแล้วย้ายเป็น “แอดมินตอบแล้ว” เอง · ถ้าลูกค้าทักมาใหม่ แชทจะกลับเข้ารายการเป็นรอบใหม่</dd>
+  <dt>ย้ายแชทเอง</dt><dd>ถ้าเปิดดูแล้วไม่ควรตาม (ถามกวน มาปั่น ไม่ใช่ลูกค้า คุยต่อทางอื่นแล้ว) เลือกเหตุผลในช่อง “ย้ายไป ไม่ต้องตาม” ท้ายแถว (ทุกครั้งต้องเลือกชื่อแอดมินที่ปรับ และถ้าเลือก “อื่น ๆ” ต้องพิมพ์อธิบายเหตุผลอย่างน้อย 5 ตัวอักษร) แชทจะหายจากรายการและตัวเลขทันที · กดยกเลิกเพื่อคืนค่าได้ · ถ้าลูกค้าส่งข้อความใหม่ในภายหลัง แชทจะกลับเข้ารายการเองเพราะเป็นรอบใหม่ · แชทที่ระบบซ่อนไว้ผิด เลือกกลุ่ม “ไม่ต้องตาม” แล้วกด “ย้ายกลับมาตาม”</dd>
+  <dt>กลุ่มแชท</dt><dd>เลือกได้ทีละกลุ่ม รายชื่อจะเปลี่ยนเป็นแชทของกลุ่มนั้นทันที · <b>ไม่เคยมีแอดมินคุย</b> ลูกค้าได้แต่ข้อความอัตโนมัติมาตลอด · <b>เคยคุยแล้ว · ถามรอบใหม่ยังไม่มีคนตอบ</b> เคยมีแอดมินคุย (รวมก่อนปี 2026 บน Facebook) แต่ข้อความล่าสุดของลูกค้ายังไม่มีคนตอบ · <b>ไม่ต้องตาม</b> ระบบคัดออก (รูป/สติกเกอร์/ทักทาย/ข้อความไม่ชัด/ลูกค้าปฏิเสธ) หรือแอดมินย้ายเอง · ตัวเลขในกล่อง “อ่านทั้งห้องแชท” ที่มีกรอบกดได้ จะเปิดรายชื่อกลุ่มนั้น<b>ทุกช่วงเวลา</b></dd>
+  <dt>LINE OA</dt><dd>อ่านทั้งห้องต่อกันทุกเดือนที่ดึงมาแล้ว · LINE บอกชื่อแอดมินที่ส่งทุกข้อความ ข้อความจากบัญชีบอท/ข้อความตอบกลับอัตโนมัติ = อัตโนมัติ · ห้องเข้ารายการเมื่อข้อความล่าสุดของลูกค้ายังไม่มีแอดมินคนไหนตอบ (รวมห้องที่เคยคุยแล้ว เพราะ LINE เกือบทุกห้องเคยคุยกับแอดมิน) · “ผู้ดูแล” = แอดมินที่ LINE ตั้งเป็นผู้รับผิดชอบห้อง กดชื่อเพื่อดูเฉพาะห้องของคนนั้น · ปุ่ม “เปิดแชทนี้” เข้าห้องใน LINE OA Manager ได้ตรง · ข้อมูล LINE ดึงเดือนละครั้ง “ค้างมาแล้ว” จึงนับถึงข้อความล่าสุดในชุดที่ดึงมา (ไม่ใช่วันนี้)</dd>
   <dt>แชทแบบไหนเข้ารายการ</dt><dd>ลูกค้าทักมาแล้วได้รับแต่ <b>ข้อความอัตโนมัติ</b> (ข้อความต้อนรับ ปุ่มคำถามที่ตั้งไว้ ข้อความตอบตามคีย์เวิร์ด ข้อความติดตามที่ตั้งเวลาส่ง) และ <b>ไม่มีแอดมินตอบเลย</b> นับจากข้อความล่าสุดของลูกค้า</dd>
   <dt>แยกแอดมินกับข้อความอัตโนมัติอย่างไร</dt><dd><b>Facebook</b> — Meta ติดป้ายทุกข้อความว่าส่งมาจากไหน ข้อความที่ส่งจากแอปมือถือ (Business Suite) = มีคนกดส่ง นับเป็นแอดมินตอบ ทั้งที่พิมพ์เองและกดส่งข้อความที่บันทึกไว้ · ข้อความที่ระบบส่งเอง (ข้อความต้อนรับ ปุ่มคำถาม ตอบตามคีย์เวิร์ด ข้อความติดตามที่ตั้งเวลา บอทตรวจสลิป) = อัตโนมัติ · <b>Instagram</b> — API ไม่มีป้ายนี้ จึงเทียบจากข้อความเดียวกันบน Facebook (แอดมินใช้ข้อความชุดเดียวกัน) ข้อความที่ไม่เคยเจอบน Facebook ใช้จังหวะเวลา: ส่งหลังลูกค้าทัก 2 นาทีขึ้นไป = แอดมิน · <b>LINE OA</b> — ระบบ LINE บอกชื่อแอดมินที่ส่งทุกข้อความอยู่แล้ว</dd>
   <dt>“ค้างมาแล้ว” นับจากไหน</dt><dd>จากข้อความล่าสุดของลูกค้า ถึงเวลาที่ดึงข้อมูลชุดนี้ (${endT}) · 7–29 วัน = ยังตามได้ทัน · 30 วันขึ้นไป = กองค้างที่ควรเคลียร์ให้เป็น 0</dd>
@@ -2341,38 +2587,474 @@ async function renderFU(){
  el.querySelectorAll('[data-fuk]').forEach(b=>b.addEventListener('click',()=>{FU_K=b.dataset.fuk;FU_PAGE=0;renderFU();}));
  el.querySelectorAll('[data-fuo]').forEach(b=>b.addEventListener('click',()=>{FU_O=b.dataset.fuo;FU_PAGE=0;renderFU();}));
  el.querySelectorAll('[data-fup]').forEach(b=>b.addEventListener('click',()=>{FU_PAGE=+b.dataset.fup;renderFU();}));
- const pr=$('#fuprior');if(pr)pr.addEventListener('change',()=>{FU_P=pr.checked;FU_PAGE=0;renderFU();});
- const fc=$('#fuc');if(fc)fc.addEventListener('change',()=>{FU_C=fc.checked;if(!FU_C&&FU_K==='C')FU_K='all';FU_PAGE=0;renderFU();});
+ el.querySelectorAll('[data-fug]').forEach(b=>b.addEventListener('click',()=>{FU_G=b.dataset.fug;FU_K='all';FU_W='';FU_T='';FU_PAGE=0;renderFU();}));
+ el.querySelectorAll('[data-fugo]').forEach(b=>b.addEventListener('click',()=>{FU_G=b.dataset.fugo;FU_B='all';FU_K='all';FU_W='';FU_T='';FU_PAGE=0;renderFU();
+  const t=$('#fulist');if(t&&t.scrollIntoView)t.scrollIntoView({behavior:'smooth',block:'start'});}));
+ fuModeBind(el);
+ el.querySelectorAll('[data-afk]').forEach(b=>b.addEventListener('click',()=>{FU_FLK=FU_FLK===b.dataset.afk?'':b.dataset.afk;renderFU();}));
+ el.querySelectorAll('[data-afd]').forEach(b=>b.addEventListener('click',()=>{FU_FLD=b.dataset.afd;FU_FLK='';renderFU();}));
  const q=$('#fuq');if(q){q.addEventListener('input',()=>{FU_Q=q.value;FU_PAGE=0;clearTimeout(q._t);q._t=setTimeout(()=>{renderFU();const n=$('#fuq');if(n){n.focus();n.setSelectionRange(n.value.length,n.value.length);}},250);});}
  const dl=$('#fudl');if(dl)dl.addEventListener('click',fuExport);
  el.querySelectorAll('.fuovs').forEach(sv=>sv.addEventListener('change',async()=>{const why=sv.value;if(!why)return;
   const o=FU_L[+sv.dataset.ovi];const r=await ovMove(o,'skip',why);
   if(!r){sv.value='';toast('ยังไม่ได้ย้าย');return;}
   ovSet(o,'skip',r.why,r.by);}));
- el.querySelectorAll('.fuovb').forEach(b=>b.addEventListener('click',async()=>{const o=FU_L[+b.dataset.ovi],st=b.dataset.ovst;
-  const r=await ovMove(o,st,'');if(!r){toast('ยังไม่ได้เปลี่ยน');return;}ovSet(o,st,'',r.by);}));
+ el.querySelectorAll('.fuovb[data-ovi]').forEach(b=>b.addEventListener('click',async()=>{const o=FU_L[+b.dataset.ovi],st=b.dataset.ovst,why=b.dataset.why||'';
+  const r=await ovMove(o,st,why);if(!r){toast('ยังไม่ได้เปลี่ยน');return;}ovSet(o,st,why?r.why:'',r.by);}));
 }
 
+/* ---------- Follow up hub (Sep 23 2026): one "Follow up" page, two lists ----------
+   ar  = ตอบแชทค้าง (Auto reply)  — the list above (renderFU)
+   pay = ตามโอนเงิน               — chats our side sent a price to, with no verified slip after it (build_pay.py → FU.pay) */
+/* np  = คุยแล้วไม่ถึงราคา         — customer asked about a course, an admin answered, no price was ever sent (build_pay.py → FU.np)
+   Sep 23 2026: the big two-button bar is replaced by one compact "current list" bar + a popup that asks which list first,
+   so nobody works the wrong list by mistake. */
+function fuModeCounts(){
+ const LN=CH==='line';
+ const ar=fuRows().filter(o=>o.type!=='give'&&fuInG(o,LN?'both':'never')&&o.wait>=7).length;
+ const pay=FU&&FU.pay?puRows('pay').filter(o=>PAYCFG.TODO.includes(o.g)&&o.wait>=1&&o.wait<30).length:null;
+ const np=FU&&FU.np?puRows('np').filter(o=>NPCFG.TODO.includes(o.g)&&o.wait>=1&&o.wait<30).length:null;
+ const tn=(LN&&AGG&&AGG.tnfu)?tnfTodo():null;
+ return {ar,pay,np,tn};}
+const FU_MODES=[
+ ['ar','💬','ตอบแชทค้าง · Auto reply','ลูกค้าได้แต่ข้อความอัตโนมัติ ยังไม่มีแอดมินตอบ','แชท · ค้าง 7 วันขึ้นไป'],
+ ['np','🗨️','คุยแล้วไม่ถึงราคา','ลูกค้าถามเรื่องคอร์ส แอดมินตอบแล้ว แต่ยังไม่ได้ส่งราคา','แชท · แอดมินตอบ 1–29 วันก่อน'],
+ ['pay','💸','ส่งราคาแล้วยังไม่โอน','ส่งราคา/สรุปยอดไปแล้ว แต่ยังไม่มีสลิป “ตรวจสอบสลิปสำเร็จ”','แชท · ส่งราคา 1–29 วันก่อน'],
+ ['tn','🏷️','ติดแท็ก / ใส่โน้ต ให้ครบ','ห้องที่ยังไม่ได้ติดแท็กสถานะ หรือยังไม่มีโน้ต — เฉพาะ LINE OA','ห้อง · สถานะล่าสุด']];
+const fuModeList=()=>FU_MODES.filter(m=>m[0]!=='tn'||CH==='line');   /* แท็ก/โน้ตเป็นของ LINE อย่างเดียว */
+function fuModeBar(){const c=fuModeCounts(),m=fuModeList().find(x=>x[0]===FU_MODE)||FU_MODES[0];
+ return `<div class="fucur ${m[0]}"><span class="ic" aria-hidden="true">${m[1]}</span><span class="tx"><span>กำลังดู Follow up หมวด</span><b>${m[2]} · ${c[m[0]]==null?'—':nf(c[m[0]])} ${m[4]}</b></span><button type="button" class="fupkb" data-fupick="1" aria-haspopup="dialog">เปลี่ยนหมวด ▾</button></div>`;}
+function fuPicker(){
+ const old=document.getElementById('fupk');if(old)old.remove();
+ const c=fuModeCounts();
+ const bg=document.createElement('div');bg.className='fupk-bg';bg.id='fupk';
+ bg.innerHTML=`<div class="fupk" role="dialog" aria-modal="true" aria-labelledby="fupkh"><h3 id="fupkh">จะ Follow up หมวดไหน?</h3><p class="sub">เลือกรายการที่จะตามก่อน — เปลี่ยนได้ทุกเมื่อจากปุ่ม “เปลี่ยนหมวด”</p>`+
+  fuModeList().map(m=>`<button type="button" class="fupko" data-fupko="${m[0]}" aria-current="${FU_MODE===m[0]}"><span class="ic" aria-hidden="true">${m[1]}</span><span class="t">${m[2]}</span><span class="s">${m[3]}</span><span class="n">${c[m[0]]==null?'—':nf(c[m[0]])}<small>${m[4]}</small></span></button>`).join('')+
+  `<div class="foot"><span>${CH==='ig'?'Instagram':(CH==='line'?'LINE OA':'Facebook')}</span><button type="button" class="fupkx" data-fupkx="1">ปิด</button></div></div>`;
+ document.body.appendChild(bg);
+ const close=()=>{bg.remove();document.removeEventListener('keydown',esc_);const k=document.querySelector('[data-fupick]');if(k&&k.focus)k.focus();};
+ const esc_=e=>{if(e.key==='Escape')close();};
+ document.addEventListener('keydown',esc_);
+ bg.addEventListener('click',e=>{if(e.target===bg)close();});
+ bg.querySelector('[data-fupkx]').addEventListener('click',close);
+ bg.querySelectorAll('[data-fupko]').forEach(b=>b.addEventListener('click',()=>{const m=b.dataset.fupko;close();
+  if(m!==FU_MODE){FU_MODE=m;try{localStorage.setItem('bp_fu_mode',m);}catch(e){}
+   FU_PAGE=0;PU_PAGE=0;PU_G='all';PU_B='1';PU_T='';PU_W='';PU_Q='';PU_FLK='';}
+  renderFU();const t=$('#fu');if(t&&t.scrollIntoView)t.scrollIntoView({block:'start'});}));
+ const f=bg.querySelector('.fupko[aria-current="true"]')||bg.querySelector('.fupko');if(f&&f.focus)f.focus();}
+function fuModeBind(el){el.querySelectorAll('details.fustd').forEach(d=>d.addEventListener('toggle',()=>{if(d.dataset.std==='pay')PU_STD=d.open;else FU_STD=d.open;}));
+ el.querySelectorAll('[data-fupick]').forEach(b=>b.addEventListener('click',fuPicker));}
+
+let FU_STD=false, PU_STD=false;
+let PU_B='1', PU_G='all', PU_T='', PU_W='', PU_Q='', PU_PAGE=0, PU_L=[], PU_FLD='7', PU_FLK='', FU_FLD='7', FU_FLK='';
+/* flow box (Sep 23 2026): the to-do list as it stood 1 / 7 days ago -> where each of those chats is now.
+   F = {from,to,start,end,new:[[tid,name]],out:{key:[[tid,name]]}} built by build_fu.py / build_pay.py */
+function flowBox(F,day,sel,kAttr,dAttr,outs,stays,extra,opt){
+ /* compact version (Sep 23 2026): one headline number, one bar, only non-zero reasons, an automatic verdict.
+    start = cleared + still here, now = still here + new -> the numbers always add up */
+ opt=opt||{};
+ if(!F)return '<p class="note fusm">สรุป “แชทค้างไปไหน” จะขึ้นหลังรอบอัปเดตถัดไป</p>';
+ const keep=opt.filter||(()=>true);
+ let FO={}, FN=(F.new||[]).filter(keep);
+ for(const x of outs.concat(stays))FO[x[0]]=((F.out||{})[x[0]]||[]).filter(keep);
+ /* reconcile with the list the cards show right now (manual moves in the shared sheet happen after the build):
+    a chat still counted as "stuck" but no longer on today's list -> "แอดมินย้ายเอง"; a chat on today's list that the build
+    did not know about -> new. So "ค้างตอนนี้" always equals the cards. */
+ if(opt.nowSet){const now=opt.nowSet, stayK=stays.map(x=>x[0]), seen=new Set();
+  FO.moved=[];
+  for(const k of stayK){const keepL=[];for(const x of FO[k]){seen.add(String(x[0]));if(now.has(String(x[0])))keepL.push(x);else FO.moved.push(x);}FO[k]=keepL;}
+  for(const k of Object.keys(FO))if(!stayK.includes(k)&&k!=='moved')for(const x of FO[k])seen.add(String(x[0]));
+  FN=FN.filter(x=>now.has(String(x[0])));const inNew=new Set(FN.map(x=>String(x[0])));
+  for(const [t,nm] of now)if(!inNew.has(t)&&!stayK.some(k=>FO[k].some(x=>String(x[0])===t)))FN.push([t,nm]);
+  if(!outs.some(x=>x[0]==='moved'))outs=outs.concat([['moved','แอดมินย้ายเอง','']]);}
+ const lst=k=>k==='new'?FN:(FO[k]||[]);
+ const n=k=>lst(k).length;
+ const pas=opt.passive||[], act=outs.filter(x=>!pas.includes(x[0])), psv=outs.filter(x=>pas.includes(x[0]));
+ const outN=act.reduce((a,x)=>a+n(x[0]),0), agedN=psv.reduce((a,x)=>a+n(x[0]),0), stayN=stays.reduce((a,x)=>a+n(x[0]),0), newN=n('new');
+ const startN=outN+agedN+stayN, endN=stayN+newN, dlt=endN-startN;
+ const dFrom=fuDay(F.from), per=day==='1'?'ตั้งแต่เมื่อวาน':'7 วันที่ผ่านมา';
+ const clearLab=opt.clearLab||'เคลียร์ได้', newLab=opt.newLab||'ค้างใหม่';
+ const chip=(k,lab,cls)=>`<button type="button" class="flc ${cls}" data-${kAttr}="${k}" aria-pressed="${sel===k}"><b>${nf(n(k))}</b> ${lab}</button>`;
+ const nz=a=>a.filter(x=>n(x[0])>0);
+ const tot=Math.max(1,startN+newN), pc=v=>Math.round(v/tot*1000)/10;
+ const dl=dlt===0?'<span class="fld0">เท่าเดิม</span>':(dlt<0?'<span class="fldok">▼ '+nf(-dlt)+'</span>':'<span class="fldbad">▲ '+nf(dlt)+'</span>');
+ let verdict;
+ if(startN===0&&newN===0)verdict='<span class="flv ok">ไม่มีแชทค้าง 🎉</span>';
+ else if(outN===0&&startN>0)verdict='<span class="flv bad">⚠️ '+per+' ยังไม่มีแชทค้างถูก'+(opt.clearVerb||'เคลียร์')+'เลย</span>';
+ else if(dlt<0&&outN>=newN)verdict='<span class="flv ok">✅ ดีขึ้น — '+clearLab+' '+nf(outN)+' มากกว่าที่เข้ามาใหม่ '+nf(newN)+'</span>';
+ else if(dlt<0)verdict='<span class="flv">ค้างลดลง '+nf(-dlt)+' แต่ส่วนใหญ่เพราะแชทเก่าหมดอายุ — '+clearLab+'จริง '+nf(outN)+' · เข้ามาใหม่ '+nf(newN)+'</span>';
+ else if(dlt>0)verdict='<span class="flv bad">⚠️ ค้างเพิ่ม '+nf(dlt)+' — '+clearLab+' '+nf(outN)+' แต่เข้ามาใหม่ '+nf(newN)+'</span>';
+ else verdict='<span class="flv">'+clearLab+' '+nf(outN)+' เท่ากับที่เข้ามาใหม่</span>';
+ let names='';
+ if(sel){const L=lst(sel);const lab=(outs.concat(stays,[['new',newLab]]).find(x=>x[0]===sel)||[])[1]||'';
+  names=`<div class="flnames"><div class="fuhd"><b>${esc(lab)}</b> <span class="nsm">${nf(L.length)} แชท${L.length>300?' · แสดง 300 แชทแรก':''}</span></div>`+
+   L.slice(0,300).map(x=>`<div class="flrow"><span>${CH==='ig'?'@':''}${esc(x[1]||'(ไม่มีชื่อ)')}</span>${fuBtn({tid:x[0],name:x[1]})}</div>`).join('')+`</div>`;}
+ const where=nz(act), stuck=nz(stays).filter(x=>x[0]!=='still');
+ return `<div class="flow"><div class="flhd"><b>${per}</b>${opt.scope?' <span class="nsm">· '+esc(opt.scope)+'</span>':''}
+  <span class="flday">${['1','7'].map(d=>`<button type="button" class="chip" data-${dAttr}="${d}" aria-pressed="${day===d}">${d==='1'?'เมื่อวาน':'7 วัน'}</button>`).join('')}</span></div>
+  <div class="flkpi"><div class="fk main"><span class="lab">ค้างตอนนี้</span><b>${nf(endN)}</b><span class="fksub">${dl} จาก ${dFrom} (${nf(startN)})</span></div>
+   <div class="fk"><span class="lab">${clearLab}</span><b class="okc">${nf(outN)}</b></div>
+   <button type="button" class="fk fkbtn" data-${kAttr}="new" aria-pressed="${sel==='new'}"><span class="lab">${newLab}</span><b>${nf(newN)}</b></button></div>
+  <div class="flbar" role="img" aria-label="${clearLab} ${outN} · ยังค้าง ${stayN} · ${newLab} ${newN}"><i class="o" style="width:${pc(outN)}%"></i>${agedN?`<i class="ag" style="width:${pc(agedN)}%"></i>`:''}<i class="s" style="width:${pc(stayN)}%"></i><i class="nw" style="width:${pc(newN)}%"></i></div>
+  <div class="fllg nsm"><span><i class="o"></i>${clearLab} ${nf(outN)}</span>${agedN?`<span><i class="ag"></i>${psv.map(x=>x[1]).join(' · ')} ${nf(agedN)}</span>`:''}<span><i class="s"></i>ค้างมาตั้งแต่ ${dFrom} ${nf(stayN)}</span><span><i class="nw"></i>${newLab} ${nf(newN)}</span></div>
+  <div class="flv0">${verdict}</div>
+  ${where.length||agedN?`<div class="flwhere">${where.length?`<span class="nsm">${clearLab}ไปไหน →</span>${where.map(x=>chip(x[0],x[1],x[2])).join('')}`:''}${nz(psv).map(x=>chip(x[0],x[1],'ag')).join('')}</div>`:''}
+  ${stuck.length?`<div class="flwhere"><span class="nsm">ในแชทที่ยังค้าง →</span>${stuck.map(x=>chip(x[0],x[1],x[2])).join('')}</div>`:''}
+  ${names}
+  <details class="fhelp flhelp"><summary>นับอย่างไร</summary><div class="nsm">${opt.how||''} ${extra||''}</div></details></div>`;}
+let PU_GN={all:'ทั้งหมดที่ต้องตาม',R:'ลูกค้าถามค้าง · ตอบก่อน',A:'สรุปยอดแล้ว · รอโอน',B:'คุยต่อหลังได้ราคา แล้วเงียบ',C:'ได้ราคาแล้วเงียบเลย',F:'ตามแล้ว · รอลูกค้าตอบ',X:'ไม่ต้องตาม'};
+let PU_GS={R:'ถามค้าง',A:'สรุปยอดแล้ว',B:'คุยต่อแล้วเงียบ',C:'เงียบเลย',F:'ตามแล้ว'};
+let PU_GD={R:'ลูกค้าพิมพ์ถามหลังได้ราคา แต่ยังไม่มีแอดมินตอบ — ตอบก่อนตามโอน',
+ A:'แอดมินส่ง “ยอดชำระ / สรุปรายละเอียด / เลขบัญชี” แล้ว = ลูกค้าตกลงแล้ว เหลือแค่โอน',
+ B:'ลูกค้าคุยต่อหลังได้ราคา แอดมินตอบแล้ว แล้วลูกค้าเงียบไป',
+ C:'ส่งราคาไปแล้ว ลูกค้าไม่ได้ตอบอะไรเลย (หรือแค่ขอบคุณ/สติกเกอร์)',
+ F:'แอดมินทักตามแล้วหลังลูกค้าเงียบ 12 ชม.ขึ้นไป (หรือกด “ตามแล้ว” เอง) และลูกค้ายังไม่ตอบ — ครบ 7 วันยังเงียบ แชทกลับไปรายการที่ต้องตามพร้อมป้าย “ครบกำหนดตามรอบถัดไป”',
+ X:'ลูกค้าบอกว่าโอนแล้ว · ดูเป็นนักเรียนแล้ว · ปฏิเสธ/ขอคิดก่อน · ย้ายไปคุย LINE · หรือแอดมินย้ายเอง'};
+let PU_ORD=['R','A','B','C'];
+const PU_WHY=['โอนแล้ว / สมัครแล้ว (ทางอื่น)','ลูกค้าไม่สนใจแล้ว / ขอคิดก่อน','คุยต่อทางช่องทางอื่นแล้ว (LINE / โทร)','ถามกวน / ไม่ใช่ลูกค้า','อื่น ๆ'];
+let PU_TODO=['R','A','B','C'], PU_KEY='pay';
+const PAYCFG={GN:PU_GN,GS:PU_GS,GD:PU_GD,ORD:PU_ORD,TODO:PU_TODO};
+const NPCFG={GN:{all:'ทั้งหมดที่ต้องตาม',A:'บอกชั้น/คอร์สแล้ว · ยังไม่ได้ราคา',B:'ถามเรื่องคอร์ส · ยังไม่ได้ราคา',F:'ตามแล้ว · รอลูกค้าตอบ',X:'ไม่ต้องตาม'},
+ GS:{A:'บอกชั้น/คอร์สแล้ว',B:'ถามทั่วไป',F:'ตามแล้ว'},
+ GD:{A:'ลูกค้าบอกชั้นเรียน (ม.1–6 / ป.4–6 / ซิ่ว) และถามเรื่องคอร์ส ราคา ตาราง หรือการสมัคร — ใกล้ตัดสินใจ ส่งราคาได้เลย',
+  B:'ลูกค้าถามเรื่องคอร์สทั่วไป แอดมินตอบแล้ว แต่ยังไม่มีข้อความราคา/สรุปยอดจากฝั่งเรา',
+  F:'แอดมินทักตามแล้วหลังลูกค้าเงียบ 12 ชม.ขึ้นไป (หรือกด “ตามแล้ว” เอง) และลูกค้ายังไม่ตอบ — ครบ 7 วันยังเงียบ แชทกลับไปรายการที่ต้องตามพร้อมป้าย “ครบกำหนดตามรอบถัดไป”',
+  X:'ลูกค้าบอกว่าโอนแล้ว · ดูเป็นนักเรียนแล้ว · ปฏิเสธ/ขอคิดก่อน · ย้ายไปคุย LINE · หรือแอดมินย้ายเอง'},
+ ORD:['A','B'],TODO:['A','B']};
+function puSetMode(m){const C=m==='np'?NPCFG:PAYCFG;PU_KEY=m==='np'?'np':'pay';PU_GN=C.GN;PU_GS=C.GS;PU_GD=C.GD;PU_ORD=C.ORD;PU_TODO=C.TODO;}
+function puRows(k){const K=k||PU_KEY;if(!FU||!FU[K])return [];
+ return (FU[K][CH]||[]).map(r=>{const o={tid:r[0],name:r[1],g:r[2],g0:r[2],wait:r[3],q0:r[4],q1:r[5],last:r[6],lastc:r[7],bill:r[8],amt:r[9]||'',qt:r[10]||'',nq:r[11],
+   said:r[12]||'',after:r[13]||'',ball:r[14],tags:r[15]||[],flags:r[16]||[],src:r[17]||'',owner:r[18]||'',week:r[19],
+   nfu:r[20]||0,fu1:r[21]||'',due:r[22]||0,bg:r[23]||r[2]};
+  o.ovtid=K+':'+o.tid; o.ovlast=o.q1+'/'+o.lastc;          /* a new quote or a new customer message brings a moved chat back */
+  const ov=OV[ovKey(CH,o.ovtid,o.ovlast)];
+  if(ov){o.ov=ov;
+   if(ov.st==='skip'&&/^ตอบแล้ว/.test(ov.why||'')){o.ansMan=1;if(o.g==='R')o.g='B';}
+   else if(ov.st==='skip'&&/^ตามแล้ว/.test(ov.why||'')){        /* "ตามแล้ว (นอกแชท)": counts as followed for 7 days from the click */
+    const age=(Date.now()-new Date(ov.at||0).getTime())/864e5;o.fuMan=1;
+    if(age<7&&o.g!=='X'&&o.g!=='R'){o.g='F';o.due=0;}else if(o.g!=='X'&&o.g!=='R'){o.g=o.bg==='F'?'C':o.bg;o.due=1;}}
+   else if(ov.st==='skip')o.g='X';else if(ov.st==='follow'&&o.g0==='X')o.g='C';}
+  return o;});}
+function puInB(o,b){return b==='all'?true:(b==='1'?(o.wait>=1&&o.wait<7):(b==='7'?(o.wait>=7&&o.wait<30):(o.wait>=30&&o.wait<90)));}
+function puInG(o,g){return g==='all'?PU_TODO.includes(o.g):o.g===g;}
+function puFilt(skipWeek){const q=PU_Q.trim().toLowerCase();
+ return puRows().filter(o=>puInB(o,PU_B)&&puInG(o,PU_G)&&(!FU_O||o.owner===FU_O)&&(!PU_T||(PU_KEY==='np'?o.tags.includes(PU_T):o.amt===PU_T))&&(skipWeek||!PU_W||o.week===PU_W)
+  &&(!q||String(o.name).toLowerCase().includes(q)||String(o.said).toLowerCase().includes(q)||String(o.amt).includes(q)||String(o.qt).toLowerCase().includes(q)));}
+function puExport(){const rows=puFilt(false),NPM=PU_KEY==='np';
+ const head=NPM?['ช่องทาง','ชื่อลูกค้า','กลุ่ม','แอดมินตอบล่าสุดมาแล้ว (วัน)','ลูกค้าถามครั้งแรก','แอดมินตอบล่าสุด','แอดมินตอบกี่ข้อความ','ลูกค้าถามอะไร','แอดมินตอบว่าอะไร',
+  'ลูกค้าพิมพ์อะไรหลังแอดมินตอบ','ลูกค้าทักล่าสุด','หัวข้อ','ข้อสังเกต','มาจาก','ลิงก์ตรงห้องแชท (ถ้ามี)','แอดมินย้ายเอง','ผู้ติดตาม','วันที่ติดตาม','ผลการติดตาม']:['ช่องทาง','ชื่อลูกค้า','กลุ่ม','ส่งราคาล่าสุดมาแล้ว (วัน)','ส่งราคาครั้งแรก','ส่งราคาล่าสุด','ส่งราคากี่ครั้ง','ราคาที่ส่ง','สรุปยอด/เลขบัญชีแล้ว','ข้อความราคาล่าสุด',
+  'ลูกค้าพิมพ์อะไรหลังได้ราคา','ลูกค้าทักล่าสุด','หัวข้อ','ข้อสังเกต','มาจาก','ลิงก์ตรงห้องแชท (ถ้ามี)','แอดมินย้ายเอง','ผู้ติดตาม','วันที่ติดตาม','ผลการติดตาม'];
+ const out=[head];
+ for(const o of rows)out.push([CH==='ig'?'Instagram':(CH==='line'?'LINE OA':'Facebook'),o.name,PU_GN[o.g]||o.g,o.wait,o.q0,o.q1,o.nq].concat(NPM?[o.said,o.qt]:[o.amt,o.bill?'Y':'',o.qt],[o.after,o.lastc,o.tags.join(' · '),o.flags.join(' · '),
+  CH==='line'?('LINE · ผู้ดูแล '+(o.owner||'-')):(o.src==='ad'?'โฆษณา':(o.src==='comment'?'คอมเมนต์':'ทักเอง')),fuLink(o)||'',
+  o.ov?((o.ov.st==='skip'?'ไม่ต้องตาม':'กลับมาตาม')+(o.ov.why?' · '+o.ov.why:'')+(o.ov.by?' · '+o.ov.by:'')):'','','','']));
+ const end=FU?FU.end.slice(0,10):'';
+ downloadCSV((NPM?'ยังไม่ได้ราคา-':'ตามโอน-')+(CH==='ig'?'instagram':(CH==='line'?'line':'facebook'))+(FU_O?'-'+FU_O:'')+'-'+(PU_B==='1'?'1-6วัน':(PU_B==='7'?'7-29วัน':(PU_B==='30'?'30-89วัน':'ทุกช่วง')))+(PU_G!=='all'?'-'+(PU_GS[PU_G]||'ไม่ต้องตาม'):'')+'-'+end+'.csv',out);}
+function puOvCtl(o,i){
+ if(o.ov&&o.ov.st==='skip')return `<div class="fuov on">ย้ายเป็นไม่ต้องตาม${o.ov.by?' โดย '+esc(o.ov.by):''}${o.ov.why?'<br><span class="nsm">'+esc(o.ov.why)+'</span>':''}<button class="fuovb" data-pui="${i}" data-ovst="clear">ยกเลิก</button></div>`;
+ if(o.ov&&o.ov.st==='follow')return `<div class="fuov">ย้ายกลับมาตาม${o.ov.by?' โดย '+esc(o.ov.by):''}<button class="fuovb" data-pui="${i}" data-ovst="clear">ยกเลิก</button></div>`;
+ if(o.g==='X')return `<div class="fuov"><button class="fuovb" data-pui="${i}" data-ovst="follow">ย้ายกลับมาตาม</button></div>`;
+ if(o.fuMan&&o.g==='F')return `<div class="fuov">✓ กดตามแล้ว${o.ov.by?' โดย '+esc(o.ov.by):''}<button class="fuovb" data-pui="${i}" data-ovst="clear">ยกเลิก</button></div>`;
+ if(o.ansMan)return `<div class="fuov">✓ กดตอบแล้ว${o.ov.by?' โดย '+esc(o.ov.by):''}<br><span class="nsm">รอบ 05:00 จะเช็กจากแชทจริงอีกครั้ง</span><button class="fuovb" data-pui="${i}" data-ovst="clear">ยกเลิก</button></div>`;
+ return `<div class="fuov">${o.g==='R'?`<button class="fuovb fudone" data-pui="${i}" data-ovst="skip" data-why="ตอบแล้ว (กดเอง)" title="ตอบคำถามลูกค้าแล้ว — ย้ายไป “คุยต่อหลังได้ราคา” ทันที ไม่ต้องรอรอบ 05:00">✓ ตอบแล้ว</button>`:(o.g==='F'?'':`<button class="fuovb fudone" data-pui="${i}" data-ovst="skip" data-why="ตามแล้ว (กดเอง)" title="ทักตามลูกค้าแล้ว (ในแชท โทร หรือ LINE) — ย้ายไป “ตามแล้ว · รอลูกค้าตอบ” ทันที ไม่ต้องรอรอบ 05:00">✓ ตามแล้ว</button>`)}<select class="fuovs" data-pui="${i}" aria-label="ย้ายไปไม่ต้องตาม"><option value="">ย้ายไป “ไม่ต้องตาม”…</option>${PU_WHY.map(w=>`<option>${esc(w)}</option>`).join('')}</select></div>`;}
+
+function renderPay(){
+ const el=$('#fu'), sc=$('#fuscope'), LN=CH==='line', chn=CH==='ig'?'Instagram':(LN?'LINE OA':'Facebook');
+ puSetMode(FU_MODE);const NPM=PU_KEY==='np';
+ $('#fuh2').textContent=NPM?'Follow up · คุยแล้วไม่ถึงราคา':'Follow up · ส่งราคาแล้ว ยังไม่โอน';
+ if(!FU[PU_KEY]){el.innerHTML=fuModeBar()+'<p class="note">ยังไม่มีข้อมูลรายการนี้ในชุดข้อมูล — จะขึ้นหลังรอบอัปเดตถัดไป</p>';fuModeBind(el);return;}
+ const endS=LN?FU.lend:FU.end, endT=endS?fuDay(endS)+' '+endS.slice(11,16)+' น.':'';
+ sc.textContent=chn+' · ข้อมูลถึง '+endT;
+ const R=puRows().filter(o=>!FU_O||o.owner===FU_O);
+ const inG=R.filter(o=>puInG(o,PU_G));
+ const c1=inG.filter(o=>puInB(o,'1')).length,c7=inG.filter(o=>puInB(o,'7')).length,c30=inG.filter(o=>puInB(o,'30')).length;
+ const c0=inG.filter(o=>o.wait<1).length,P90=((FU[NPM?'np90':'pay90']||{})[CH])||{},c90=PU_G==='all'?PU_ORD.reduce((a,k)=>a+(P90[k]||0),0):(P90[PU_G]||0);
+ const QW=NPM?'แอดมินตอบ':'ส่งราคา';
+ const H=NPM?[]:(FU.payhist||[]),hi=CH==='ig'?4:(LN?7:1),prevH=H.length>1?H[H.length-2]:null;
+ const dd=(now,prev)=>prev==null||PU_G!=='all'||FU_O||!prevH?'':(now-prev===0?'<span class="fud0">เท่าเดิม</span>':(now<prev?'<span class="fudok">▼ '+nf(prev-now)+'</span>':'<span class="fudbad">▲ '+nf(now-prev)+'</span>'))+' <span class="nsm">เทียบรอบ '+fuDay(prevH[0])+'</span>';
+ const card=(b,cls,lab,v,sub,d)=>`<button class="fucard ${cls}" data-pub="${b}" aria-pressed="${PU_B===b}"><span class="lab">${lab}</span><span class="v">${nf(v)}</span><span class="s">${sub}</span>${d?'<span class="d">'+d+'</span>':''}</button>`;
+ const gl=PU_G==='all'?(NPM?'คุยแล้วยังไม่ได้ราคา':'ส่งราคาแล้วยังไม่โอน'):PU_GN[PU_G];
+ const cards=fuModeBar()+`<div class="fucards c3">`+
+  card('1','risk',gl+' · 1–6 วัน',c1,NPM?'แอดมินตอบล่าสุดเมื่อ 1–6 วันก่อน · ส่งราคา/โปรให้เลย ตอนลูกค้ายังสนใจ':'ส่งราคาล่าสุดเมื่อ 1–6 วันก่อน · ตามรอบแรก ช่วงที่ลูกค้ายังจำได้',dd(c1,prevH&&prevH[hi]))+
+  card('7','warn',gl+' · 7–29 วัน',c7,NPM?'ทักถามต่อ · เสนอรอบเรียนที่ใกล้เริ่มพร้อมราคา':'ตามรอบสอง · เสนอโปร/รอบเรียนที่ใกล้เริ่ม',dd(c7,prevH&&prevH[hi+1]))+
+  card('30','',gl+' · 30–89 วัน',c30,'ลูกค้าเก่า · ปลุกด้วยข่าวคอร์สใหม่/เปิดรอบใหม่',dd(c30,prevH&&prevH[hi+2]))+`</div>`;
+ /* whole-thread status: every room our side ever quoted */
+ const S=((FU[NPM?'npstat':'paystat']||{})[CH])||{};
+ const quoted=(S.paid||0)+['R','A','B','C','X'].reduce((a,k)=>a+(S[k]||0),0);
+ const go=(g,lab,cls)=>{const n=R.filter(o=>o.g===g).length;return `<button type="button" class="fust go ${cls||''}" data-pugo="${g}" aria-pressed="${PU_G===g&&PU_B==='all'}" title="กดเพื่อดูรายชื่อแชทกลุ่มนี้ (ส่งราคาภายใน 90 วัน)"><b>${nf(n)}</b> ${lab}</button>`;};
+ const stat=`<details class="fustd" data-std="pay"${PU_STD?' open':''}><summary>สถานะทุกห้องที่เคยส่งราคาตั้งแต่ ม.ค. · ${nf(quoted)} ห้อง · โอนแล้ว ${nf(S.paid||0)}</summary><div class="fustat"><span class="lab">อ่านทั้งห้องแชท (ทุกเดือนต่อกัน) · ${nf(quoted)} ห้องที่ฝั่งเราเคยส่งราคาตั้งแต่ ม.ค. 2026 · ปิดได้ ${quoted?Math.round((S.paid||0)/quoted*1000)/10:0}% · <b>กดตัวเลขที่มีกรอบ</b>เพื่อเปิดรายชื่อแชท (นับเฉพาะที่ส่งราคาภายใน 90 วัน)</span>`+
+  `<span class="fust ok"><b>${nf(S.paid||0)}</b> โอนแล้ว (สลิปผ่านหลังได้ราคา${LN?' หรือแท็กสมัครแล้ว':''})</span>`+
+  go('R','ลูกค้าถามค้าง','risk')+go('A','สรุปยอดแล้ว รอโอน','warn')+go('B','คุยต่อแล้วเงียบ','')+go('C','ได้ราคาแล้วเงียบเลย','')+go('F','ตามแล้ว รอลูกค้าตอบ','ok')+go('X','ไม่ต้องตาม','')+`</div></details>`;
+ const npAsk=['A','B','F','X'].reduce((a,k)=>a+(S[k]||0),0);
+ const statNP=`<details class="fustd" data-std="pay"${PU_STD?' open':''}><summary>สถานะทุกห้องที่ลูกค้าถามเรื่องคอร์สแล้วแอดมินตอบ · ยังไม่ได้ราคา ${nf(npAsk)} ห้อง</summary><div class="fustat"><span class="lab">อ่านทั้งห้องแชท (ทุกเดือนต่อกัน) · นับห้องที่ลูกค้าพิมพ์ถามเรื่องคอร์ส แอดมินตอบแล้ว แต่ฝั่งเรายังไม่เคยส่งราคา/สรุปยอด (นับจากหลังสลิปผ่านครั้งล่าสุด) · <b>กดตัวเลขที่มีกรอบ</b>เพื่อเปิดรายชื่อแชท (นับเฉพาะที่แอดมินตอบภายใน 90 วัน)</span>`+
+  `<span class="fust ok"><b>${nf(S.quoted||0)}</b> ห้องที่ส่งราคาแล้ว (อยู่ในรายการ “ส่งราคาแล้วยังไม่โอน” หรือโอนแล้ว)</span><span class="fust"><b>${nf(S.waiting||0)}</b> ลูกค้าถามล่าสุด ยังรอแอดมินตอบ</span>`+
+  go('A','บอกชั้น/คอร์สแล้ว','risk')+go('B','ถามเรื่องคอร์สทั่วไป','warn')+go('F','ตามแล้ว รอลูกค้าตอบ','ok')+go('X','ไม่ต้องตาม','')+`</div></details>`;
+ const PF=NPM?S:(((FU.payfu||{})[CH])||{});
+ const payNow=new Map(puRows().filter(o=>PU_TODO.includes(o.g)&&o.wait>=1&&o.wait<90).map(o=>[String(o.tid),o.name||'']));
+ const flow=FU_O?'<p class="note fusm">สรุป “แชทค้างไปไหน” ดูได้เมื่อเลือกแอดมินผู้ดูแล “ทุกคน”</p>':PU_G!=='all'?'<p class="note fusm">สรุป “แชทค้างไปไหน” นับรวมทุกกลุ่มที่ต้องตาม — เลือกกลุ่ม “ทั้งหมดที่ต้องตาม” เพื่อดู</p>':(NPM?flowBox(((FU.npflow||{})[CH]||{})[PU_FLD],PU_FLD,PU_FLK,'flk','fld',
+  [['quoted','ส่งราคาแล้ว → ไปรายการตามโอน','ok'],['paid','โอนแล้ว','ok'],['fu','ตามแล้ว → รอลูกค้าตอบ','ok'],['waiting','ลูกค้าถามต่อ → รอแอดมินตอบ','warn'],['x','ไม่ต้องตาม',''],['aged','หลุดเพราะแอดมินตอบเกิน 90 วัน',''],['moved','แอดมินกดเอง (ตามแล้ว / ไม่ต้องตาม)','ok']],
+  [['fudue','ตามแล้วแต่ครบกำหนดอีก','warn'],['still','ยังไม่มีใครตาม','risk']],
+  `ย้อนหลัง 7 วัน แอดมินทักตามในแชท <b>${nf(S.fu_7d||0)}</b> แชท · ตัวเลขนี้นับจากข้อความในแชทอย่างเดียว`,
+  {nowSet:payNow,scope:'ทั้งหมดที่ต้องตาม',passive:['aged'],clearLab:'เคลียร์ได้',clearVerb:'เคลียร์',newLab:'เข้ารายการใหม่',how:'“ค้างตอนนี้” = การ์ด 1–6 + 7–29 + 30–89 วัน ด้านบน (บอกชั้น/คอร์สแล้ว + ถามทั่วไป) · “เคลียร์ได้” = ส่งราคาแล้ว · โอนแล้ว · ตามแล้วรอลูกค้าตอบ · ลูกค้าถามต่อ (ไปรอแอดมินตอบ) · ไม่ต้องตาม (ไม่นับแชทที่หลุดเพราะเกิน 90 วัน ซึ่งแสดงแยกสีเทา) · “เข้ารายการใหม่” = แชทที่แอดมินเพิ่งตอบครบ 1 วันแล้วยังไม่ได้ราคาในช่วงนี้ ·'}):
+  flowBox(((FU.payflow||{})[CH]||{})[PU_FLD],PU_FLD,PU_FLK,'flk','fld',
+  [['paid','โอนแล้ว','ok'],['fu','ตามแล้ว → รอลูกค้าตอบ','ok'],['x','ไม่ต้องตาม',''],['aged','หลุดเพราะส่งราคาเกิน 90 วัน',''],['moved','แอดมินกดเอง (ตามแล้ว / ไม่ต้องตาม)','ok']],
+  [['reply','ลูกค้าตอบกลับ (ย้ายกลุ่ม)','warn'],['fudue','ตามแล้วแต่ครบกำหนดอีก','warn'],['still','ยังไม่มีใครตาม','risk']],
+  `ย้อนหลัง 7 วัน แอดมินทักตามในแชท <b>${nf(PF.fu_7d||0)}</b> แชท · ตั้งแต่ ม.ค. โอนแล้ว ${nf(S.paid||0)} แชท ในนั้น <b>${nf(S.paid_fu||0)}</b> แชทโอนหลังแอดมินทักตาม · ตัวเลขนี้นับจากข้อความในแชทอย่างเดียว การกด “ตามแล้ว” ไม่อยู่ในตารางนี้`,
+  {nowSet:payNow,scope:'ทั้งหมดที่ต้องตาม',passive:['aged'],clearLab:'เคลียร์ได้',clearVerb:'เคลียร์',newLab:'ส่งราคาใหม่',how:'“ค้างตอนนี้” = การ์ด 1–6 + 7–29 + 30–89 วัน ด้านบน (ถามค้าง + สรุปยอดแล้ว + คุยต่อแล้วเงียบ + เงียบเลย) · “เคลียร์ได้” = โอนแล้ว · ตามแล้วรอลูกค้าตอบ · ไม่ต้องตาม (ไม่นับแชทที่หลุดเพราะส่งราคาเกิน 90 วัน ซึ่งแสดงแยกสีเทา) · “ส่งราคาใหม่” = แชทที่เพิ่งเข้ารายการในช่วงนี้ ·'}));
+ const kw=`<details class="fhelp" style="margin:8px 0 16px"><summary>Keyword ที่ใช้จับ “ส่งราคา” และ “โอนแล้ว”</summary><dl>
+  <dt>ส่งราคา (ข้อความฝั่งเรา แอดมินหรือข้อความอัตโนมัติ)</dt><dd><div class="fukw"><code>ตัวเลข + บาท</code><code>ตัวเลข + ฿</code><code>ตัวเลข + .-</code><code>ค่าเรียน + ตัวเลข</code><code>ราคา + ตัวเลข</code></div>ตัวเลข 4–5 หลัก เช่น 5,700.- · 6,900 บาท · 12,000฿</dd>
+  <dt>สรุปยอด = ลูกค้าตกลงแล้ว (กลุ่ม “สรุปยอดแล้ว · รอโอน”)</dt><dd><div class="fukw"><code>ยอดชำระ</code><code>สรุปรายละเอียด</code><code>เลขบัญชี / เลขที่บัญชี</code><code>166-3-63464-6</code></div></dd>
+  <dt>โอนแล้ว = หลุดจากรายการ</dt><dd><div class="fukw"><code>สถานะ: ตรวจสอบสลิปสำเร็จ</code><code>ชื่อผู้รับ: บจก. ไบโอปาล์ม</code>${LN?'<code>แท็ก LINE “สมัครแล้ว”</code>':''}</div>ต้องมา<b>หลัง</b>ข้อความราคารอบนั้น · ถ้าส่งราคาใหม่หลังเคยโอน (ซื้อคอร์สต่อ) จะนับเป็นรอบใหม่ และติดป้าย “เคยโอนแล้ว”</dd>
+  <dt>ตามแล้ว (ระบบจับเอง)</dt><dd>ข้อความที่<b>แอดมินกดส่งเอง</b> หลังลูกค้าเงียบ <b>12 ชม.ขึ้นไป</b> และหลังส่งราคาแล้ว 12 ชม.ขึ้นไป (ข้อความอัตโนมัติไม่นับ · ส่งหลายข้อความภายใน 30 นาทีนับ 1 ครั้ง) · ส่งการ์ดราคาซ้ำแบบนี้ก็นับเป็นการตาม <b>ไม่</b>นับเป็นส่งราคาใหม่ วันที่ “ส่งราคามาแล้ว” จึงไม่รีเซ็ต · ลูกค้ายังไม่ตอบ = อยู่ “ตามแล้ว · รอลูกค้าตอบ” 7 วัน ครบแล้วยังเงียบ = กลับมาในรายการพร้อมป้าย “ครบกำหนดตามรอบถัดไป” · ลูกค้าตอบ = ย้ายไปถามค้าง/คุยต่อ · ตามทางโทรหรือ LINE ที่ระบบมองไม่เห็น กดปุ่ม <b>✓ ตามแล้ว</b> ได้ทันที (ตามในแชทแล้วไม่อยากรอรอบ 05:00 หรือตามทางโทร/LINE ก็ได้) มีผล 7 วันเหมือนกัน · แถว “ลูกค้าถามค้าง” มีปุ่ม <b>✓ ตอบแล้ว</b> ย้ายไป “คุยต่อหลังได้ราคา” ทันที</dd>
+  <dt>ไม่ต้องตาม</dt><dd><div class="fukw"><code>โอนแล้ว / แนบสลิป / ชำระแล้ว</code><code>ถามเรื่องไฟล์ ลิงก์เข้าเรียน ชีท</code><code>ไม่สนใจ / ไว้ก่อน / แพง / ยกเลิก</code><code>ชวนไปคุย LINE แล้ว</code></div>(ลูกค้าพิมพ์หลังได้ราคา) · หรือแอดมินย้ายเอง</dd></dl></details>`;
+ const kwNP=`<details class="fhelp" style="margin:8px 0 16px"><summary>กฎที่ใช้จับ “คุยแล้วไม่ถึงราคา”</summary><dl>
+  <dt>เข้ารายการเมื่อ</dt><dd>ลูกค้า<b>พิมพ์เอง</b>ถามเรื่องคอร์ส <b>และ</b>แอดมิน (คน ไม่ใช่ข้อความอัตโนมัติ) ตอบข้อความล่าสุดของลูกค้าแล้ว <b>และ</b>ฝั่งเรายังไม่เคยส่งราคา/สรุปยอดในรอบนี้ (นับจากหลังสลิปผ่านครั้งล่าสุด) · นับวันจากข้อความแรกที่แอดมินตอบ · ครบ 1 วันจึงเข้ารายการ<div class="fukw"><code>คอร์ส</code><code>ราคา / ค่าเรียน / เท่าไหร่ / กี่บาท</code><code>สมัคร / ลงเรียน</code><code>ตาราง / โปร</code><code>สอวน / IJSO / A-Level / สอบเข้า</code><code>ออนไลน์ / onsite / เรียนสด / เทป</code></div></dd>
+  <dt>บอกชั้น/คอร์สแล้ว (ตามก่อน)</dt><dd>ข้อความลูกค้ามีชั้นเรียน <b>และ</b>คำถามเรื่องคอร์ส<div class="fukw"><code>ม.1–6 / ม.ต้น / ม.ปลาย</code><code>ป.1–6 / ประถม</code><code>ซิ่ว / ปี 1–4 / dek</code></div></dd>
+  <dt>หลุดจากรายการเมื่อ</dt><dd>ฝั่งเราส่งราคาหรือสรุปยอด → ไปอยู่หมวด <b>ส่งราคาแล้วยังไม่โอน</b> · ลูกค้าถามต่อ → รอแอดมินตอบ (แชทจะกลับมาเมื่อแอดมินตอบแล้ว) · LINE แท็ก “สมัครแล้ว”</dd>
+  <dt>ตามแล้ว</dt><dd>ข้อความที่แอดมินส่งเอง หลังลูกค้าเงียบ 12 ชม.ขึ้นไป (ส่งหลายข้อความใน 30 นาทีนับ 1 ครั้ง) · อยู่ “ตามแล้ว · รอลูกค้าตอบ” 7 วัน ครบแล้วยังเงียบ = กลับมาในรายการพร้อมป้าย “ครบกำหนดตามรอบถัดไป” · ตามทางโทรหรือ LINE กดปุ่ม <b>✓ ตามแล้ว</b> ได้ทันที</dd>
+  <dt>ไม่ต้องตาม</dt><dd><div class="fukw"><code>โอนแล้ว / แนบสลิป</code><code>ถามเรื่องไฟล์ ลิงก์เข้าเรียน ชีท</code><code>ไม่สนใจ / ไว้ก่อน / แพง</code><code>ชวนไปคุย LINE แล้ว</code></div>หรือแอดมินย้ายเอง</dd></dl></details>`;
+ const note=`<p class="note fusm">ตัวเลขในการ์ด = กลุ่ม <b>${PU_GN[PU_G]}</b> · ${QW}ไม่ถึง 1 วัน ${nf(c0)} แชท (ยังคุยกันอยู่ ยังไม่เข้ารายการ) · ${QW}เก่ากว่า 90 วัน ${nf(c90)} แชท (นับไว้เฉย ๆ ไม่ใส่ในรายการ)${LN?' · LINE ดึงเดือนละครั้ง “มาแล้ว” นับถึง '+endT:''}</p>`;
+ /* weekly strip by the week of the latest quote */
+ const wk={};for(const o of puFilt(true)){(wk[o.week]=wk[o.week]||{n:0,k:{}});wk[o.week].n++;wk[o.week].k[o.g]=(wk[o.week].k[o.g]||0)+1;}
+ const wks=Object.keys(wk).sort().reverse(),wmax=Math.max(1,...wks.map(w=>wk[w].n));
+ const KC=(PU_G==='all'?PU_ORD:[PU_G]).filter(k=>wks.some(w=>wk[w].k[k]));
+ const wtable=`<div class="fuhd"><b>รายสัปดาห์</b> <span class="nsm">สัปดาห์ที่${NPM?'แอดมินตอบ':'ส่งราคา'}ล่าสุด (จันทร์–อาทิตย์) · กดแถวเพื่อดูเฉพาะสัปดาห์นั้น</span>${PU_W?' <button class="chip" id="puwclr" aria-pressed="true">สัปดาห์ '+fuWeek(PU_W)+' ✕</button>':''}</div>
+  <div class="tw fuwk"><table><thead><tr><th>สัปดาห์</th><th class="n">แชท</th><th></th>${KC.map(k=>`<th class="n">${PU_GS[k]||k}</th>`).join('')}</tr></thead><tbody>${wks.map(w=>`<tr class="${PU_W===w?'on':''}" data-puw="${w}" tabindex="0"><td>${fuWeek(w)}</td><td class="n">${nf(wk[w].n)}</td><td class="fubarc"><span class="fubar" style="width:${Math.max(2,Math.round(wk[w].n/wmax*100))}%"></span></td>`+
+   KC.map(k=>`<td class="n">${wk[w].k[k]?nf(wk[w].k[k]):'<span class="nsm">·</span>'}</td>`).join('')+`</tr>`).join('')||'<tr><td colspan="7">ไม่มีแชทในกลุ่มนี้</td></tr>'}</tbody></table></div>`;
+ /* which prices are left unpaid */
+ const am={};for(const o of puFilt(false))if(o.amt)am[o.amt]=(am[o.amt]||0)+1;
+ if(PU_T&&!am[PU_T])am[PU_T]=0;
+ if(NPM){for(const k in am)delete am[k];for(const o of puFilt(false))for(const t of o.tags)am[t]=(am[t]||0)+1;if(PU_T&&!am[PU_T])am[PU_T]=0;}
+ const ams=Object.keys(am).sort((a,b)=>am[b]-am[a]).slice(0,12),amax=Math.max(1,...ams.map(a=>am[a]));
+ const amt=(NPM?`<div class="fuhd"><b>ลูกค้าสนใจเรื่องอะไร</b> <span class="nsm">หัวข้อจากข้อความลูกค้า · กดเพื่อกรอง</span></div>`:`<div class="fuhd"><b>ราคาที่ส่งไปแล้วยังไม่โอน</b> <span class="nsm">ราคาในข้อความราคาล่าสุด · กดเพื่อกรอง</span></div>`)+`
+  <div class="fuwant">${ams.length?ams.map(a=>`<button class="fuw ${PU_T===a?'on':''}" data-put="${esc(a)}"><span class="t">${esc(a)}</span><span class="track"><span class="bar" style="width:${Math.round(am[a]/amax*100)}%"></span></span><span class="n">${nf(am[a])}</span></button>`).join(''):'<span class="nsm">'+(NPM?'ไม่พบหัวข้อ':'ไม่พบตัวเลขราคา — ส่วนใหญ่เป็นข้อความสรุปยอด/เลขบัญชี')+'</span>'}</div>`;
+ /* list */
+ const QR=NPM?{A:0,B:1,F:2,X:3}:{R:0,A:1,B:2,C:3,F:4,X:5};
+ const L=puFilt(false).sort((a,b)=>(QR[a.g]-QR[b.g])||((b.due||0)-(a.due||0))||(b.q1<a.q1?-1:1));
+ const PER=50,pages=Math.max(1,Math.ceil(L.length/PER));if(PU_PAGE>=pages)PU_PAGE=0;
+ PU_L=[];
+ const fl=f=>`<span class="puflag ${/ปฏิเสธ|แพง/.test(f)?'bad':(/โอนแล้ว|นักเรียน|สมัคร/.test(f)?'ok':'')}">${esc(f)}</span>`;
+ const lrows=L.slice(PU_PAGE*PER,PU_PAGE*PER+PER).map(o=>`<tr>
+   <td><b>${CH==='ig'?'@':''}${esc(o.name||'(ไม่มีชื่อ)')}</b><div class="nsm">${LN?'ผู้ดูแล <b>'+esc(o.owner||'-')+'</b>':(o.src==='ad'?'มาจากโฆษณา':(o.src==='comment'?'มาจากคอมเมนต์':'ทักเข้ามาเอง'))}</div>
+    <div><span class="badge puk-${o.g}">${PU_GN[o.g]}</span>${o.due?' <span class="badge risk">ครบกำหนดตามรอบถัดไป</span>':''}</div>${o.nfu||o.fuMan?'<div class="nsm fuinfo">✓ '+(o.nfu?'ตามในแชท '+o.nfu+' ครั้ง · ล่าสุด '+fuDay(o.fu1)+' '+o.fu1.slice(11,16):'')+(o.fuMan?(o.nfu?' · ':'')+'กดตามแล้ว'+(o.ov&&o.ov.by?' โดย '+esc(o.ov.by):''):'')+'</div>':''}${o.flags.length?'<div>'+o.flags.map(fl).join('')+'</div>':''}</td>
+   <td class="n"><b class="${o.wait<7?'furisk':'fuwarn'}">${Math.floor(o.wait)}</b> วัน<div class="nsm">${fuDay(o.q1)} ${o.q1.slice(11,16)}</div>${o.nq>1?'<div class="nsm">'+(NPM?'แอดมินตอบ '+o.nq+' ข้อความ':'ส่งราคา '+o.nq+' ครั้ง')+'</div>':''}</td>
+   ${NPM?`<td class="w">${o.tags.map(t=>'<span class="badge">'+esc(t)+'</span>').join(' ')}<div class="puq">${esc(o.said)}</div></td>
+   <td class="w puafter"><div class="puq">${esc(o.qt)}</div>${o.after?'<div><span class="nsm">ลูกค้าพิมพ์ต่อ:</span> '+esc(o.after)+'</div>':''}<span class="nsm">ลูกค้าทักล่าสุด ${fuDay(o.lastc)} ${o.lastc.slice(11,16)}</span></td>`:`<td class="w"><span class="puamt">${esc(o.amt||(o.bill?'สรุปยอด/เลขบัญชี':'—'))}</span> ${o.tags.map(t=>'<span class="badge">'+esc(t)+'</span>').join(' ')}<div class="puq">${esc(o.qt)}</div></td>
+   <td class="w puafter">${o.after?esc(o.after):'<span class="nsm">ยังไม่ได้ตอบอะไรหลังได้ราคา</span>'}<span class="nsm">ลูกค้าทักล่าสุด ${fuDay(o.lastc)} ${o.lastc.slice(11,16)}</span></td>`}
+   <td>${fuBtn(o)}${puOvCtl(o,PU_L.push(o)-1)}</td></tr>`).join('');
+ const pager=pages>1?Array.from({length:pages},(_,i)=>i).filter(i=>i<3||i>pages-3||Math.abs(i-PU_PAGE)<2).map((i,j,a)=>(j&&i-a[j-1]>1?'<span class="nsm">…</span>':'')+`<button data-pup="${i}" aria-current="${i===PU_PAGE}">${i+1}</button>`).join(''):'';
+ let ownRow='';
+ if(LN){const oc={};for(const o of puRows().filter(o=>puInB(o,PU_B)&&puInG(o,PU_G)))oc[o.owner||'-']=(oc[o.owner||'-']||0)+1;
+  const os=Object.keys(oc).sort((a,b)=>oc[b]-oc[a]);
+  ownRow=`<div class="chips fuown"><span class="nsm">แอดมินผู้ดูแลห้อง:</span> <button class="chip" data-fuo="" aria-pressed="${!FU_O}">ทุกคน</button>${os.map(n=>`<button class="chip" data-fuo="${esc(n)}" aria-pressed="${FU_O===n}">${esc(n)} ${nf(oc[n])}</button>`).join('')}</div>`;}
+ const bOK=o=>puInB(o,PU_B);
+ const grp=`<div class="fugrp" role="group" aria-label="เลือกกลุ่มแชท"><span class="lab">กลุ่มแชท</span>`+
+  ['all'].concat(PU_ORD,['F','X']).map(g=>`<button type="button" class="fug g-${g}" data-pug="${g}" aria-pressed="${PU_G===g}" title="${esc(PU_GD[g]||(NPM?'บอกชั้น/คอร์สแล้ว + ถามทั่วไป (ไม่รวมตามแล้ว และไม่ต้องตาม)':'ถามค้าง + สรุปยอดแล้ว + คุยต่อแล้วเงียบ + เงียบเลย (ไม่รวมตามแล้ว และไม่ต้องตาม)'))}">${PU_GN[g]} <b>${nf(R.filter(o=>bOK(o)&&puInG(o,g)).length)}</b></button>`).join('')+`</div>`;
+ const bl=PU_B==='all'?'ทุกช่วงเวลา ('+QW+'ภายใน 90 วัน)':(PU_B==='1'?QW+' 1–6 วันก่อน':(PU_B==='7'?QW+' 7–29 วันก่อน':QW+' 30–89 วันก่อน'));
+ const show=`<div class="fushow" id="pulist">กำลังดู <b>${PU_GN[PU_G]}</b> · ${bl}${PU_T?(NPM?' · หัวข้อ ':' · ราคา ')+esc(PU_T):''} · <b>${nf(L.length)}</b> แชท${PU_G!=='all'&&PU_GD[PU_G]?'<span class="nsm" style="flex-basis:100%;color:var(--ink-2)">'+PU_GD[PU_G]+'</span>':''}${PU_B==='all'?' <button class="chip" data-pub="1" aria-pressed="false">กลับไปดู 1–6 วัน</button>':''}</div>`;
+ const list=`<div class="fuhd"><b>${NPM?'รายชื่อแชทที่คุยแล้วยังไม่ได้ราคา':'รายชื่อแชทที่ต้องตามโอน'}</b> <span class="nsm">${NPM?'บอกชั้น/คอร์สแล้วขึ้นก่อน → ถามทั่วไป · ในกลุ่มเรียงจากแอดมินตอบล่าสุด':'ถามค้างขึ้นก่อน → สรุปยอดแล้ว → คุยต่อแล้วเงียบ → เงียบเลย · ในกลุ่มเรียงจากส่งราคาล่าสุด'}</span></div>
+  ${grp}${show}
+  <div class="tw"><div class="ptop"><input type="search" id="puq" placeholder="${NPM?'ค้นชื่อลูกค้า หรือข้อความ':'ค้นชื่อลูกค้า ข้อความ หรือราคา'}" value="${esc(PU_Q)}">${ownRow}</div>
+  <table class="fulist"><thead><tr><th>ลูกค้า</th>${NPM?'<th class="n">แอดมินตอบล่าสุด</th><th>ลูกค้าถามอะไร</th><th>แอดมินตอบว่าอะไร</th>':'<th class="n">ส่งราคามาแล้ว</th><th>ราคาที่ส่ง</th><th>ลูกค้าพิมพ์อะไรหลังได้ราคา</th>'}<th></th></tr></thead><tbody>${lrows||'<tr><td colspan="5">ไม่มีแชทตามตัวกรองนี้ 🎉</td></tr>'}</tbody></table>
+  <p class="nsm fuovnote">ทักตามแล้ว → กด ✓ ตามแล้ว · โอนแล้วทางอื่น/ไม่สนใจ → เลือกเหตุผลในช่อง “ย้ายไป ไม่ต้องตาม” (ต้องเลือกชื่อแอดมินทุกครั้ง) · ${NPM?'ถ้าแอดมินตอบใหม่หรือลูกค้าทักมาใหม่':'ถ้าส่งราคาใหม่หรือลูกค้าทักมาใหม่'} แชทจะกลับเข้ารายการเอง · ${OVURL?(OVERR?'⚠️ โหลดรายการที่ย้ายเองไม่สำเร็จ':'บันทึกส่วนกลาง ทุกคนเห็นเหมือนกัน'):'ตอนนี้บันทึกเฉพาะเครื่องนี้'}</p>
+  <div class="pfoot"><span class="nsm">${nf(L.length)} แชท${PU_W?' · สัปดาห์ '+fuWeek(PU_W):''}</span>
+   <button class="dlbtn fudl" id="pudl" type="button">⤓ ดาวน์โหลดรายการนี้ (CSV) · ${nf(L.length)} แชท</button><span class="fupager">${pager}</span></div></div>`;
+ const hist=H.length>1?`<div class="fuhd"><b>ค้างโอนรายรอบอัปเดต</b> <span class="nsm">ทุกกลุ่มยกเว้นไม่ต้องตาม</span></div><div class="tw"><table><thead><tr><th>ข้อมูลถึง</th><th class="n">1–6 วัน</th><th class="n">7–29 วัน</th><th class="n">30–89 วัน</th></tr></thead><tbody>${H.slice(-8).reverse().map(h=>`<tr><td>${fuDay(h[0])}</td><td class="n">${nf(h[hi]||0)}</td><td class="n">${nf(h[hi+1]||0)}</td><td class="n">${nf(h[hi+2]||0)}</td></tr>`).join('')}</tbody></table></div>`:
+  `<p class="note fusm">ตัวเลขเทียบรายรอบจะเริ่มขึ้นหลังรอบอัปเดตถัดไป</p>`;
+ el.innerHTML=cards+flow+(NPM?statNP:stat)+note+(NPM?kwNP:kw)+`<div class="fugrid"><div>${wtable}</div><div>${amt}</div></div>`+list+(NPM?'':hist);
+ fuModeBind(el);
+ el.querySelectorAll('[data-pub]').forEach(b=>b.addEventListener('click',()=>{PU_B=b.dataset.pub;PU_W='';PU_PAGE=0;renderPay();}));
+ el.querySelectorAll('[data-pug]').forEach(b=>b.addEventListener('click',()=>{PU_G=b.dataset.pug;PU_W='';PU_T='';PU_PAGE=0;renderPay();}));
+ el.querySelectorAll('[data-pugo]').forEach(b=>b.addEventListener('click',()=>{PU_G=b.dataset.pugo;PU_B='all';PU_W='';PU_T='';PU_PAGE=0;renderPay();
+  const t=$('#pulist');if(t&&t.scrollIntoView)t.scrollIntoView({behavior:'smooth',block:'start'});}));
+ el.querySelectorAll('[data-puw]').forEach(r=>{const go=()=>{PU_W=PU_W===r.dataset.puw?'':r.dataset.puw;PU_PAGE=0;renderPay();};
+  r.addEventListener('click',go);r.addEventListener('keydown',e=>{if(e.key==='Enter'||e.key===' '){e.preventDefault();go();}});});
+ const wc=$('#puwclr');if(wc)wc.addEventListener('click',()=>{PU_W='';PU_PAGE=0;renderPay();});
+ el.querySelectorAll('[data-put]').forEach(b=>b.addEventListener('click',()=>{PU_T=PU_T===b.dataset.put?'':b.dataset.put;PU_PAGE=0;renderPay();}));
+ el.querySelectorAll('[data-fuo]').forEach(b=>b.addEventListener('click',()=>{FU_O=b.dataset.fuo;PU_PAGE=0;renderPay();}));
+ el.querySelectorAll('[data-pup]').forEach(b=>b.addEventListener('click',()=>{PU_PAGE=+b.dataset.pup;renderPay();}));
+ const q=$('#puq');if(q){q.addEventListener('input',()=>{PU_Q=q.value;PU_PAGE=0;clearTimeout(q._t);q._t=setTimeout(()=>{renderPay();const n=$('#puq');if(n){n.focus();n.setSelectionRange(n.value.length,n.value.length);}},250);});}
+ const dl=$('#pudl');if(dl)dl.addEventListener('click',puExport);
+ el.querySelectorAll('.fuovs[data-pui]').forEach(sv=>sv.addEventListener('change',async()=>{const why=sv.value;if(!why)return;
+  const o=PU_L[+sv.dataset.pui];const r=await ovMove(o,'skip',why);
+  if(!r){sv.value='';toast('ยังไม่ได้ย้าย');return;}
+  ovSet(o,'skip',r.why,r.by);}));
+ el.querySelectorAll('.fuovb[data-pui]').forEach(b=>b.addEventListener('click',async()=>{const o=PU_L[+b.dataset.pui],st=b.dataset.ovst,why=b.dataset.why||'';
+  const r=await ovMove(o,st,why);if(!r){toast('ยังไม่ได้เปลี่ยน');return;}ovSet(o,st,why?r.why:'',r.by);}));
+ el.querySelectorAll('[data-flk]').forEach(b=>b.addEventListener('click',()=>{PU_FLK=PU_FLK===b.dataset.flk?'':b.dataset.flk;renderPay();}));
+ el.querySelectorAll('[data-fld]').forEach(b=>b.addEventListener('click',()=>{PU_FLD=b.dataset.fld;PU_FLK='';renderPay();}));
+}
+
+
+/* ---------- Follow up หมวด "ติดแท็ก / ใส่โน้ต ให้ครบ" (LINE OA เท่านั้น) — agg.tnfu ----------
+   สถานะล่าสุดของทุกห้องที่มีแชทในปี 2026 ว่าห้องไหนยังขาดแท็กหรือขาดโน้ต
+
+   ที่เก็บ: ชีต "Admin Hub · แชทที่ย้ายเอง" ชุดเดียวกับ FB/IG ผ่าน Apps Script เดิม
+   คีย์ = tn:<รหัสห้อง> · ทุกครั้งที่กดจะเพิ่มแถวใหม่ (ไม่ทับของเดิม) จึงมีประวัติครบ
+   ช่อง "รอบข้อมูล" ของแถวเป็นตัวแยกสองแบบ:
+     <วันที่ดึงข้อมูล>  = "ทำแล้ว" ของรอบนั้น — พอดึง LINE รอบใหม่จะหมดอายุเอง แล้วข้อมูลจริงตัดสิน
+     "perm"             = "ไม่ต้องทำ" แบบถาวร — อยู่จนกว่าจะกดยกเลิก ไม่หลุดตอนดึงรอบใหม่  */
+const TNF=()=>AGG&&AGG.tnfu||null;
+const TNF_PERM='perm';
+let TNF_G='xx', TNF_T='', TNF_O='', TNF_Q='', TNF_PAGE=0, TNF_L=[];
+const TNF_GN={xx:'ไม่ได้ติดทั้งแท็กและโน้ต',Tx:'มีแท็ก แต่ไม่มีโน้ต',xN:'มีโน้ต แต่ไม่ได้ติดแท็ก',done:'✓ ทำแล้ว',skip:'ไม่ต้องทำ'};
+const TNF_GD={
+ xx:'ห้องที่คุยกันแล้วแต่ยังไม่ได้ทำอะไรเลย — เข้าไปดูว่าลูกค้าคือใคร แล้วติดแท็กสถานะให้ก่อน',
+ Tx:'ติดแท็กไว้แล้วแต่ยังไม่มีโน้ต — ที่ต้องรีบคือแท็ก “Q-สมัครแล้ว” เพราะสมัครแล้วแต่ไม่มีบันทึกว่าลงคอร์สอะไร',
+ xN:'แอดมินเขียนโน้ตไว้แล้ว (หลายห้องบอกด้วยว่าลงคอร์สไหน) แต่ลืมติดแท็กสถานะ — อ่านโน้ตแล้วติดแท็กให้ตรง',
+ done:'ห้องที่กดว่าทำแล้วในรอบข้อมูลปัจจุบัน · รอบดึง LINE ครั้งหน้าจะเช็กจากของจริงแล้วขึ้นว่า “ยืนยันแล้ว” หรือกลับเข้ารายการ',
+ skip:'ห้องที่ตัดสินใจว่าไม่ต้องทำ พร้อมเหตุผล — อยู่ถาวรจนกว่าจะกดยกเลิก ดึงข้อมูลรอบใหม่ก็ไม่เด้งกลับ'};
+const TNF_WHY=['ไม่ใช่ลูกค้า / สแปม / ส่งผิด','เป็นบัญชีทดสอบ หรือคนในทีม','ทักมาครั้งเดียวแล้วเงียบ ไม่มีข้อมูลพอจะติดแท็ก','อื่น ๆ'];
+const TNF_ACT={xx:'ติดแท็กสถานะ แล้วเขียนโน้ต',Tx:'เขียนโน้ตในห้องนี้',xN:'ติดแท็กสถานะให้ตรงกับโน้ต'};
+/* วันที่แบบเดียวกับที่อื่นในหน้านี้ (ค.ศ. เวลาไทย) */
+const tnDay=s=>{if(!s)return '—';const d=new Date(s);if(isNaN(d))return String(s).slice(0,16);
+ return d.getDate()+' '+FU_TH_M[d.getMonth()]+' '+d.getFullYear()+' '+String(d.getHours()).padStart(2,'0')+':'+String(d.getMinutes()).padStart(2,'0')+' น.';};
+/* ประวัติการกดของแต่ละห้อง อ่านจากแถวดิบที่ชีตส่งมา (เรียงตามเวลาอยู่แล้ว) */
+function tnfHist(){const H={};
+ for(const x of (OVROWS||[])){
+  if(x[0]!=='line')continue; const t=String(x[1]||''); if(t.slice(0,3)!=='tn:')continue;
+  const cid=t.slice(3), last=String(x[2]||''), h=H[cid]||(H[cid]={perm:null,rounds:{}});
+  const rec={st:x[3],why:x[4]||'',by:x[5]||'',at:x[6]||'',round:last};
+  if(last===TNF_PERM){h.perm=x[3]==='clear'?null:rec;}
+  else if(x[3]==='clear')delete h.rounds[last]; else h.rounds[last]=rec;}
+ return H;}
+function tnfRows(){const D=TNF();if(!D)return [];
+ const H=tnfHist(), now=D.stamp;
+ return (D.rooms||[]).map(r=>{const o={tid:r[0],name:r[1],owner:r[2]||'',mo:r[3],tags:r[4]||[],g0:r[5],nd:r[6]||'',nt:r[7]||''};
+  o.ovtid='tn:'+r[0]; o.g=o.g0;
+  const h=H[r[0]];
+  if(h){
+   if(h.perm){o.g='skip';o.ov=h.perm;o.ovlast=TNF_PERM;}
+   else if(h.rounds[now]){o.g='done';o.ov=h.rounds[now];o.ovlast=now;}
+   else{const old=Object.keys(h.rounds).sort().pop();
+    if(old)o.late=h.rounds[old];}}       /* เคยกดว่าทำแล้วรอบก่อน แต่ข้อมูลรอบนี้ยังเห็นว่าค้าง */
+  if(!o.ovlast)o.ovlast=now;
+  o.q=(o.name+' '+o.owner+' '+o.tags.join(' ')+' '+o.nt+' '+(o.ov?o.ov.why+' '+o.ov.by:'')).toLowerCase();
+  o.sta=o.tags.filter(t=>(D.status||[]).includes(t));return o;});}
+/* ห้องที่กดว่าทำแล้วรอบก่อน แล้วรอบนี้หลุดออกจากรายการไปแล้ว = ข้อมูลยืนยันว่าแก้จริง */
+function tnfDone2(){const D=TNF();if(!D)return [];
+ const H=tnfHist(), now=D.stamp, live=new Set((D.rooms||[]).map(r=>r[0])), out=[];
+ for(const cid in H){const h=H[cid];if(live.has(cid)||h.perm)continue;
+  const old=Object.keys(h.rounds).sort().pop();if(!old||old===now)continue;
+  out.push({tid:cid,ov:h.rounds[old],ok:true});}
+ return out;}
+function tnfFilt(all){const q=TNF_Q.trim().toLowerCase();
+ return tnfRows().filter(o=>o.g===TNF_G&&(all||!TNF_O||o.owner===TNF_O)&&(all||!TNF_T||o.sta.includes(TNF_T))&&(all||!q||o.q.includes(q)));}
+function tnfCount(g){return tnfRows().filter(o=>o.g===g).length;}
+function tnfTodo(){return tnfRows().filter(o=>o.g==='xx'||o.g==='Tx'||o.g==='xN').length;}
+function tnfLate(){return tnfRows().filter(o=>o.late).length;}
+function tnfCtl(o,i){
+ if(o.g==='done')return `<div class="fuov"><button class="fuovb" data-tni="${i}" data-ovst="clear">ยกเลิกการกด</button></div>`;
+ if(o.g==='skip')return `<div class="fuov on"><button class="fuovb" data-tni="${i}" data-ovst="clear">เอากลับเข้ารายการ</button></div>`;
+ return `<div class="fuov"><button class="fuovb fudone" data-tni="${i}" data-ovst="skip" data-why="ทำแล้ว: ${esc(TNF_ACT[o.g0]||'')}" title="${esc(TNF_ACT[o.g0]||'')}แล้ว">✓ ทำแล้ว</button>
+  <select class="fuovs" data-tni="${i}" aria-label="ย้ายไปไม่ต้องทำ"><option value="">ไม่ต้องทำ เพราะ…</option>${TNF_WHY.map(w=>`<option value="${esc(w)}">${esc(w)}</option>`).join('')}</select></div>`;}
+function tnfStat(o,now){
+ if(o.g==='skip')return `<span class="tnst perm">ถาวร</span><div class="spsm">ไม่หลุดตอนดึงข้อมูลรอบใหม่ · กดยกเลิกได้ทุกเมื่อ</div>`;
+ if(o.g==='done')return `<span class="tnst wait">รอรอบหน้ายืนยัน</span><div class="spsm">รอบดึง LINE ครั้งหน้าจะเช็กจากข้อมูลจริง ถ้าแก้แล้วจริงจะขึ้นว่ายืนยันแล้ว</div>`;
+ if(o.late)return `<span class="tnst bad">ยังไม่พบการแก้ไข</span><div class="spsm">กดว่าทำแล้วโดย <b>${esc(o.late.by||'-')}</b> เมื่อ ${esc(tnDay(o.late.at))} แต่ข้อมูลรอบ ${esc(now)} ยังเห็นว่าค้างอยู่</div>`;
+ return `<span class="nsm">ยังไม่ได้บันทึกผล</span>`;}
+function tnfExport(){const D=TNF(),rows=tnfFilt(false);
+ const out=[['กลุ่ม','ลูกค้า','แอดมินที่ดูแล','คุยล่าสุด','แท็กตอนนี้','สิ่งที่ต้องทำ','วันที่โน้ต','โน้ต','ผลที่บันทึก','คนกด','เวลาที่กด','ลิงก์ห้องแชท']];
+ for(const o of rows)out.push([TNF_GN[o.g],o.name||'',o.owner||'-',o.mo,o.tags.join(' / ')||'ไม่มีแท็ก',TNF_ACT[o.g0]||'',o.nd,o.nt,
+   o.ov?o.ov.why||'(ทำแล้ว)':'',o.ov?o.ov.by:'',o.ov?o.ov.at:'','https://chat.line.biz/'+LINEBOT+'/chat/'+o.tid]);
+ downloadCSV('ติดแท็กใส่โน้ต-line-'+TNF_G+(TNF_O?'-'+TNF_O:'')+'-'+(D.stamp||'').slice(0,10)+'.csv',out);}
+function renderTN(){
+ const el=$('#fu'), sc=$('#fuscope');
+ $('#fuh2').textContent='Follow up · ติดแท็ก / ใส่โน้ต ให้ครบ';
+ if(CH!=='line'){sc.textContent='เฉพาะ LINE OA';
+  el.innerHTML=fuModeBar()+`<p class="note">หมวดนี้มีเฉพาะช่องทาง <b>LINE OA</b> เพราะแท็กและโน้ตเป็นของ LINE อย่างเดียว <button type="button" class="inbtn" id="tngoln">ไปที่ LINE OA</button></p>`;
+  fuModeBind(el);const b=$('#tngoln');if(b)b.addEventListener('click',()=>{const t=document.querySelector('#chseg button[data-ch="line"]');if(t)t.click();});return;}
+ const D=TNF();
+ if(!D){sc.textContent='LINE OA';
+  el.innerHTML=fuModeBar()+'<p class="note">ยังไม่มีข้อมูลแท็ก/โน้ตในชุดนี้ — จะขึ้นหลังรอบดึง LINE ถัดไป</p>';fuModeBind(el);return;}
+ const now=D.stamp;
+ sc.textContent='LINE OA · แท็ก/โน้ต ณ '+now;
+ const todo=tnfTodo(), tot=D.tot||0, ok=tot-todo, late=tnfLate(), ver=tnfDone2();
+ const head=`<div class="tnfhd"><div class="tnfsum"><b>${nf(todo)}</b> ห้องที่ยังต้องตามเก็บ <span class="nsm">จากห้องที่มีแชทในปี 2026 ทั้งหมด ${nf(tot)} ห้อง · บันทึกครบแล้ว ${nf(ok)} ห้อง (${Math.round(ok/Math.max(1,tot)*100)}%)</span></div>
+  <div class="tnfbar" aria-hidden="true"><span class="ok" style="width:${ok/Math.max(1,tot)*100}%"></span><span class="a" style="width:${tnfCount('xx')/Math.max(1,tot)*100}%"></span><span class="b" style="width:${tnfCount('Tx')/Math.max(1,tot)*100}%"></span><span class="c" style="width:${tnfCount('xN')/Math.max(1,tot)*100}%"></span></div></div>`;
+ const gs=['xx','Tx','xN','done','skip'];
+ const sub={xx:'ยังไม่ได้บันทึกอะไรเลย',Tx:'ที่แท็ก “สมัครแล้ว” '+nf(tnfRows().filter(o=>o.g==='Tx'&&o.sta.includes('Q-สมัครแล้ว')).length)+' ห้อง',
+   xN:'อ่านโน้ตแล้วติดแท็กได้เลย',done:'รอบนี้ · รอข้อมูลยืนยัน',skip:'ถาวร พร้อมเหตุผล'};
+ const grp=`<div class="tnfpick" role="group" aria-label="เลือกกลุ่มงาน">`+gs.map((g,i)=>`<button type="button" class="tnfg tg-${g}" data-tng="${g}" aria-pressed="${TNF_G===g}"><span class="k">${i<3?'①②③'[i]+' ':''}${TNF_GN[g]}</span><span class="n">${nf(tnfCount(g))}</span><span class="s">${sub[g]||''}</span></button>`).join('')+`</div>`;
+ const warn=late?`<p class="tnlate">⚠ มี <b>${nf(late)}</b> ห้องที่เคยกดว่าทำแล้วในรอบก่อน แต่ข้อมูลรอบ ${esc(now)} ยังเห็นว่าค้างอยู่ — ถูกดึงกลับเข้ารายการให้แล้ว ดูป้ายในคอลัมน์สถานะ</p>`:'';
+ const vernote=(TNF_G==='done'&&ver.length)?`<p class="tnok">✓ อีก <b>${nf(ver.length)}</b> ห้องที่กดไว้รอบก่อน ข้อมูลรอบล่าสุดยืนยันแล้วว่าแก้เรียบร้อย จึงออกจากรายการถาวร</p>`:'';
+ const why=`<p class="tnfwhy">${TNF_GD[TNF_G]||''}</p>`;
+ let chips='';
+ if(TNF_G==='Tx'){const c={};for(const o of tnfRows().filter(o=>o.g==='Tx'))for(const t of o.sta)c[t]=(c[t]||0)+1;
+  const ord=(D.status||[]).filter(t=>c[t]);
+  chips=`<div class="chips"><span class="nsm">แท็กสถานะ:</span> <button class="chip" data-tnt="" aria-pressed="${!TNF_T}">ทุกแท็ก</button>${ord.map(t=>`<button class="chip${t==='Q-สมัครแล้ว'?' hot':''}" data-tnt="${esc(t)}" aria-pressed="${TNF_T===t}">${esc(t)} ${nf(c[t])}</button>`).join('')}</div>`;}
+ const oc={};for(const o of tnfFilt(true).filter(o=>!TNF_T||o.sta.includes(TNF_T)))oc[o.owner||'-']=(oc[o.owner||'-']||0)+1;
+ const os=Object.keys(oc).sort((a,b)=>oc[b]-oc[a]);
+ const ownRow=`<div class="chips fuown"><span class="nsm">แอดมินผู้ดูแลห้อง:</span> <button class="chip" data-tno="" aria-pressed="${!TNF_O}">ทุกคน</button>${os.map(n=>`<button class="chip" data-tno="${esc(n)}" aria-pressed="${TNF_O===n}">${esc(n)} ${nf(oc[n])}</button>`).join('')}</div>`;
+ const isLog=TNF_G==='done'||TNF_G==='skip';
+ const L=tnfFilt(false).sort((a,b)=>isLog?((b.ov&&b.ov.at||'')<(a.ov&&a.ov.at||'')?-1:1)
+   :((b.sta.includes('Q-สมัครแล้ว')-a.sta.includes('Q-สมัครแล้ว'))||(b.late?1:0)-(a.late?1:0)||(a.mo<b.mo?1:a.mo>b.mo?-1:0)||(a.name<b.name?-1:1)));
+ const PER=50,pages=Math.max(1,Math.ceil(L.length/PER));if(TNF_PAGE>=pages)TNF_PAGE=0;
+ TNF_L=[];
+ const rows=L.slice(TNF_PAGE*PER,TNF_PAGE*PER+PER).map(o=>{const i=TNF_L.push(o)-1;return `<tr${o.late?' class="tnrlate"':''}>
+  <td><b>${esc(o.name||'(ไม่มีชื่อ)')}</b><div class="nsm">ผู้ดูแล <b>${esc(o.owner||'-')}</b> · คุยล่าสุด ${esc(MLABEL[o.mo]||o.mo)}</div></td>
+  ${isLog?`<td class="w">${o.g==='skip'?`<b>${esc(o.ov&&o.ov.why||'-')}</b>`:`<b>ทำแล้ว:</b> ${esc(TNF_ACT[o.g0]||'')}`}<div class="spsm">เดิมอยู่กลุ่ม ${esc(TNF_GN[o.g0])}</div></td>
+   <td class="w">${esc(o.ov&&o.ov.by||'-')}<div class="spsm">${esc(tnDay(o.ov&&o.ov.at))}</div></td>`
+  :`<td class="w">${o.tags.length?o.tags.map(t=>`<span class="badge${t==='Q-สมัครแล้ว'?' ok':''}">${esc(t)}</span>`).join(' '):'<span class="nsm">ยังไม่มีแท็กเลย</span>'}</td>
+   <td class="w">${o.g0==='xN'?`<div class="nsm">โน้ตเมื่อ ${esc(o.nd)}</div><div class="puq">${esc(o.nt)}</div>`:`<span class="nsm">${o.g0==='Tx'?'ยังไม่มีโน้ตในห้องนี้':'ไม่มีทั้งแท็กและโน้ต'}</span>`}<div class="tnfdo">ต้องทำ: <b>${esc(TNF_ACT[o.g0]||'')}</b></div></td>`}
+  <td class="w">${tnfStat(o,now)}</td>
+  <td><a class="inbtn" href="https://chat.line.biz/${LINEBOT}/chat/${encodeURIComponent(o.tid)}" target="_blank" rel="noopener">เปิดห้องแชท ↗</a>${tnfCtl(o,i)}</td></tr>`;}).join('');
+ const pager=pages>1?Array.from({length:pages},(_,i)=>i).filter(i=>i<3||i>pages-3||Math.abs(i-TNF_PAGE)<2).map((i,j,a)=>(j&&i-a[j-1]>1?'<span class="nsm">…</span>':'')+`<button data-tnp="${i}" aria-current="${i===TNF_PAGE}">${i+1}</button>`).join(''):'';
+ const store=`<div class="rvnote"><b>บันทึกไว้ที่ไหน · อัปเดตเป็นรอบยังไง</b>
+  <p>ทุกครั้งที่กด <b>✓ ทำแล้ว</b> หรือ <b>ไม่ต้องทำ</b> จะเพิ่มแถวใหม่ลงชีตกลาง <b>“Admin Hub · แชทที่ย้ายเอง”</b> ชุดเดียวกับ FB/IG (ไม่ทับของเดิม จึงมีประวัติครบ) เก็บ ช่องทาง · ห้อง · รอบข้อมูล · สถานะ · เหตุผล · <b>คนกด</b> · <b>เวลาที่กด</b> — ทุกคนในทีมเห็นตรงกันทันที</p>
+  <p><b>ทำแล้ว</b> ผูกกับรอบข้อมูล พอดึง LINE รอบใหม่ระบบจะเทียบกับของจริงให้เอง: แก้จริง = หลุดออกจากรายการถาวร · ยังไม่ได้แก้ = กลับเข้ารายการพร้อมป้ายเตือน · <b>ไม่ต้องทำ</b> เป็นถาวร ดึงข้อมูลรอบใหม่ก็ไม่เด้งกลับ จนกว่าจะกดยกเลิกเอง</p>
+  <p class="rvwarn"><b>ถ้าแอดมินไปแก้ในแอป LINE แต่ไม่ได้มากดปุ่ม ก็ไม่เป็นไร</b> — รอบดึงข้อมูลถัดไปห้องนั้นจะหายจากรายการเอง เพราะระบบดูจากแท็ก/โน้ตจริงในห้อง ไม่ได้ดูจากการกดปุ่ม ปุ่มมีไว้แค่ซ่อนระหว่างรอรอบถัดไปเท่านั้น</p></div>`;
+ const help=`<details class="fhelp"><summary>รายการนี้มาจากไหน นับยังไง</summary><dl>
+  <dt>นับห้องไหนบ้าง</dt><dd>ทุกห้องแชท LINE OA ที่มีข้อความในปี 2026 (${nf(tot)} ห้อง) ดูสถานะ ณ ตอนนี้ ไม่ได้แยกรายเดือนเหมือนตารางในหน้าภาพรวม</dd>
+  <dt>“ติดแท็ก” นับจากอะไร</dt><dd>แท็กสถานะลีดเท่านั้น — ${(D.status||[]).map(esc).join(' / ')} · แท็กคอร์สถือเป็นข้อมูลเสริม ส่วนแท็ก “แก๊งค์” ไม่นับ เพราะเป็นกลุ่มไว้ส่งข้อความ ไม่ใช่สถานะลูกค้า</dd>
+  <dt>“มีโน้ต” นับจากอะไร</dt><dd>มีโน้ตอย่างน้อย 1 ใบในห้อง ไม่ว่าจะเขียนเมื่อไหร่ (ย้อนถึง ก.พ. 2025) อ่านจากข้อมูลดิบของ LINE โดยตรง</dd>
+  <dt>ข้อมูลอัปเดตเมื่อไหร่</dt><dd>แท็กและโน้ตชุดนี้ดึงเมื่อ ${esc(now)} · จะใหม่ขึ้นทุกครั้งที่ดึง LINE รอบถัดไป (ยังเป็นงานที่ต้องสั่งดึงเอง ยังไม่ได้ตั้งเวลาอัตโนมัติ)</dd></dl></details>`;
+ const cols=isLog?'<th>ผลที่บันทึก</th><th>ใครกด · เมื่อไหร่</th>':'<th>แท็กตอนนี้</th><th>โน้ต / สิ่งที่ต้องทำ</th>';
+ const empty=TNF_G==='done'?'ยังไม่มีใครกดว่าทำแล้วในรอบข้อมูลนี้':(TNF_G==='skip'?'ยังไม่มีห้องที่ตัดสินว่าไม่ต้องทำ':'ไม่มีห้องในเงื่อนไขนี้ 🎉');
+ const list=`<div class="fuhd"><b>${isLog?'ประวัติที่บันทึกไว้':'รายชื่อห้องที่ต้องทำ'}</b> <span class="nsm">${isLog?'เรียงจากที่กดล่าสุด':'ห้องที่แท็ก “Q-สมัครแล้ว” ขึ้นก่อน แล้วเรียงจากเดือนที่คุยล่าสุด'}</span></div>
+  <div class="tw"><div class="ptop"><input type="search" id="tnq" placeholder="ค้นชื่อลูกค้า แอดมิน แท็ก เหตุผล หรือข้อความในโน้ต" value="${esc(TNF_Q)}">${ownRow}</div>
+  <table class="fulist"><thead><tr><th>ลูกค้า</th>${cols}<th>สถานะ</th><th>เปิดแชท · บันทึกผล</th></tr></thead><tbody>${rows||`<tr><td colspan="5">${empty}</td></tr>`}</tbody></table>
+  <p class="nsm fuovnote">${OVURL?(OVERR?'⚠️ โหลดประวัติจากชีตกลางไม่สำเร็จ — การกดตอนนี้ยังไม่ถูกบันทึกส่วนกลาง':'บันทึกลงชีตกลางแล้ว ทุกคนในทีมเห็นเหมือนกัน'):'ตอนนี้บันทึกเฉพาะเครื่องนี้ (ยังไม่ได้เชื่อมชีตกลาง)'} · ต้องเลือกชื่อแอดมินทุกครั้งที่กด</p>
+  <div class="pfoot"><span class="nsm">${nf(L.length)} ห้อง</span><button class="dlbtn fudl" id="tndl" type="button">⤓ ดาวน์โหลดรายการนี้ (CSV) · ${nf(L.length)} ห้อง</button><span class="fupager">${pager}</span></div></div>`;
+ el.innerHTML=fuModeBar()+head+grp+warn+why+vernote+chips+list+store+help;
+ fuModeBind(el);
+ el.querySelectorAll('[data-tng]').forEach(b=>b.addEventListener('click',()=>{TNF_G=b.dataset.tng;TNF_T='';TNF_PAGE=0;renderTN();}));
+ el.querySelectorAll('[data-tnt]').forEach(b=>b.addEventListener('click',()=>{TNF_T=b.dataset.tnt;TNF_PAGE=0;renderTN();}));
+ el.querySelectorAll('[data-tno]').forEach(b=>b.addEventListener('click',()=>{TNF_O=b.dataset.tno;TNF_PAGE=0;renderTN();}));
+ el.querySelectorAll('[data-tnp]').forEach(b=>b.addEventListener('click',()=>{TNF_PAGE=+b.dataset.tnp;renderTN();}));
+ const q=$('#tnq');if(q)q.addEventListener('input',()=>{TNF_Q=q.value;TNF_PAGE=0;clearTimeout(q._t);q._t=setTimeout(()=>{renderTN();const n=$('#tnq');if(n){n.focus();n.setSelectionRange(n.value.length,n.value.length);}},250);});
+ const dl=$('#tndl');if(dl)dl.addEventListener('click',tnfExport);
+ el.querySelectorAll('.fuovs[data-tni]').forEach(sv=>sv.addEventListener('change',async()=>{const w=sv.value;if(!w)return;
+  const o=TNF_L[+sv.dataset.tni];const r=await ovMove(o,'skip',w,{title:'ย้ายไป “ไม่ต้องทำ”',desc:'ห้องนี้จะออกจากรายการแบบถาวร ดึงข้อมูลรอบใหม่ก็ไม่เด้งกลับ จนกว่าจะกดเอากลับเข้ารายการ'});
+  if(!r){sv.value='';toast('ยังไม่ได้ย้าย');return;}o.ovlast=TNF_PERM;ovSet(o,'skip',r.why,r.by);}));
+ el.querySelectorAll('.fuovb[data-tni]').forEach(b=>b.addEventListener('click',async()=>{const o=TNF_L[+b.dataset.tni],st=b.dataset.ovst,w=b.dataset.why||'';
+  const r=await ovMove(o,st,w,{title:st==='clear'?(o.g==='skip'?'เอากลับเข้ารายการ':'ยกเลิกการกด'):'บันทึกว่าทำแล้ว',
+    desc:st==='clear'?'ห้องนี้จะกลับไปอยู่ตามข้อมูลจริง':'ห้องนี้จะออกจากรายการทันที · รอบดึง LINE ครั้งหน้าจะเช็กจากของจริงอีกครั้ง'});
+  if(!r){toast('ยังไม่ได้เปลี่ยน');return;}
+  if(st!=='clear')o.ovlast=now;
+  ovSet(o,st,w?r.why:'',r.by);}));}
+
 /* ---------- orchestration ---------- */
-function renderOverview(){renderV4Cards();renderV4MoM();renderV4Funnel();renderV4Notes();renderV4Speed();renderV4Adm();}
+function renderOverview(){renderV4Cards();renderV4MoM();renderV4Funnel();renderV4Notes();renderV4Speed();renderLnRev();renderV4Adm();}
 function applyView(){
  const fuOK=CH==='fb'||CH==='ig'||CH==='line', vf=$('#vfu'); if(vf)vf.hidden=!fuOK;
  if(VIEW==='fu'&&!fuOK){VIEW='ov';$('#vseg').querySelectorAll('button').forEach(x=>x.setAttribute('aria-pressed',String(x.dataset.v===VIEW)));}
  const fu=VIEW==='fu'; $('#s-fu').hidden=!fu; const mc=$('#mctl'); if(mc)mc.hidden=fu;
- if(fu){['s-v4k','s-v4m','s-v4f','s-v4n','s-v4s','s-v4a','s-v4h','s-v4t','s-raw'].forEach(id=>{const e=document.getElementById(id);if(e)e.hidden=true;});
-  FU_W='';FU_T='';FU_K='all';FU_O='';FU_PAGE=0;renderFU();return;}
+ if(fu){['s-v4k','s-v4m','s-v4f','s-v4n','s-v4s','s-v4r','s-v4a','s-v4h','s-v4t','s-raw'].forEach(id=>{const e=document.getElementById(id);if(e)e.hidden=true;});
+  FU_W='';FU_T='';FU_K='all';FU_O='';FU_PAGE=0;TNF_G='xx';TNF_T='';TNF_O='';TNF_Q='';TNF_PAGE=0;FU_G=CH==='line'?'both':'never';if(FU_B==='all')FU_B='7';PU_G='all';PU_T='';PU_W='';PU_PAGE=0;PU_Q='';renderFU();return;}
  const ov=VIEW==='ov';
- ['s-v4k','s-v4m','s-v4f','s-v4n','s-v4s','s-v4a','s-v4h','s-v4t'].forEach(id=>{const e=document.getElementById(id);if(e)e.hidden=!ov;});
+ ['s-v4k','s-v4m','s-v4f','s-v4n','s-v4s','s-v4r','s-v4a','s-v4h','s-v4t'].forEach(id=>{const e=document.getElementById(id);if(e)e.hidden=!ov;});
  $('#s-raw').hidden=ov;
  if(ov)renderOverview();else if(CH==='line')lnRenderRaw();else renderRaw();
 }
 
 function refresh(){buildMonths();setNow();applyView();}
 $('#chseg').querySelectorAll('button').forEach(b=>b.addEventListener('click',()=>{
- CH=b.dataset.ch;PAGE=0;SEL=0;TERM='';FILTER='all';RWHO='all';LN_PAGE=0;LN_SEL=0;LN_TERM='';LN_F='all';
+ CH=b.dataset.ch;PAGE=0;SEL=0;TERM='';FILTER='all';RWHO='all';RFU='all';LN_PAGE=0;LN_SEL=0;LN_TERM='';LN_F='all';
  $('#chseg').querySelectorAll('button').forEach(x=>x.setAttribute('aria-pressed',String(x.dataset.ch===CH)));
  PAGE=0;SEL=0;refresh();}));
 $('#vseg').querySelectorAll('button').forEach(b=>b.addEventListener('click',()=>{
+ if(b.dataset.v==='fu')FU_ASK=true;
  VIEW=b.dataset.v;
  $('#vseg').querySelectorAll('button').forEach(x=>x.setAttribute('aria-pressed',String(x.dataset.v===VIEW)));
  refresh();}));
