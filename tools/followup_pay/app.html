@@ -477,6 +477,29 @@ body{background:
 .rvbar{height:6px;border-radius:3px;background:var(--line,#eee);overflow:hidden;margin-top:4px;min-width:70px}
 .rvbar span{display:block;height:100%;background:var(--ok,#1D9E75)}
 .rvcell{width:130px}.rvtab td.name{white-space:nowrap}
+.rvnote{border:1px solid var(--line);border-left:3px solid var(--ln,#0B7E93);border-radius:9px;padding:10px 14px;margin:14px 0 18px;font-size:13px;background:var(--card,#fff)}
+.rvnote b{font-weight:600}.rvnote p{margin:6px 0 0;color:var(--ink-2,#48606E)}
+.rvnote .rvwarn{color:var(--ink,#14252F)}
+.rvleg{display:flex;flex-wrap:wrap;align-items:center;gap:6px 10px;margin:2px 0 4px;font-size:12px}
+.rvk{display:inline-flex;align-items:center;gap:6px;border:1px solid var(--line);background:var(--card,#fff);border-radius:999px;padding:3px 11px;cursor:pointer;font-size:12px;color:var(--ink,#14252F)}
+.rvk i{width:11px;height:11px;border-radius:3px;display:inline-block}
+.rvk.on{border-color:var(--ink,#14252F);font-weight:600}
+.rvk.clr{color:var(--ink-2,#48606E)}
+.rvplot{position:relative;padding:22px 0 0 66px;margin:2px 0 6px}
+.rvarea{position:relative;border-bottom:1px solid var(--line-2,#C6D7E1)}
+.rvgrid{position:absolute;inset:0;pointer-events:none}
+.rvgl{position:absolute;left:0;right:0;border-top:1px solid var(--line);height:0}
+.rvgl span{position:absolute;right:calc(100% + 9px);top:-9px;font-size:11px;color:var(--ink-3,#7B919E);white-space:nowrap;font-variant-numeric:tabular-nums}
+.rvcols{position:absolute;inset:0;display:flex;align-items:flex-end;gap:6px}
+.rvcol{flex:1;display:flex;flex-direction:column;justify-content:flex-end;align-items:center;min-width:0}
+.rvxs{display:flex;gap:6px;margin-top:7px}
+.rvxc{flex:1;text-align:center;font-size:11px;color:var(--ink-2,#48606E);min-width:0;white-space:nowrap}
+.rvstack{display:flex;flex-direction:column;gap:2px;width:24px}
+.rvseg{display:block;width:100%}
+.rvseg.cap{border-radius:4px 4px 0 0}
+.rvnum{font-size:11px;color:var(--ink-2,#48606E);margin-bottom:4px;font-variant-numeric:tabular-nums;white-space:nowrap}
+.rvtbl{margin-top:14px}.rvdot{display:inline-block;width:9px;height:9px;border-radius:2px;margin-right:4px;vertical-align:-1px}
+@media(max-width:620px){.rvnum{font-size:9.5px}.rvstack{width:14px}.rvplot{padding-left:52px}.rvxc{font-size:10px}}
 tr.rvon td{background:var(--line,#f6f6f4)}
 tr.rvmiss td{opacity:.65}
 .tnfdo{font-size:12px;margin-top:4px}
@@ -2099,6 +2122,53 @@ function lnRevSum(ks){
  const T={rooms:0,Q:0,W:0,rev:0,msgs:0};
  for(const x of L){T.rooms+=x[1].rooms;T.Q+=x[1].Q;T.W+=x[1].W;T.rev+=x[1].rev;T.msgs+=x[1].msgs;}
  return {L,T,mo,miss:{W:wAll-T.W,rev:revAll-T.rev}};}
+/* ---------- กราฟแท่ง: ยอดปิดการขายรายเดือน แยกรายแอดมิน ----------
+   สีชุดนี้ผ่านการตรวจ contrast / ตาบอดสีแล้ว (ΔE คู่ติดกันต่ำสุด 9.1 ตาพร่องสี, 19.6 ตาปกติ)
+   ลำดับสีผูกกับตัวคน ไม่ใช่อันดับ — กดเลือกคนแล้วสีของคนอื่นไม่ขยับ  */
+const RVC=['#2a78d6','#eb6834','#1baf7a','#eda100','#e87ba4','#008300'], RVOTHER='#7B919E';
+let RV_SEL='';
+function rvSeries(){
+ const all=LINEKEYS.filter(k=>(V4.line||{})[k]);
+ const tot={};
+ for(const k of all)for(const x of (((V4.line||{})[k])||{}).adm||[])tot[x[0]]=(tot[x[0]]||0)+x[4];
+ const top=Object.keys(tot).sort((a,b)=>tot[b]-tot[a]).filter(n=>tot[n]>0).slice(0,RVC.length);
+ const idx={}; top.forEach((n,i)=>idx[n]=i);
+ const months=all.map(k=>{
+  const o=(V4.line||{})[k], v=new Array(top.length).fill(0); let other=0;
+  for(const x of (o.adm||[]))(idx[x[0]]!=null)?v[idx[x[0]]]+=x[4]:other+=x[4];
+  other+=(o.rev||0)-(o.adm||[]).reduce((s,x)=>s+x[4],0);   /* ยอดที่ไม่มีแอดมินระบุ */
+  return {k,v,other,tot:o.rev||0,w:o.W||0};});
+ return {names:top,months};}
+function rvChart(){
+ const S=rvSeries(); if(!S.months.length)return '';
+ const names=S.names, sel=RV_SEL&&(names.includes(RV_SEL)||RV_SEL==='อื่น ๆ')?RV_SEL:'';
+ const val=m=>sel?(sel==='อื่น ๆ'?m.other:m.v[names.indexOf(sel)]):m.tot;
+ const peak=Math.max(1,...S.months.map(val));
+ const step=Math.pow(10,Math.floor(Math.log10(peak)))/2;
+ const top=Math.ceil(peak/step)*step, H=200;
+ const baht=v=>nf(Math.round(v));
+ const grid=[0,.25,.5,.75,1].map(f=>`<div class="rvgl" style="bottom:${f*H}px"><span>${f?baht(top*f):'0'}</span></div>`).join('');
+ const colOf=i=>i<0?RVOTHER:RVC[i];
+ const cols=S.months.map(m=>{
+  const parts=sel?[[sel==='อื่น ๆ'?-1:names.indexOf(sel),val(m)]]
+    :names.map((n,i)=>[i,m.v[i]]).concat(m.other>0?[[-1,m.other]]:[]).filter(x=>x[1]>0);
+  const segs=parts.slice().reverse().map(([i,v],j)=>`<span class="rvseg${j===0?' cap':''}" style="height:${Math.max(2,v/top*H)}px;background:${colOf(i)}" title="${esc(MLABEL[m.k]||m.k)} · ${esc(i<0?'อื่น ๆ / ไม่ระบุแอดมิน':names[i])} — ${baht(v)} บาท"></span>`).join('');
+  const lab=sel?baht(val(m)):baht(m.tot);
+  return `<div class="rvcol"><div class="rvnum">${lab}</div><div class="rvstack">${segs}</div></div>`;}).join('');
+ const xs=S.months.map(m=>`<div class="rvxc">${esc(MSHORT[m.k]||m.k)}</div>`).join('');
+ const keys=names.map((n,i)=>[n,RVC[i]]).concat(S.months.some(m=>m.other>0)?[['อื่น ๆ',RVOTHER]]:[]);
+ const leg=`<div class="rvleg"><span class="nsm">กดชื่อเพื่อดูเฉพาะคนนั้น:</span>`+
+  keys.map(([n,c])=>`<button type="button" class="rvk${sel===n?' on':''}" data-rvk="${esc(n)}"><i style="background:${c}"></i>${esc(n)}</button>`).join('')+
+  (sel?`<button type="button" class="rvk clr" data-rvk="">↺ ดูรวมทุกคน</button>`:'')+`</div>`;
+ const tbl=`<details class="fhelp rvtbl"><summary>ดูเป็นตาราง (เดือน × แอดมิน)</summary><div class="tw"><table><thead><tr><th>เดือน</th>`+
+  keys.map(([n,c])=>`<th class="n"><i class="rvdot" style="background:${c}"></i>${esc(n)}</th>`).join('')+`<th class="n">รวม</th></tr></thead><tbody>`+
+  S.months.map(m=>`<tr><td class="name">${esc(MLABEL[m.k]||m.k)}</td>`+
+   names.map((n,i)=>`<td class="n">${m.v[i]?baht(m.v[i]):'<span class="nsm">·</span>'}</td>`).join('')+
+   (keys.length>names.length?`<td class="n">${m.other?baht(m.other):'<span class="nsm">·</span>'}</td>`:'')+
+   `<td class="n"><b>${baht(m.tot)}</b></td></tr>`).join('')+`</tbody></table></div></details>`;
+ return `<div class="fuhd"><b>ยอดปิดการขายรายเดือน แยกรายแอดมิน</b> <span class="nsm">ทุกเดือนที่มีข้อมูล LINE · ไม่ขึ้นกับเดือนที่เลือกด้านบน${sel?' · กำลังดูเฉพาะ <b>'+esc(sel)+'</b>':' · ความสูงทั้งแท่ง = ยอดรวมของเดือนนั้น'}</span></div>`+
+  leg+`<div class="rvplot"><div class="rvarea" style="height:${H}px"><div class="rvgrid">${grid}</div><div class="rvcols">${cols}</div></div><div class="rvxs">${xs}</div></div>`+tbl;}
+
 function renderLnRev(){
  const sec=document.getElementById('s-v4r'), el=$('#lnrev');
  const ks=scopeOf(LINEKEYS), show=(CH==='all'||CH==='line')&&ks.length>0;
@@ -2125,20 +2195,24 @@ function renderLnRev(){
  const t1=`<p class="note">ยอดที่ปิดได้จริงของแอดมินแต่ละคนใน <b>${esc(rangeLabel(ks))}</b> — นับจากสลิปที่ระบบตรวจสอบผ่านในห้องแชท ไม่ใช่ยอดที่เขียนไว้ในโน้ต${multi}</p>
   <div class="tw"><table class="rvtab"><thead><tr><th>แอดมิน</th><th class="n">ห้องที่เข้าไปตอบ</th><th class="n">ห้องที่ส่งราคา</th><th class="n">ปิดการขายได้</th><th class="n">ยอดเงิน (บาท)</th><th class="n">สัดส่วนยอด</th></tr></thead>
   <tbody>${L.map(x=>row(x[0],x[1])).join('')}${missRow}${tot}</tbody></table></div>`;
- const allk=LINEKEYS.filter(k=>(V4.line||{})[k]);
- const M=lnRevSum(allk).mo;
+ const M=[];
  const mmx=Math.max(1,...M.map(x=>x[2]));
- const t2=M.length>1?`<div class="fuhd"><b>ยอดปิดการขายรายเดือน</b> <span class="nsm">ทุกเดือนที่มีข้อมูล LINE ไม่ขึ้นกับเดือนที่เลือกด้านบน</span></div>
+ const t2x=M.length>1?`<div class="fuhd"><b>ยอดปิดการขายรายเดือน</b> <span class="nsm">ทุกเดือนที่มีข้อมูล LINE ไม่ขึ้นกับเดือนที่เลือกด้านบน</span></div>
   <div class="tw"><table><thead><tr><th>เดือน</th><th class="n">ปิดการขายได้</th><th class="n">ยอดเงิน (บาท)</th><th class="n">เฉลี่ยต่อห้อง</th><th></th></tr></thead><tbody>`+
   M.map(x=>`<tr${ks.includes(x[0])?' class="rvon"':''}><td class="name">${esc(MLABEL[x[0]]||x[0])}</td><td class="n">${nf(x[1])}</td><td class="n"><b>${baht(x[2])}</b></td><td class="n">${per(x[2],x[1])}</td>
    <td class="rvcell"><div class="rvbar"><span style="width:${Math.max(2,Math.round(x[2]*100/mmx))}%"></span></div></td></tr>`).join('')+
   `</tbody></table></div>`:'';
- const help=`<details class="fhelp"><summary>ตัวเลขนี้มาจากไหน</summary><dl>
+ const note=`<div class="rvnote"><b>อ่านตัวเลขนี้ยังไง</b>
+  <p><b>ปิดการขายได้</b> = ห้องที่มีสลิปแล้วระบบขึ้น “สถานะ: ตรวจสอบสลิปสำเร็จ” · เลขอ้างอิงสลิปเดียวกันนับครั้งเดียว ถึงจะส่งซ้ำหรือส่งข้ามช่องทาง · ยอดเงินคือยอดที่อ่านได้จากสลิปใบนั้น ไม่ใช่ยอดที่พิมพ์ไว้ในโน้ต</p>
+  <p><b>ให้เครดิตใคร</b> = แอดมินที่เป็นคนจริง <b>คนสุดท้ายที่พิมพ์ในห้องก่อนสลิปจะเข้า</b> ไม่นับบอทและข้อความอัตโนมัติ ถ้าไม่มีใครพิมพ์เลยก่อนสลิปเข้า จะไปอยู่แถว “ไม่ระบุแอดมิน”</p>
+  <p class="rvwarn"><b>ข้อควรระวัง</b> — กติกา “คนสุดท้ายก่อนสลิป” ไม่เท่ากับ “คนที่ขาย” เสมอไป จากที่ตรวจห้องที่ปิดได้ ก.ค.–ก.ย. <b>411 ห้อง มี 123 ห้อง (30%)</b> ที่คนได้เครดิตเป็นคนละคนกับคนที่ส่งราคา — ส่วนใหญ่คือส่งต่อกันในทีม เช่น อีกคนมารับช่วงตอบตอนท้าย ถ้าจะดูว่าใคร “ขาย” จริง ให้ดูคอลัมน์ <b>ห้องที่ส่งราคา</b> ควบคู่ไปด้วย</p></div>`;
+ const help=`<details class="fhelp"><summary>รายละเอียดเพิ่มเติม</summary><dl>
   <dt>“ปิดการขายได้” คือ</dt><dd>ห้องที่มีสลิปแล้วระบบขึ้นว่า <b>ตรวจสอบสลิปสำเร็จ</b> และผู้รับคือ บจก. ไบโอปาล์ม เอ็ดดูเคชั่น · เลขอ้างอิงสลิปเดียวกันนับครั้งเดียว ถึงจะส่งซ้ำหรือส่งข้ามช่องทาง</dd>
   <dt>ให้เครดิตใคร</dt><dd>แอดมินที่เป็น <b>คนจริง</b> คนสุดท้ายที่พิมพ์ในห้องก่อนสลิปจะเข้า — ไม่นับบอทและข้อความอัตโนมัติ ถ้าไม่มีใครคุยเลยก่อนสลิปเข้า จะไปอยู่แถว “ไม่ระบุแอดมิน”</dd>
   <dt>“ห้องที่ส่งราคา” คือ</dt><dd>ห้องที่จบเป็นส่งราคาแล้วหรือปิดได้ และคนนี้คือคนแรกที่พิมพ์ราคาในห้องนั้น ใช้ดูอัตราปิดของแต่ละคน</dd>
   <dt>ต่างจากยอดในโน้ตยังไง</dt><dd>ตารางนี้นับจากสลิปจริงในแชท ส่วน “ใบลงทะเบียนจากโน้ต” ด้านบนนับจากยอดที่แอดมินพิมพ์ไว้ในโน้ต สองอย่างไม่เท่ากันเป็นเรื่องปกติ — โอนนอกแชท หรือลงโน้ตคนละเดือนกับที่โอน</dd></dl></details>`;
- el.innerHTML=t1+t2+help;}
+ el.innerHTML=t1+note+rvChart()+help;
+ el.querySelectorAll('[data-rvk]').forEach(b=>b.addEventListener('click',()=>{RV_SEL=b.dataset.rvk===RV_SEL?'':b.dataset.rvk;renderLnRev();}));}
 
 /* ---------- v4: reply speed ---------- */
 const SPB=['น้อยกว่า 15 นาที','15–30 นาที','30–60 นาที','มากกว่า 60 นาที','ไม่มีแอดมินตอบ'];
@@ -2251,12 +2325,12 @@ function tnfuGo(g){
 function tnfuBind(el){el.querySelectorAll('[data-tnfu]').forEach(b=>b.addEventListener('click',()=>tnfuGo(b.dataset.tnfu)));}
 function renderV4Notes(){
  const el=$('#v4n'), sec=document.getElementById('s-v4n');
- const ks=ntMonths(), tks=tnMonths(), show=CH==='line'&&(ks.length>0||tks.length>0);
+ const tks=tnMonths(), show=CH==='line'&&tks.length>0;
  if(sec)sec.hidden=!show;
  if(!show){if(el)el.innerHTML='';return;}
  $('#v4nscope').textContent=CHN[CH]+' · '+moLabel();
  const N=NT(), P=N.parse||{}; const tnH=tnTable(tks);
- if(!ks.length){el.innerHTML=tnH;tnfuBind(el);return;}
+ el.innerHTML=tnH;tnfuBind(el);return;
 
  /* 1 — monthly registration summary */
  const sumRow=k=>{const d=N.months[k];
