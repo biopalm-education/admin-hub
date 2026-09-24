@@ -2210,7 +2210,7 @@ function renderLnRev(){
   <dt>“ปิดการขายได้” คือ</dt><dd>ห้องที่มีสลิปแล้วระบบขึ้นว่า <b>ตรวจสอบสลิปสำเร็จ</b> และผู้รับคือ บจก. ไบโอปาล์ม เอ็ดดูเคชั่น · เลขอ้างอิงสลิปเดียวกันนับครั้งเดียว ถึงจะส่งซ้ำหรือส่งข้ามช่องทาง</dd>
   <dt>ให้เครดิตใคร</dt><dd>แอดมินที่เป็น <b>คนจริง</b> คนสุดท้ายที่พิมพ์ในห้องก่อนสลิปจะเข้า — ไม่นับบอทและข้อความอัตโนมัติ ถ้าไม่มีใครคุยเลยก่อนสลิปเข้า จะไปอยู่แถว “ไม่ระบุแอดมิน”</dd>
   <dt>“ห้องที่ส่งราคา” คือ</dt><dd>ห้องที่จบเป็นส่งราคาแล้วหรือปิดได้ และคนนี้คือคนแรกที่พิมพ์ราคาในห้องนั้น ใช้ดูอัตราปิดของแต่ละคน</dd>
-  <dt>ต่างจากยอดในโน้ตยังไง</dt><dd>ตารางนี้นับจากสลิปจริงในแชท ส่วน “ใบลงทะเบียนจากโน้ต” ด้านบนนับจากยอดที่แอดมินพิมพ์ไว้ในโน้ต สองอย่างไม่เท่ากันเป็นเรื่องปกติ — โอนนอกแชท หรือลงโน้ตคนละเดือนกับที่โอน</dd></dl></details>`;
+  <dt>ต่างจากยอดที่แอดมินจดในโน้ตยังไง</dt><dd>ตารางนี้นับจาก<b>สลิปจริงในแชท</b> ส่วนยอดที่แอดมินพิมพ์ไว้ในโน้ตเป็นคนละตัวเลข สองอย่างไม่เท่ากันเป็นเรื่องปกติ — โอนนอกแชท ลงโน้ตคนละเดือนกับที่โอน หรือพิมพ์ยอดผิด</dd></dl></details>`;
  el.innerHTML=t1+note+rvChart()+help;
  el.querySelectorAll('[data-rvk]').forEach(b=>b.addEventListener('click',()=>{RV_SEL=b.dataset.rvk===RV_SEL?'':b.dataset.rvk;renderLnRev();}));}
 
@@ -2331,101 +2331,7 @@ function renderV4Notes(){
  $('#v4nscope').textContent=CHN[CH]+' · '+moLabel();
  const N=NT(), P=N.parse||{}; const tnH=tnTable(tks);
  el.innerHTML=tnH;tnfuBind(el);return;
-
- /* 1 — monthly registration summary */
- const sumRow=k=>{const d=N.months[k];
-  return `<tr><td class="name">${MLABEL[k]||k}</td><td class="n">${nf(d.rooms)}</td>`+
-   `<td class="n"><b>${nf(d.reg.rooms)}</b><div class="spsm">${nf(d.reg.notes)} ใบ</div></td>`+
-   `<td class="n">${nf(d.reg.amt)}</td>`+
-   `<td class="n">${nf(d.tagged)}<div class="spsm">ไม่มีวันที่</div></td>`+
-   `<td class="n">${nf(d.slip)}</td>`+
-   `<td class="n">${pctS(d.reg.rooms,d.rooms)}</td>`+
-   `<td class="n">${nf(d.reg.byCreated)}<div class="spsm">${d.reg.byCreated-d.reg.notes>=0?'+':''}${d.reg.byCreated-d.reg.notes}</div></td></tr>`;};
- const t1=`<div class="tw"><table><thead><tr><th>เดือน</th><th class="n">ห้องทั้งหมด</th>`+
-  `<th class="n">สมัครจากโน้ต<div class="spsm" style="font-weight:400">นับด้วยวันที่ในโน้ต</div></th>`+
-  `<th class="n">ยอดรวมในโน้ต (บาท)</th><th class="n">ติดแท็กสมัครแล้ว</th>`+
-  `<th class="n">ปิดการขายจากสลิป</th><th class="n">อัตราสมัคร</th>`+
-  `<th class="n">ถ้านับด้วย createdAt</th></tr></thead><tbody>${ks.map(sumRow).join('')}</tbody></table></div>`;
-
- /* 2 — the 2x2, one block per month in scope */
- const cross=k=>{const d=N.months[k], c=d.cross, rs=d.redsum;
-  const cell=(cls,n,t,dd,go)=>`<div class="ntc ${cls}"${go?` role="button" tabindex="0" data-go="${go}"`:''}>`+
-   `<span class="ntn">${nf(n)}</span><span class="ntt">${t}</span><span class="ntd">${dd}</span>`+
-   (go?'<span class="ntgo">ดูรายห้อง ↓</span>':'')+`</div>`;
-  return `<div class="ntblock"><div class="ntmo">${MLABEL[k]||k} · ${nf(d.rooms)} ห้อง · สมัครจริง (แท็ก ∪ โน้ต) <b>${nf(d.realreg)}</b> ห้อง</div>`+
-  `<div class="ntgrid"><div class="nth"></div><div class="nth">มีโน้ตลงทะเบียน</div><div class="nth">ไม่มีโน้ตลงทะเบียน</div>`+
-  `<div class="ntr">ติดแท็ก<br>Q-สมัครแล้ว</div>`+
-  cell('ok',c.sr,'ยืนยันได้สองทาง','แท็กและโน้ตตรงกัน เชื่อได้',0)+
-  cell('warn',c.sx,'แท็กว่าสมัคร แต่ไม่มีใบลงทะเบียน','ส่วนใหญ่มีโน้ตแบบย่อ ไม่ใช่ความผิดพลาดทุกแถว','ntY-'+k)+
-  `<div class="ntr">ไม่ได้ติดแท็ก</div>`+
-  cell('crit',c.nr,'มีใบลงทะเบียน แต่แท็กตกหล่น',`ในนี้เป็นยอดของ ${MSHORT[k]||k} จริง ${rs.A1.n} ห้อง`,'ntR-'+k)+
-  cell('calm',c.nx,'ยังไม่สมัครจริง','ไม่มีทั้งแท็กและโน้ต — ตามต่อได้',0)+
-  `</div></div>`;};
-
- /* 3 — red, split three ways */
- const redTbl=rows=>rows.length?`<div class="tw"><table><thead><tr><th>ลูกค้า</th><th>แท็กที่ติดอยู่</th><th>รหัสคอร์ส</th>`+
-   `<th class="n">ยอดชำระ</th><th class="n">วันที่ในโน้ต</th><th class="n">โน้ตถูกเขียน</th><th>คนเขียนโน้ต</th><th>แอดมินที่ดูแล</th><th></th></tr></thead><tbody>`+
-   rows.map(r=>`<tr><td class="name">${ntNm(r.name)||'<span class="ntold">(ไม่มีชื่อ)</span>'}</td>`+
-    `<td><span class="badge">${ntNm(r.lead||'ไม่ติดแท็ก')}</span></td><td class="mono">${ntNm(r.g)}${r.mode?` <span class="spsm">${r.mode}</span>`:''}</td>`+
-    `<td class="n"><b>${nf(r.amt)}</b></td><td class="n">${r.td||'<span class="ntold">—</span>'}</td><td class="n">${r.ca}</td>`+
-    `<td>${ntAdm(r.by)}</td><td>${ntNm(r.owner)}</td><td>${ntOpen(r.cid)}</td></tr>`).join('')+
-   `</tbody></table></div>`:'<div class="empty">ไม่มีห้องในกลุ่มนี้</div>';
- const redBlock=k=>{const d=N.months[k], rs=d.redsum;
-  const head=(t,n,amt,cls)=>`<div class="nthd ${cls||''}">${t} — <b>${nf(n)}</b> ห้อง · ${nf(amt)} บาท</div>`;
-  return `<details class="ntdet" id="ntR-${k}" open><summary><b>🔴 ${MLABEL[k]||k}</b> · ไม่ได้ติดแท็ก แต่มีใบลงทะเบียน ${nf(d.cross.nr)} ห้อง</summary>`+
-   head(`A1 · โน้ตลงวันที่ใน ${MSHORT[k]||k} = ยอดของเดือนนี้ที่หายไป`,rs.A1.n,rs.A1.amt,'crit')+redTbl(d.red.A1)+
-   head(`A2 · โน้ตลงวันที่ก่อน ${MSHORT[k]||k} = ยอดของเดือนก่อน (ติดแท็กได้ แต่ห้ามนับซ้ำ)`,rs.A2.n,rs.A2.amt)+redTbl(d.red.A2)+
-   head(`B · โน้ตถูกเขียนหลัง ${MSHORT[k]||k} = ยอดของเดือนถัดไป`,rs.B.n,rs.B.amt)+redTbl(d.red.B)+
-   `</details>`;};
-
- /* 4 — yellow */
- const yelBlock=k=>{const d=N.months[k];
-  const cats=Object.entries(d.ycat).sort((a,b)=>b[1]-a[1]);
-  return `<details class="ntdet" id="ntY-${k}"><summary><b>⚠️ ${MLABEL[k]||k}</b> · ติดแท็กสมัครแล้ว แต่ไม่มีใบลงทะเบียน ${nf(d.cross.sx)} ห้อง</summary>`+
-   `<div class="ntcats">${cats.map(([c,n])=>`<span class="badge${c==='ไม่มีโน้ตเลย'?' risk':''}">${ntNm(c)} <b>${n}</b></span>`).join(' ')}</div>`+
-   (d.yellow.length?`<div class="tw"><table><thead><tr><th>ลูกค้า</th><th>วินิจฉัย</th><th>โน้ตที่มี</th><th>แท็กทั้งหมด</th><th>แอดมินที่ดูแล</th><th></th></tr></thead><tbody>`+
-    d.yellow.map(r=>`<tr><td class="name">${ntNm(r.name)||'<span class="ntold">(ไม่มีชื่อ)</span>'}</td>`+
-     `<td><span class="badge${r.cat==='ไม่มีโน้ตเลย'?' risk':(r.cat==='โน้ตยืนยันสมัคร ไม่ลงยอด'?' ok':'')}">${ntNm(r.cat)}</span></td>`+
-     `<td class="ntq">${ntNm(r.note)||'<span class="ntold">—</span>'}</td><td class="ntq">${ntNm(r.tags)}</td>`+
-     `<td>${ntNm(r.owner)}</td><td>${ntOpen(r.cid)}</td></tr>`).join('')+`</tbody></table></div>`:'<div class="empty">ไม่มีห้องในกลุ่มนี้</div>')+
-   `</details>`;};
-
- /* 5 — two discipline panels */
- const discBlock=k=>{const d=N.months[k];
-  const t=`<div class="tw"><table><thead><tr><th>แอดมินที่ดูแล</th><th class="n">ห้องที่ดูแล</th><th class="n">สมัครจริง</th><th class="n">ลืมติดแท็ก</th><th class="n">ความครบถ้วน</th></tr></thead><tbody>`+
-   d.tagd.filter(r=>r.reg>0).map(r=>`<tr><td class="name">${ntNm(r.adm)}</td><td class="n">${nf(r.rooms)}</td><td class="n">${nf(r.reg)}</td>`+
-    `<td class="n${r.miss?' sphot':''}">${nf(r.miss)}</td><td class="n"><b>${r.pct}%</b></td></tr>`).join('')+`</tbody></table></div>`;
-  const w=`<div class="tw"><table><thead><tr><th>คนเขียนโน้ต</th><th class="n">ใบลงทะเบียนที่เขียนในเดือนนี้</th><th class="n">ยอดรวมที่จดไว้ (บาท)</th></tr></thead><tbody>`+
-   (d.noted.length?d.noted.map(r=>`<tr><td class="name">${ntAdm(r.adm)}</td><td class="n"><b>${nf(r.notes)}</b></td><td class="n">${nf(r.amt)}</td></tr>`).join('')
-    :'<tr><td colspan="3" class="ntold">ไม่มีใบลงทะเบียนที่เขียนในเดือนนี้</td></tr>')+`</tbody></table></div>`;
-  const wrote=new Set(d.noted.map(r=>r.adm));
-  const silent=d.tagd.filter(r=>r.rooms>=20&&!wrote.has(r.adm)).map(r=>r.adm);
-  return `<details class="ntdet" id="ntD-${k}"><summary><b>${MLABEL[k]||k}</b> · วินัยการบันทึก</summary>`+
-   `<div class="nthd">วินัยการติดแท็ก — นับตาม <b>แอดมินที่ดูแลห้อง</b></div>${t}`+
-   `<div class="nthd">วินัยการเขียนโน้ต — นับตาม <b>คนที่พิมพ์โน้ต</b> (คนละเรื่องกับตารางบน)</div>${w}`+
-   (silent.length?`<p class="note" style="margin-top:10px">⚠️ ดูแลห้องตั้งแต่ 20 ห้องขึ้นไป แต่ไม่ได้เขียนใบลงทะเบียนเลยในเดือนนี้: <b>${silent.map(ntNm).join(' · ')}</b></p>`:'')+
-   `</details>`;};
-
- const help=`<details class="fhelp"><summary>ส่วนนี้อ่านอย่างไร</summary><dl>`+
-  `<dt>ตารางนี้นับอะไร</dt><dd>โน้ตที่มีรหัสคอร์ส (G) และยอดชำระที่แอดมินพิมพ์ไว้ · นับด้วยวันที่ที่พิมพ์อยู่ในตัวโน้ต ส่วนคอลัมน์สุดท้ายนับด้วยวันที่สร้างโน้ตจริงเพื่อเทียบกัน</dd>`+
-  `<dt>ทำไมมีแค่ 3 เดือน</dt><dd>สามเดือนนี้ตรวจโน้ตทีละใบแล้ว เดือนอื่นยังไม่ได้ตรวจ ถ้าต้องการครบทุกเดือนต้องเขียนตัวอ่านโน้ตใหม่แล้วทดสอบกับสามเดือนนี้ให้ตรงก่อน</dd>`+
-  `<dt>ทำไมส่วนนี้อยู่แค่ในช่อง LINE OA</dt><dd>ระบบโน้ตรายห้องมีแค่ใน LINE OA — Facebook และ Instagram ไม่มี จึงแยกไว้ในช่องนี้ช่องเดียว หน้า “ทุกช่องทาง” จะไม่ขึ้นส่วนนี้เพื่อไม่ให้รก</dd><dt>ทำไมต้องเทียบแท็กกับโน้ต</dt><dd>ทีมบันทึกการสมัครไว้สองที่ — แท็ก <code>Q-สมัครแล้ว</code> ในระบบ LINE และโน้ตที่แอดมินพิมพ์เองในห้องแชท แท็กไม่มีวันที่ ส่วนโน้ตมี <code>createdAt</code> ของตัวเองและมักมีวันที่ที่แอดมินพิมพ์ไว้ด้วย จึงเป็นครั้งแรกที่ LINE มีตัวเลข “สมัครในเดือนนี้” ที่วางข้าง Facebook ได้</dd>`+
-  `<dt>“โน้ตลงทะเบียน” นับแบบไหน</dt><dd>นิยามเข้ม — โน้ตต้องมีทั้ง <b>รหัสคอร์ส G-number</b> และ <b>จำนวนเงินพร้อมหน่วยบาท</b> โน้ตที่จดแค่รหัสคอร์สโดยไม่มียอด (เช่น <code>G186 Module 1</code>) ไม่นับเป็นใบลงทะเบียน แต่ยังโชว์อยู่ในช่องเหลืองว่ามีโน้ตอะไร</dd>`+
-  `<dt>ยอดชำระเอามาจากไหน</dt><dd>ตัวเลขสุดท้ายที่ตามด้วยคำว่า “บาท” ในโน้ตใบนั้น เพราะใบที่ลงหลายคอร์สจะไล่ยอดแต่ละคอร์สก่อนแล้วสรุปยอดสุทธิท้ายสุด</dd>`+
-  `<dt>ทำไมช่องแดงต้องแยก A1 / A2 / B</dt><dd>โน้ตและแท็กผูกกับ “ห้อง” ไม่มีวันหมดอายุ ห้องที่สมัครแล้วไม่มีใครไปติดแท็กจะโผล่ในช่องแดงของ <b>ทุกเดือนถัดไป</b> ถ้าไม่แยกกลุ่มจะนับซ้ำ — A1 คือโน้ตที่ลงวันที่ในเดือนที่กำลังดู (ยอดของเดือนนี้ที่หายไป เอาไปบวกได้) · A2 คือโน้ตลงวันที่ก่อนหน้า (เป็นยอดของเดือนนั้น) · B คือโน้ตที่เพิ่งถูกเขียนหลังเดือนนี้ (เป็นยอดของเดือนถัดไป) ทั้งสามกลุ่มควรไปติดแท็กย้อนหลังเหมือนกัน แต่คนละเดือน</dd>`+
-  `<dt>ช่องเหลืองไม่ใช่ความผิดพลาดทุกแถว</dt><dd>ส่วนใหญ่มีโน้ตยืนยันการสมัครอยู่แล้ว แค่ไม่ได้ลงยอดเงิน หรือสมัครผ่าน Facebook/Messenger ซึ่งใบลงทะเบียนไปอยู่ช่องทางนั้น แถวที่ควรตามจริงคือ <b>ไม่มีโน้ตเลย</b></dd>`+
-  `<dt>สองตารางวินัยต่างกันอย่างไร</dt><dd>“วินัยการติดแท็ก” นับตามแอดมินที่ดูแลห้องนั้น ส่วน “วินัยการเขียนโน้ต” นับตามคนที่พิมพ์โน้ต — คนละคนกันได้ และในทางปฏิบัติมีแอดมินไม่กี่คนที่เขียนโน้ตให้ทั้งทีม ถ้าดูรวมกันตัวเลขจะทำให้เข้าใจผิด</dd>`+
-  `<dt>ยังไม่แตะนิยาม “ปิดการขาย”</dt><dd>คอลัมน์ “ปิดการขายจากสลิป” คือนิยามที่แดชบอร์ดใช้อยู่ (ข้อความ <code>สถานะ: ตรวจสอบสลิปสำเร็จ</code> หรือผู้รับ <code>บจก. ไบโอปาล์ม เอ็ดดูเคชั่น</code>) วางไว้ข้างกันเพื่อเทียบว่าสัญญาณไหนจับได้มากกว่า ยังไม่ได้รวมกัน</dd>`+
-  `<dt>คุณภาพการอ่านโน้ต</dt><dd>ดึงจาก ${nf(P.roomsPulled||0)} ห้อง · โน้ตทั้งหมด ${nf((P.regNotes||0)+(P.nonReg||0))} ใบ · เป็นใบลงทะเบียน ${nf(P.regNotes||0)} ใบ · ยอดเงินที่อ่านไม่ชัด ${nf(P.ambiguous||0)} ใบ (${pctS(P.ambiguous||0,P.regNotes||1)}) · ไม่มีวันที่พิมพ์ในโน้ต ${nf(P.noTypedDate||0)} ใบ (${pctS(P.noTypedDate||0,P.regNotes||1)}) จะใช้ <code>createdAt</code> แทน · ไม่มีตัวเลขที่เดา</dd>`+
-  `<dt>เรื่องส่งตัวอย่างข้อสอบ</dt><dd>สแกนโน้ตทุกใบแล้ว <b>ไม่พบการบันทึกเรื่องส่งตัวอย่างข้อสอบเลย</b> (คำว่า “ข้อสอบ” ปรากฏ 0 ครั้ง) มีเทมเพลตเก่าที่มีช่อง “ส่งตัวอย่างคอร์สเรียน” แต่ปล่อยว่างทุกใบ จึงไม่มีตัวชี้วัดนี้ในส่วนนี้</dd>`+
-  `</dl></details>`;
-
- el.innerHTML=tnH+`<h3 style="font-size:15px;margin:22px 0 6px">ใบลงทะเบียนจากโน้ต</h3>`+
-   `<p class="note" style="margin-bottom:8px">ยอดที่แอดมินพิมพ์ไว้ในโน้ต — มีเฉพาะเดือนที่ตรวจโน้ตละเอียดแล้ว (${ks.map(k=>MSHORT[k]||k).join(' · ')}) · ยอดที่ปิดได้จริงจากสลิป ดูที่หัวข้อ <b>ยอดปิดการขายรายแอดมิน</b> ซึ่งมีครบทุกเดือน</p>`+t1+
-   `<p class="note" style="margin-top:10px">ห้องที่โน้ตกับแท็กไม่ตรงกัน ย้ายไปอยู่ในหน้า <b>Follow up</b> หมวด “ติดแท็ก / ใส่โน้ต ให้ครบ” แล้ว ไล่เก็บเป็นรายห้องได้ที่นั่น <button type="button" class="tngb inline" data-tnfu="xN"><span class="t">ไปที่ Follow up</span></button></p>`+help;
- tnfuBind(el);
 }
-
 /* ---------- follow-up: chats that only ever got automatic replies (FB / IG) ---------- */
 let FU_O='';
 let FU=null, FU_B='7', FU_K='all', FU_T='', FU_W='', FU_Q='', FU_PAGE=0;
