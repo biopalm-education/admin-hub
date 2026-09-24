@@ -2415,6 +2415,7 @@ async function renderFU(){
   try{FU=await getFile('followup');}catch(e){el.innerHTML='<p class="note">ยังไม่มีข้อมูลรายการนี้ในชุดข้อมูล ('+esc(e.message)+')</p>';return;}}
  if(!OVREADY){el.innerHTML='<p class="note">กำลังโหลดรายการที่แอดมินย้ายเอง…</p>';await ovLoad();}
  if(VIEW!=='fu')return;
+ if(FU_MODE==='tn'&&CH!=='line'){FU_MODE='ar';try{localStorage.setItem('bp_fu_mode','ar');}catch(e){}}
  if(FU_ASK){FU_ASK=false;setTimeout(fuPicker,0);}
  if(FU_MODE==='tn')return renderTN();
  if(FU_MODE!=='ar'){puSetMode(FU_MODE);return renderPay();}
@@ -2548,14 +2549,15 @@ const FU_MODES=[
  ['np','🗨️','คุยแล้วไม่ถึงราคา','ลูกค้าถามเรื่องคอร์ส แอดมินตอบแล้ว แต่ยังไม่ได้ส่งราคา','แชท · แอดมินตอบ 1–29 วันก่อน'],
  ['pay','💸','ส่งราคาแล้วยังไม่โอน','ส่งราคา/สรุปยอดไปแล้ว แต่ยังไม่มีสลิป “ตรวจสอบสลิปสำเร็จ”','แชท · ส่งราคา 1–29 วันก่อน'],
  ['tn','🏷️','ติดแท็ก / ใส่โน้ต ให้ครบ','ห้องที่ยังไม่ได้ติดแท็กสถานะ หรือยังไม่มีโน้ต — เฉพาะ LINE OA','ห้อง · สถานะล่าสุด']];
-function fuModeBar(){const c=fuModeCounts(),m=FU_MODES.find(x=>x[0]===FU_MODE)||FU_MODES[0];
+const fuModeList=()=>FU_MODES.filter(m=>m[0]!=='tn'||CH==='line');   /* แท็ก/โน้ตเป็นของ LINE อย่างเดียว */
+function fuModeBar(){const c=fuModeCounts(),m=fuModeList().find(x=>x[0]===FU_MODE)||FU_MODES[0];
  return `<div class="fucur ${m[0]}"><span class="ic" aria-hidden="true">${m[1]}</span><span class="tx"><span>กำลังดู Follow up หมวด</span><b>${m[2]} · ${c[m[0]]==null?'—':nf(c[m[0]])} ${m[4]}</b></span><button type="button" class="fupkb" data-fupick="1" aria-haspopup="dialog">เปลี่ยนหมวด ▾</button></div>`;}
 function fuPicker(){
  const old=document.getElementById('fupk');if(old)old.remove();
  const c=fuModeCounts();
  const bg=document.createElement('div');bg.className='fupk-bg';bg.id='fupk';
  bg.innerHTML=`<div class="fupk" role="dialog" aria-modal="true" aria-labelledby="fupkh"><h3 id="fupkh">จะ Follow up หมวดไหน?</h3><p class="sub">เลือกรายการที่จะตามก่อน — เปลี่ยนได้ทุกเมื่อจากปุ่ม “เปลี่ยนหมวด”</p>`+
-  FU_MODES.map(m=>`<button type="button" class="fupko" data-fupko="${m[0]}" aria-current="${FU_MODE===m[0]}"><span class="ic" aria-hidden="true">${m[1]}</span><span class="t">${m[2]}</span><span class="s">${m[3]}</span><span class="n">${c[m[0]]==null?'—':nf(c[m[0]])}<small>${m[4]}</small></span></button>`).join('')+
+  fuModeList().map(m=>`<button type="button" class="fupko" data-fupko="${m[0]}" aria-current="${FU_MODE===m[0]}"><span class="ic" aria-hidden="true">${m[1]}</span><span class="t">${m[2]}</span><span class="s">${m[3]}</span><span class="n">${c[m[0]]==null?'—':nf(c[m[0]])}<small>${m[4]}</small></span></button>`).join('')+
   `<div class="foot"><span>${CH==='ig'?'Instagram':(CH==='line'?'LINE OA':'Facebook')}</span><button type="button" class="fupkx" data-fupkx="1">ปิด</button></div></div>`;
  document.body.appendChild(bg);
  const close=()=>{bg.remove();document.removeEventListener('keydown',esc_);const k=document.querySelector('[data-fupick]');if(k&&k.focus)k.focus();};
