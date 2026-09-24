@@ -504,6 +504,13 @@ tr.rvon td{background:var(--line,#f6f6f4)}
 tr.rvmiss td{opacity:.65}
 .tnfdo{font-size:12px;margin-top:4px}
 .chip.hot{font-weight:700}
+.tnst{display:inline-block;font-size:11.5px;font-weight:600;border-radius:999px;padding:1px 9px;border:1px solid var(--line,#ddd)}
+.tnst.perm{background:var(--sunk,#eee);color:var(--ink-2,#48606E)}
+.tnst.wait{background:var(--warn-soft,#FFF5DA);color:var(--warn,#8A5D00);border-color:transparent}
+.tnst.bad{background:var(--risk-soft,#FBEAE9);color:var(--risk,#C42B28);border-color:transparent}
+tr.tnrlate td{background:var(--risk-soft,#FBEAE9)}
+.tnlate{margin:0 0 10px;font-size:13px;border:1px solid var(--risk,#C42B28);border-left-width:3px;border-radius:9px;padding:8px 12px;background:var(--risk-soft,#FBEAE9);color:var(--ink,#14252F)}
+.tnok{margin:0 0 10px;font-size:13px;color:var(--ink-2,#48606E)}
 .puafter{font-size:13px;line-height:1.45} .puafter .nsm{display:block}
 .puflag{display:inline-block;font-size:11px;padding:1px 7px;border-radius:999px;background:var(--warn-soft);color:var(--warn);margin:3px 4px 0 0}
 .puflag.bad{background:var(--risk-soft);color:var(--risk)} .puflag.ok{background:var(--leaf-soft);color:var(--leaf)}
@@ -2356,7 +2363,7 @@ function fuWeek(w){const a=fuD(w),b=new Date(a);b.setDate(a.getDate()+6);
    Shared through a Google Apps Script web app when AGG.ovurl is set (everyone sees it), otherwise kept
    in this browser only. Keyed by the customer's latest message time, so a NEW message from the same
    customer brings the chat back automatically. Latest record per key wins; st 'clear' = back to auto. */
-let OV={}, OVURL=null, OVREADY=false, OVERR='';
+let OV={}, OVURL=null, OVREADY=false, OVERR='', OVROWS=[];
 const OV_WHY=['ถามกวน / มาปั่น','ไม่ใช่ลูกค้า / ส่งผิด / สแปม','คุยต่อทางช่องทางอื่นแล้ว (LINE / โทร)','แอดมินตอบแล้วแต่ระบบจับไม่ได้','อื่น ๆ'];
 const ovKey=(ch,tid,last)=>ch+'|'+tid+'|'+last;
 function ovName(){try{return localStorage.getItem('bp_admin_name')||'';}catch(e){return '';}}
@@ -2409,11 +2416,13 @@ async function ovLoad(){OVURL=(AGG&&AGG.ovurl)||null;OV={};
  if(!OVURL){try{OV=JSON.parse(localStorage.getItem('bp_ov')||'{}')||{};}catch(e){OV={};}OVREADY=true;return;}
  try{const r=await fetch(OVURL+'?t='+encodeURIComponent(window.OVT||''),{cache:'no-store'});const j=await r.json();
   if(j.error)throw new Error(j.error);
+  OVROWS=(j.rows||[]).slice();   /* แถวดิบ = ประวัติเต็ม ใช้ในหมวดติดแท็ก/ใส่โน้ต */
   for(const x of (j.rows||[])){const k=ovKey(x[0],x[1],x[2]);if(x[3]==='clear')delete OV[k];else OV[k]={st:x[3],why:x[4],by:x[5],at:x[6]};}
   OVERR='';}catch(e){OVERR=String(e.message||e);}
  OVREADY=true;}
 function ovSet(o,st,why,by){const k=ovKey(CH,o.ovtid||o.tid,o.ovlast||o.last);
  if(st==='clear')delete OV[k];else OV[k]={st,why:why||'',by:by||'',at:new Date().toISOString()};
+ OVROWS.push([CH,o.ovtid||o.tid,o.ovlast||o.last,st,why||'',by||'',new Date().toISOString()]);
  if(OVURL){fetch(OVURL,{method:'POST',headers:{'Content-Type':'text/plain;charset=utf-8'},body:JSON.stringify({t:window.OVT,ch:CH,tid:o.ovtid||o.tid,last:o.ovlast||o.last,st,why:why||'',name:o.name,by:by||''})})
    .then(r=>r.json()).then(j=>{if(!j.ok)toast('บันทึกไม่สำเร็จ ('+(j.error||'?')+')');}).catch(()=>toast('บันทึกไม่สำเร็จ — ตรวจอินเทอร์เน็ตแล้วลองใหม่'));}
  else{try{localStorage.setItem('bp_ov',JSON.stringify(OV));}catch(e){}}
@@ -2879,38 +2888,75 @@ function renderPay(){
 
 /* ---------- Follow up หมวด "ติดแท็ก / ใส่โน้ต ให้ครบ" (LINE OA เท่านั้น) — agg.tnfu ----------
    สถานะล่าสุดของทุกห้องที่มีแชทในปี 2026 ว่าห้องไหนยังขาดแท็กหรือขาดโน้ต
-   ปุ่ม "ทำแล้ว / ไม่ต้องทำ" เก็บในชีตส่วนกลางเดิม key tn:<คนที่คุย> + วันที่ดึงข้อมูล
-   พอดึง LINE รอบใหม่ วันที่เปลี่ยน เครื่องหมายเก่าหลุดเอง แล้วข้อมูลจริงจะบอกว่าทำจริงหรือยัง  */
+
+   ที่เก็บ: ชีต "Admin Hub · แชทที่ย้ายเอง" ชุดเดียวกับ FB/IG ผ่าน Apps Script เดิม
+   คีย์ = tn:<รหัสห้อง> · ทุกครั้งที่กดจะเพิ่มแถวใหม่ (ไม่ทับของเดิม) จึงมีประวัติครบ
+   ช่อง "รอบข้อมูล" ของแถวเป็นตัวแยกสองแบบ:
+     <วันที่ดึงข้อมูล>  = "ทำแล้ว" ของรอบนั้น — พอดึง LINE รอบใหม่จะหมดอายุเอง แล้วข้อมูลจริงตัดสิน
+     "perm"             = "ไม่ต้องทำ" แบบถาวร — อยู่จนกว่าจะกดยกเลิก ไม่หลุดตอนดึงรอบใหม่  */
 const TNF=()=>AGG&&AGG.tnfu||null;
+const TNF_PERM='perm';
 let TNF_G='xx', TNF_T='', TNF_O='', TNF_Q='', TNF_PAGE=0, TNF_L=[];
 const TNF_GN={xx:'ไม่ได้ติดทั้งแท็กและโน้ต',Tx:'มีแท็ก แต่ไม่มีโน้ต',xN:'มีโน้ต แต่ไม่ได้ติดแท็ก',done:'✓ ทำแล้ว',skip:'ไม่ต้องทำ'};
 const TNF_GD={
  xx:'ห้องที่คุยกันแล้วแต่ยังไม่ได้ทำอะไรเลย — เข้าไปดูว่าลูกค้าคือใคร แล้วติดแท็กสถานะให้ก่อน',
  Tx:'ติดแท็กไว้แล้วแต่ยังไม่มีโน้ต — ที่ต้องรีบคือแท็ก “Q-สมัครแล้ว” เพราะสมัครแล้วแต่ไม่มีบันทึกว่าลงคอร์สอะไร',
  xN:'แอดมินเขียนโน้ตไว้แล้ว (หลายห้องบอกด้วยว่าลงคอร์สไหน) แต่ลืมติดแท็กสถานะ — อ่านโน้ตแล้วติดแท็กให้ตรง',
- done:'กดว่าทำแล้วในรอบนี้ · รอบดึง LINE ครั้งหน้าจะเช็กจากข้อมูลจริงอีกที',
- skip:'ห้องที่ตัดสินใจว่าไม่ต้องทำ พร้อมเหตุผล'};
+ done:'ห้องที่กดว่าทำแล้วในรอบข้อมูลปัจจุบัน · รอบดึง LINE ครั้งหน้าจะเช็กจากของจริงแล้วขึ้นว่า “ยืนยันแล้ว” หรือกลับเข้ารายการ',
+ skip:'ห้องที่ตัดสินใจว่าไม่ต้องทำ พร้อมเหตุผล — อยู่ถาวรจนกว่าจะกดยกเลิก ดึงข้อมูลรอบใหม่ก็ไม่เด้งกลับ'};
 const TNF_WHY=['ไม่ใช่ลูกค้า / สแปม / ส่งผิด','เป็นบัญชีทดสอบ หรือคนในทีม','ทักมาครั้งเดียวแล้วเงียบ ไม่มีข้อมูลพอจะติดแท็ก','อื่น ๆ'];
 const TNF_ACT={xx:'ติดแท็กสถานะ แล้วเขียนโน้ต',Tx:'เขียนโน้ตในห้องนี้',xN:'ติดแท็กสถานะให้ตรงกับโน้ต'};
+/* วันที่แบบเดียวกับที่อื่นในหน้านี้ (ค.ศ. เวลาไทย) */
+const tnDay=s=>{if(!s)return '—';const d=new Date(s);if(isNaN(d))return String(s).slice(0,16);
+ return d.getDate()+' '+FU_TH_M[d.getMonth()]+' '+d.getFullYear()+' '+String(d.getHours()).padStart(2,'0')+':'+String(d.getMinutes()).padStart(2,'0')+' น.';};
+/* ประวัติการกดของแต่ละห้อง อ่านจากแถวดิบที่ชีตส่งมา (เรียงตามเวลาอยู่แล้ว) */
+function tnfHist(){const H={};
+ for(const x of (OVROWS||[])){
+  if(x[0]!=='line')continue; const t=String(x[1]||''); if(t.slice(0,3)!=='tn:')continue;
+  const cid=t.slice(3), last=String(x[2]||''), h=H[cid]||(H[cid]={perm:null,rounds:{}});
+  const rec={st:x[3],why:x[4]||'',by:x[5]||'',at:x[6]||'',round:last};
+  if(last===TNF_PERM){h.perm=x[3]==='clear'?null:rec;}
+  else if(x[3]==='clear')delete h.rounds[last]; else h.rounds[last]=rec;}
+ return H;}
 function tnfRows(){const D=TNF();if(!D)return [];
- return (D.rooms||[]).map(r=>{const o={tid:r[0],name:r[1],owner:r[2]||'',mo:r[3],tags:r[4]||[],g0:r[5],nd:r[6]||'',nt:r[7]||'',
-   ovtid:'tn:'+r[0],ovlast:D.stamp};
-  o.g=o.g0;const ov=OV[ovKey('line',o.ovtid,o.ovlast)];
-  if(ov){o.ov=ov;if(ov.st==='skip')o.g=/^ทำแล้ว/.test(ov.why||'')?'done':'skip';}
-  o.q=(o.name+' '+o.owner+' '+o.tags.join(' ')+' '+o.nt).toLowerCase();
+ const H=tnfHist(), now=D.stamp;
+ return (D.rooms||[]).map(r=>{const o={tid:r[0],name:r[1],owner:r[2]||'',mo:r[3],tags:r[4]||[],g0:r[5],nd:r[6]||'',nt:r[7]||''};
+  o.ovtid='tn:'+r[0]; o.g=o.g0;
+  const h=H[r[0]];
+  if(h){
+   if(h.perm){o.g='skip';o.ov=h.perm;o.ovlast=TNF_PERM;}
+   else if(h.rounds[now]){o.g='done';o.ov=h.rounds[now];o.ovlast=now;}
+   else{const old=Object.keys(h.rounds).sort().pop();
+    if(old)o.late=h.rounds[old];}}       /* เคยกดว่าทำแล้วรอบก่อน แต่ข้อมูลรอบนี้ยังเห็นว่าค้าง */
+  if(!o.ovlast)o.ovlast=now;
+  o.q=(o.name+' '+o.owner+' '+o.tags.join(' ')+' '+o.nt+' '+(o.ov?o.ov.why+' '+o.ov.by:'')).toLowerCase();
   o.sta=o.tags.filter(t=>(D.status||[]).includes(t));return o;});}
+/* ห้องที่กดว่าทำแล้วรอบก่อน แล้วรอบนี้หลุดออกจากรายการไปแล้ว = ข้อมูลยืนยันว่าแก้จริง */
+function tnfDone2(){const D=TNF();if(!D)return [];
+ const H=tnfHist(), now=D.stamp, live=new Set((D.rooms||[]).map(r=>r[0])), out=[];
+ for(const cid in H){const h=H[cid];if(live.has(cid)||h.perm)continue;
+  const old=Object.keys(h.rounds).sort().pop();if(!old||old===now)continue;
+  out.push({tid:cid,ov:h.rounds[old],ok:true});}
+ return out;}
 function tnfFilt(all){const q=TNF_Q.trim().toLowerCase();
  return tnfRows().filter(o=>o.g===TNF_G&&(all||!TNF_O||o.owner===TNF_O)&&(all||!TNF_T||o.sta.includes(TNF_T))&&(all||!q||o.q.includes(q)));}
 function tnfCount(g){return tnfRows().filter(o=>o.g===g).length;}
 function tnfTodo(){return tnfRows().filter(o=>o.g==='xx'||o.g==='Tx'||o.g==='xN').length;}
+function tnfLate(){return tnfRows().filter(o=>o.late).length;}
 function tnfCtl(o,i){
- if(o.g==='done')return `<div class="fuov">✓ ทำแล้ว${o.ov&&o.ov.by?' โดย '+esc(o.ov.by):''}<br><span class="nsm">รอบดึง LINE ครั้งหน้าจะเช็กจากข้อมูลจริง</span><button class="fuovb" data-tni="${i}" data-ovst="clear">ยกเลิก</button></div>`;
- if(o.g==='skip')return `<div class="fuov on">ไม่ต้องทำ${o.ov&&o.ov.by?' โดย '+esc(o.ov.by):''}${o.ov&&o.ov.why?'<br><span class="nsm">'+esc(o.ov.why)+'</span>':''}<button class="fuovb" data-tni="${i}" data-ovst="clear">ยกเลิก</button></div>`;
+ if(o.g==='done')return `<div class="fuov"><button class="fuovb" data-tni="${i}" data-ovst="clear">ยกเลิกการกด</button></div>`;
+ if(o.g==='skip')return `<div class="fuov on"><button class="fuovb" data-tni="${i}" data-ovst="clear">เอากลับเข้ารายการ</button></div>`;
  return `<div class="fuov"><button class="fuovb fudone" data-tni="${i}" data-ovst="skip" data-why="ทำแล้ว: ${esc(TNF_ACT[o.g0]||'')}" title="${esc(TNF_ACT[o.g0]||'')}แล้ว">✓ ทำแล้ว</button>
   <select class="fuovs" data-tni="${i}" aria-label="ย้ายไปไม่ต้องทำ"><option value="">ไม่ต้องทำ เพราะ…</option>${TNF_WHY.map(w=>`<option value="${esc(w)}">${esc(w)}</option>`).join('')}</select></div>`;}
+function tnfStat(o,now){
+ if(o.g==='skip')return `<span class="tnst perm">ถาวร</span><div class="spsm">ไม่หลุดตอนดึงข้อมูลรอบใหม่ · กดยกเลิกได้ทุกเมื่อ</div>`;
+ if(o.g==='done')return `<span class="tnst wait">รอรอบหน้ายืนยัน</span><div class="spsm">รอบดึง LINE ครั้งหน้าจะเช็กจากข้อมูลจริง ถ้าแก้แล้วจริงจะขึ้นว่ายืนยันแล้ว</div>`;
+ if(o.late)return `<span class="tnst bad">ยังไม่พบการแก้ไข</span><div class="spsm">กดว่าทำแล้วโดย <b>${esc(o.late.by||'-')}</b> เมื่อ ${esc(tnDay(o.late.at))} แต่ข้อมูลรอบ ${esc(now)} ยังเห็นว่าค้างอยู่</div>`;
+ return `<span class="nsm">ยังไม่ได้บันทึกผล</span>`;}
 function tnfExport(){const D=TNF(),rows=tnfFilt(false);
- const out=[['กลุ่ม','ลูกค้า','แอดมินที่ดูแล','คุยล่าสุด','แท็กตอนนี้','สิ่งที่ต้องทำ','วันที่โน้ต','โน้ต','ลิงก์ห้องแชท']];
- for(const o of rows)out.push([TNF_GN[o.g0],o.name||'',o.owner||'-',o.mo,o.tags.join(' / ')||'ไม่มีแท็ก',TNF_ACT[o.g0]||'',o.nd,o.nt,'https://chat.line.biz/'+LINEBOT+'/chat/'+o.tid]);
+ const out=[['กลุ่ม','ลูกค้า','แอดมินที่ดูแล','คุยล่าสุด','แท็กตอนนี้','สิ่งที่ต้องทำ','วันที่โน้ต','โน้ต','ผลที่บันทึก','คนกด','เวลาที่กด','ลิงก์ห้องแชท']];
+ for(const o of rows)out.push([TNF_GN[o.g],o.name||'',o.owner||'-',o.mo,o.tags.join(' / ')||'ไม่มีแท็ก',TNF_ACT[o.g0]||'',o.nd,o.nt,
+   o.ov?o.ov.why||'(ทำแล้ว)':'',o.ov?o.ov.by:'',o.ov?o.ov.at:'','https://chat.line.biz/'+LINEBOT+'/chat/'+o.tid]);
  downloadCSV('ติดแท็กใส่โน้ต-line-'+TNF_G+(TNF_O?'-'+TNF_O:'')+'-'+(D.stamp||'').slice(0,10)+'.csv',out);}
 function renderTN(){
  const el=$('#fu'), sc=$('#fuscope');
@@ -2921,12 +2967,17 @@ function renderTN(){
  const D=TNF();
  if(!D){sc.textContent='LINE OA';
   el.innerHTML=fuModeBar()+'<p class="note">ยังไม่มีข้อมูลแท็ก/โน้ตในชุดนี้ — จะขึ้นหลังรอบดึง LINE ถัดไป</p>';fuModeBind(el);return;}
- sc.textContent='LINE OA · แท็ก/โน้ต ณ '+D.stamp;
- const todo=tnfTodo(), tot=D.tot||0, ok=tot-todo;
+ const now=D.stamp;
+ sc.textContent='LINE OA · แท็ก/โน้ต ณ '+now;
+ const todo=tnfTodo(), tot=D.tot||0, ok=tot-todo, late=tnfLate(), ver=tnfDone2();
  const head=`<div class="tnfhd"><div class="tnfsum"><b>${nf(todo)}</b> ห้องที่ยังต้องตามเก็บ <span class="nsm">จากห้องที่มีแชทในปี 2026 ทั้งหมด ${nf(tot)} ห้อง · บันทึกครบแล้ว ${nf(ok)} ห้อง (${Math.round(ok/Math.max(1,tot)*100)}%)</span></div>
   <div class="tnfbar" aria-hidden="true"><span class="ok" style="width:${ok/Math.max(1,tot)*100}%"></span><span class="a" style="width:${tnfCount('xx')/Math.max(1,tot)*100}%"></span><span class="b" style="width:${tnfCount('Tx')/Math.max(1,tot)*100}%"></span><span class="c" style="width:${tnfCount('xN')/Math.max(1,tot)*100}%"></span></div></div>`;
- const gs=['xx','Tx','xN'].concat(tnfCount('done')?['done']:[]).concat(tnfCount('skip')?['skip']:[]);
- const grp=`<div class="tnfpick" role="group" aria-label="เลือกกลุ่มงาน">`+gs.map((g,i)=>`<button type="button" class="tnfg tg-${g}" data-tng="${g}" aria-pressed="${TNF_G===g}"><span class="k">${i<3?'①②③'[i]+' ':''}${TNF_GN[g]}</span><span class="n">${nf(tnfCount(g))}</span><span class="s">${g==='Tx'?'ที่แท็ก “สมัครแล้ว” '+nf(tnfRows().filter(o=>o.g==='Tx'&&o.sta.includes('Q-สมัครแล้ว')).length)+' ห้อง':(g==='xN'?'อ่านโน้ตแล้วติดแท็กได้เลย':(g==='xx'?'ยังไม่ได้บันทึกอะไรเลย':''))}</span></button>`).join('')+`</div>`;
+ const gs=['xx','Tx','xN','done','skip'];
+ const sub={xx:'ยังไม่ได้บันทึกอะไรเลย',Tx:'ที่แท็ก “สมัครแล้ว” '+nf(tnfRows().filter(o=>o.g==='Tx'&&o.sta.includes('Q-สมัครแล้ว')).length)+' ห้อง',
+   xN:'อ่านโน้ตแล้วติดแท็กได้เลย',done:'รอบนี้ · รอข้อมูลยืนยัน',skip:'ถาวร พร้อมเหตุผล'};
+ const grp=`<div class="tnfpick" role="group" aria-label="เลือกกลุ่มงาน">`+gs.map((g,i)=>`<button type="button" class="tnfg tg-${g}" data-tng="${g}" aria-pressed="${TNF_G===g}"><span class="k">${i<3?'①②③'[i]+' ':''}${TNF_GN[g]}</span><span class="n">${nf(tnfCount(g))}</span><span class="s">${sub[g]||''}</span></button>`).join('')+`</div>`;
+ const warn=late?`<p class="tnlate">⚠ มี <b>${nf(late)}</b> ห้องที่เคยกดว่าทำแล้วในรอบก่อน แต่ข้อมูลรอบ ${esc(now)} ยังเห็นว่าค้างอยู่ — ถูกดึงกลับเข้ารายการให้แล้ว ดูป้ายในคอลัมน์สถานะ</p>`:'';
+ const vernote=(TNF_G==='done'&&ver.length)?`<p class="tnok">✓ อีก <b>${nf(ver.length)}</b> ห้องที่กดไว้รอบก่อน ข้อมูลรอบล่าสุดยืนยันแล้วว่าแก้เรียบร้อย จึงออกจากรายการถาวร</p>`:'';
  const why=`<p class="tnfwhy">${TNF_GD[TNF_G]||''}</p>`;
  let chips='';
  if(TNF_G==='Tx'){const c={};for(const o of tnfRows().filter(o=>o.g==='Tx'))for(const t of o.sta)c[t]=(c[t]||0)+1;
@@ -2935,27 +2986,37 @@ function renderTN(){
  const oc={};for(const o of tnfFilt(true).filter(o=>!TNF_T||o.sta.includes(TNF_T)))oc[o.owner||'-']=(oc[o.owner||'-']||0)+1;
  const os=Object.keys(oc).sort((a,b)=>oc[b]-oc[a]);
  const ownRow=`<div class="chips fuown"><span class="nsm">แอดมินผู้ดูแลห้อง:</span> <button class="chip" data-tno="" aria-pressed="${!TNF_O}">ทุกคน</button>${os.map(n=>`<button class="chip" data-tno="${esc(n)}" aria-pressed="${TNF_O===n}">${esc(n)} ${nf(oc[n])}</button>`).join('')}</div>`;
- const L=tnfFilt(false).sort((a,b)=>(b.sta.includes('Q-สมัครแล้ว')-a.sta.includes('Q-สมัครแล้ว'))||(a.mo<b.mo?1:a.mo>b.mo?-1:0)||(a.name<b.name?-1:1));
+ const isLog=TNF_G==='done'||TNF_G==='skip';
+ const L=tnfFilt(false).sort((a,b)=>isLog?((b.ov&&b.ov.at||'')<(a.ov&&a.ov.at||'')?-1:1)
+   :((b.sta.includes('Q-สมัครแล้ว')-a.sta.includes('Q-สมัครแล้ว'))||(b.late?1:0)-(a.late?1:0)||(a.mo<b.mo?1:a.mo>b.mo?-1:0)||(a.name<b.name?-1:1)));
  const PER=50,pages=Math.max(1,Math.ceil(L.length/PER));if(TNF_PAGE>=pages)TNF_PAGE=0;
  TNF_L=[];
- const rows=L.slice(TNF_PAGE*PER,TNF_PAGE*PER+PER).map(o=>{const i=TNF_L.push(o)-1;return `<tr>
+ const rows=L.slice(TNF_PAGE*PER,TNF_PAGE*PER+PER).map(o=>{const i=TNF_L.push(o)-1;return `<tr${o.late?' class="tnrlate"':''}>
   <td><b>${esc(o.name||'(ไม่มีชื่อ)')}</b><div class="nsm">ผู้ดูแล <b>${esc(o.owner||'-')}</b> · คุยล่าสุด ${esc(MLABEL[o.mo]||o.mo)}</div></td>
-  <td class="w">${o.tags.length?o.tags.map(t=>`<span class="badge${t==='Q-สมัครแล้ว'?' ok':''}">${esc(t)}</span>`).join(' '):'<span class="nsm">ยังไม่มีแท็กเลย</span>'}</td>
-  <td class="w">${o.g0==='xN'?`<div class="nsm">โน้ตเมื่อ ${esc(o.nd)}</div><div class="puq">${esc(o.nt)}</div>`:`<span class="nsm">${o.g0==='Tx'?'ยังไม่มีโน้ตในห้องนี้':'ไม่มีทั้งแท็กและโน้ต'}</span>`}<div class="tnfdo">ต้องทำ: <b>${esc(TNF_ACT[o.g0]||'')}</b></div></td>
+  ${isLog?`<td class="w">${o.g==='skip'?`<b>${esc(o.ov&&o.ov.why||'-')}</b>`:`<b>ทำแล้ว:</b> ${esc(TNF_ACT[o.g0]||'')}`}<div class="spsm">เดิมอยู่กลุ่ม ${esc(TNF_GN[o.g0])}</div></td>
+   <td class="w">${esc(o.ov&&o.ov.by||'-')}<div class="spsm">${esc(tnDay(o.ov&&o.ov.at))}</div></td>`
+  :`<td class="w">${o.tags.length?o.tags.map(t=>`<span class="badge${t==='Q-สมัครแล้ว'?' ok':''}">${esc(t)}</span>`).join(' '):'<span class="nsm">ยังไม่มีแท็กเลย</span>'}</td>
+   <td class="w">${o.g0==='xN'?`<div class="nsm">โน้ตเมื่อ ${esc(o.nd)}</div><div class="puq">${esc(o.nt)}</div>`:`<span class="nsm">${o.g0==='Tx'?'ยังไม่มีโน้ตในห้องนี้':'ไม่มีทั้งแท็กและโน้ต'}</span>`}<div class="tnfdo">ต้องทำ: <b>${esc(TNF_ACT[o.g0]||'')}</b></div></td>`}
+  <td class="w">${tnfStat(o,now)}</td>
   <td><a class="inbtn" href="https://chat.line.biz/${LINEBOT}/chat/${encodeURIComponent(o.tid)}" target="_blank" rel="noopener">เปิดห้องแชท ↗</a>${tnfCtl(o,i)}</td></tr>`;}).join('');
  const pager=pages>1?Array.from({length:pages},(_,i)=>i).filter(i=>i<3||i>pages-3||Math.abs(i-TNF_PAGE)<2).map((i,j,a)=>(j&&i-a[j-1]>1?'<span class="nsm">…</span>':'')+`<button data-tnp="${i}" aria-current="${i===TNF_PAGE}">${i+1}</button>`).join(''):'';
+ const store=`<div class="rvnote"><b>บันทึกไว้ที่ไหน · อัปเดตเป็นรอบยังไง</b>
+  <p>ทุกครั้งที่กด <b>✓ ทำแล้ว</b> หรือ <b>ไม่ต้องทำ</b> จะเพิ่มแถวใหม่ลงชีตกลาง <b>“Admin Hub · แชทที่ย้ายเอง”</b> ชุดเดียวกับ FB/IG (ไม่ทับของเดิม จึงมีประวัติครบ) เก็บ ช่องทาง · ห้อง · รอบข้อมูล · สถานะ · เหตุผล · <b>คนกด</b> · <b>เวลาที่กด</b> — ทุกคนในทีมเห็นตรงกันทันที</p>
+  <p><b>ทำแล้ว</b> ผูกกับรอบข้อมูล พอดึง LINE รอบใหม่ระบบจะเทียบกับของจริงให้เอง: แก้จริง = หลุดออกจากรายการถาวร · ยังไม่ได้แก้ = กลับเข้ารายการพร้อมป้ายเตือน · <b>ไม่ต้องทำ</b> เป็นถาวร ดึงข้อมูลรอบใหม่ก็ไม่เด้งกลับ จนกว่าจะกดยกเลิกเอง</p>
+  <p class="rvwarn"><b>ถ้าแอดมินไปแก้ในแอป LINE แต่ไม่ได้มากดปุ่ม ก็ไม่เป็นไร</b> — รอบดึงข้อมูลถัดไปห้องนั้นจะหายจากรายการเอง เพราะระบบดูจากแท็ก/โน้ตจริงในห้อง ไม่ได้ดูจากการกดปุ่ม ปุ่มมีไว้แค่ซ่อนระหว่างรอรอบถัดไปเท่านั้น</p></div>`;
  const help=`<details class="fhelp"><summary>รายการนี้มาจากไหน นับยังไง</summary><dl>
   <dt>นับห้องไหนบ้าง</dt><dd>ทุกห้องแชท LINE OA ที่มีข้อความในปี 2026 (${nf(tot)} ห้อง) ดูสถานะ ณ ตอนนี้ ไม่ได้แยกรายเดือนเหมือนตารางในหน้าภาพรวม</dd>
   <dt>“ติดแท็ก” นับจากอะไร</dt><dd>แท็กสถานะลีดเท่านั้น — ${(D.status||[]).map(esc).join(' / ')} · แท็กคอร์สถือเป็นข้อมูลเสริม ส่วนแท็ก “แก๊งค์” ไม่นับ เพราะเป็นกลุ่มไว้ส่งข้อความ ไม่ใช่สถานะลูกค้า</dd>
   <dt>“มีโน้ต” นับจากอะไร</dt><dd>มีโน้ตอย่างน้อย 1 ใบในห้อง ไม่ว่าจะเขียนเมื่อไหร่ (ย้อนถึง ก.พ. 2025) อ่านจากข้อมูลดิบของ LINE โดยตรง</dd>
-  <dt>กด “ทำแล้ว” แล้วยังไง</dt><dd>แชทจะออกจากรายการทันทีและทุกคนในทีมเห็นเหมือนกัน · พอดึงข้อมูล LINE รอบหน้า ระบบจะเช็กจากของจริง ถ้าใส่แท็ก/โน้ตแล้วจริงก็หายถาวร ถ้ายังไม่ได้ใส่จะกลับเข้ามาใหม่</dd>
-  <dt>ข้อมูลอัปเดตเมื่อไหร่</dt><dd>แท็กและโน้ตชุดนี้ดึงเมื่อ ${esc(D.stamp)} · จะใหม่ขึ้นทุกครั้งที่ดึง LINE รอบถัดไป</dd></dl></details>`;
- const list=`<div class="fuhd"><b>รายชื่อห้องที่ต้องทำ</b> <span class="nsm">ห้องที่แท็ก “Q-สมัครแล้ว” ขึ้นก่อน แล้วเรียงจากเดือนที่คุยล่าสุด</span></div>
-  <div class="tw"><div class="ptop"><input type="search" id="tnq" placeholder="ค้นชื่อลูกค้า แอดมิน แท็ก หรือข้อความในโน้ต" value="${esc(TNF_Q)}">${ownRow}</div>
-  <table class="fulist"><thead><tr><th>ลูกค้า</th><th>แท็กตอนนี้</th><th>โน้ต / สิ่งที่ต้องทำ</th><th>เปิดแชท · บันทึกผล</th></tr></thead><tbody>${rows||'<tr><td colspan="4">ไม่มีห้องในเงื่อนไขนี้ 🎉</td></tr>'}</tbody></table>
-  <p class="nsm fuovnote">ทำเสร็จแล้ว → กด <b>✓ ทำแล้ว</b> · ห้องที่ไม่ต้องทำจริง ๆ → เลือกเหตุผลในช่อง “ไม่ต้องทำ เพราะ…” (ต้องเลือกชื่อแอดมินทุกครั้ง) · ${OVURL?(OVERR?'⚠️ โหลดรายการที่กดไว้ไม่สำเร็จ — ตอนนี้ยังไม่ถูกบันทึกส่วนกลาง':'บันทึกส่วนกลาง ทุกคนในทีมเห็นเหมือนกัน'):'ตอนนี้บันทึกเฉพาะเครื่องนี้'}</p>
+  <dt>ข้อมูลอัปเดตเมื่อไหร่</dt><dd>แท็กและโน้ตชุดนี้ดึงเมื่อ ${esc(now)} · จะใหม่ขึ้นทุกครั้งที่ดึง LINE รอบถัดไป (ยังเป็นงานที่ต้องสั่งดึงเอง ยังไม่ได้ตั้งเวลาอัตโนมัติ)</dd></dl></details>`;
+ const cols=isLog?'<th>ผลที่บันทึก</th><th>ใครกด · เมื่อไหร่</th>':'<th>แท็กตอนนี้</th><th>โน้ต / สิ่งที่ต้องทำ</th>';
+ const empty=TNF_G==='done'?'ยังไม่มีใครกดว่าทำแล้วในรอบข้อมูลนี้':(TNF_G==='skip'?'ยังไม่มีห้องที่ตัดสินว่าไม่ต้องทำ':'ไม่มีห้องในเงื่อนไขนี้ 🎉');
+ const list=`<div class="fuhd"><b>${isLog?'ประวัติที่บันทึกไว้':'รายชื่อห้องที่ต้องทำ'}</b> <span class="nsm">${isLog?'เรียงจากที่กดล่าสุด':'ห้องที่แท็ก “Q-สมัครแล้ว” ขึ้นก่อน แล้วเรียงจากเดือนที่คุยล่าสุด'}</span></div>
+  <div class="tw"><div class="ptop"><input type="search" id="tnq" placeholder="ค้นชื่อลูกค้า แอดมิน แท็ก เหตุผล หรือข้อความในโน้ต" value="${esc(TNF_Q)}">${ownRow}</div>
+  <table class="fulist"><thead><tr><th>ลูกค้า</th>${cols}<th>สถานะ</th><th>เปิดแชท · บันทึกผล</th></tr></thead><tbody>${rows||`<tr><td colspan="5">${empty}</td></tr>`}</tbody></table>
+  <p class="nsm fuovnote">${OVURL?(OVERR?'⚠️ โหลดประวัติจากชีตกลางไม่สำเร็จ — การกดตอนนี้ยังไม่ถูกบันทึกส่วนกลาง':'บันทึกลงชีตกลางแล้ว ทุกคนในทีมเห็นเหมือนกัน'):'ตอนนี้บันทึกเฉพาะเครื่องนี้ (ยังไม่ได้เชื่อมชีตกลาง)'} · ต้องเลือกชื่อแอดมินทุกครั้งที่กด</p>
   <div class="pfoot"><span class="nsm">${nf(L.length)} ห้อง</span><button class="dlbtn fudl" id="tndl" type="button">⤓ ดาวน์โหลดรายการนี้ (CSV) · ${nf(L.length)} ห้อง</button><span class="fupager">${pager}</span></div></div>`;
- el.innerHTML=fuModeBar()+head+grp+why+chips+list+help;
+ el.innerHTML=fuModeBar()+head+grp+warn+why+vernote+chips+list+store+help;
  fuModeBind(el);
  el.querySelectorAll('[data-tng]').forEach(b=>b.addEventListener('click',()=>{TNF_G=b.dataset.tng;TNF_T='';TNF_PAGE=0;renderTN();}));
  el.querySelectorAll('[data-tnt]').forEach(b=>b.addEventListener('click',()=>{TNF_T=b.dataset.tnt;TNF_PAGE=0;renderTN();}));
@@ -2964,11 +3025,14 @@ function renderTN(){
  const q=$('#tnq');if(q)q.addEventListener('input',()=>{TNF_Q=q.value;TNF_PAGE=0;clearTimeout(q._t);q._t=setTimeout(()=>{renderTN();const n=$('#tnq');if(n){n.focus();n.setSelectionRange(n.value.length,n.value.length);}},250);});
  const dl=$('#tndl');if(dl)dl.addEventListener('click',tnfExport);
  el.querySelectorAll('.fuovs[data-tni]').forEach(sv=>sv.addEventListener('change',async()=>{const w=sv.value;if(!w)return;
-  const o=TNF_L[+sv.dataset.tni];const r=await ovMove(o,'skip',w,{title:'ย้ายไป “ไม่ต้องทำ”',desc:'ห้องนี้จะออกจากรายการที่ต้องติดแท็ก/ใส่โน้ต'});
-  if(!r){sv.value='';toast('ยังไม่ได้ย้าย');return;}ovSet(o,'skip',r.why,r.by);}));
+  const o=TNF_L[+sv.dataset.tni];const r=await ovMove(o,'skip',w,{title:'ย้ายไป “ไม่ต้องทำ”',desc:'ห้องนี้จะออกจากรายการแบบถาวร ดึงข้อมูลรอบใหม่ก็ไม่เด้งกลับ จนกว่าจะกดเอากลับเข้ารายการ'});
+  if(!r){sv.value='';toast('ยังไม่ได้ย้าย');return;}o.ovlast=TNF_PERM;ovSet(o,'skip',r.why,r.by);}));
  el.querySelectorAll('.fuovb[data-tni]').forEach(b=>b.addEventListener('click',async()=>{const o=TNF_L[+b.dataset.tni],st=b.dataset.ovst,w=b.dataset.why||'';
-  const r=await ovMove(o,st,w,{title:st==='clear'?'ยกเลิกสิ่งที่กดไว้':'บันทึกว่าทำแล้ว',desc:st==='clear'?'ห้องนี้จะกลับเข้ารายการตามข้อมูลจริง':'ห้องนี้จะออกจากรายการทันที · รอบดึง LINE ครั้งหน้าจะเช็กจากของจริงอีกครั้ง'});
-  if(!r){toast('ยังไม่ได้เปลี่ยน');return;}ovSet(o,st,w?r.why:'',r.by);}));}
+  const r=await ovMove(o,st,w,{title:st==='clear'?(o.g==='skip'?'เอากลับเข้ารายการ':'ยกเลิกการกด'):'บันทึกว่าทำแล้ว',
+    desc:st==='clear'?'ห้องนี้จะกลับไปอยู่ตามข้อมูลจริง':'ห้องนี้จะออกจากรายการทันที · รอบดึง LINE ครั้งหน้าจะเช็กจากของจริงอีกครั้ง'});
+  if(!r){toast('ยังไม่ได้เปลี่ยน');return;}
+  if(st!=='clear')o.ovlast=now;
+  ovSet(o,st,w?r.why:'',r.by);}));}
 
 /* ---------- orchestration ---------- */
 function renderOverview(){renderV4Cards();renderV4MoM();renderV4Funnel();renderV4Notes();renderV4Speed();renderLnRev();renderV4Adm();}
