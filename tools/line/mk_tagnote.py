@@ -55,8 +55,8 @@ def main(sheet_path, agg_path, bundles):
     out = {}
     for k in sorted(rooms):
         end = k + '-31'
+        # รายชื่อห้องรายเดือนไม่เก็บแล้ว (24 ก.ย. 2026) — งานไล่เก็บย้ายไปหน้า Follow up ซึ่งใช้ agg['tnfu']
         c = collections.Counter(); tx = collections.Counter()
-        L = {'xx': [], 'xN': []}
         for cid, r in rooms[k].items():
             t = r[4] != 'ไม่ติดแท็ก'
             n = any(d <= end for d in notes.get(cid, ()))
@@ -64,11 +64,9 @@ def main(sheet_path, agg_path, bundles):
             c[g] += 1
             if g == 'Tx':
                 tx[r[4]] += 1
-            if g in L:
-                L[g].append([r[1], cid, r[6]])
         assert c['TN'] + c['Tx'] + c['xx'] + c['xN'] == len(rooms[k])
         out[k] = dict(rooms=len(rooms[k]), TN=c['TN'], Tx=c['Tx'], xx=c['xx'], xN=c['xN'],
-                      txs=dict(tx), lists=L, lo=False,
+                      txs=dict(tx), lo=False,
                       notes=sum(1 for v in notes.values() for d in v if d[:7] == k))
 
     A = json.load(open(agg_path, encoding='utf-8'))
