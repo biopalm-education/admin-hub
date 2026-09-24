@@ -271,6 +271,7 @@ footer{border-top:1px solid var(--line);padding:20px 0 42px;color:var(--ink-3);f
 .gft{font-size:11.5px;line-height:1.6;color:var(--ink-3);margin:18px 0 0;text-align:center}
 /* แท็กปะทะโน้ต */
 .ntnote{font-size:13px;color:var(--ink-2);margin:12px 0 18px}
+.tnleg{display:flex;flex-wrap:wrap;gap:6px 14px;font-size:12px;color:var(--mut,#666);margin:0 0 8px}.tnk i{display:inline-block;width:10px;height:10px;border-radius:2px;margin-right:5px;vertical-align:-1px}.tnbar{display:flex;height:7px;border-radius:4px;overflow:hidden;margin-top:5px;min-width:90px;background:var(--line,#eee)}.tnlo td{opacity:.55}.tngo{cursor:pointer;text-decoration:underline dotted}.tngo:hover{background:var(--line,#f3f3f3)}
 .ntblock{margin:0 0 18px}
 .ntmo{font-size:14px;font-weight:600;margin:0 0 9px}
 .ntgrid{display:grid;grid-template-columns:118px 1fr 1fr;gap:8px}
@@ -472,7 +473,7 @@ body{background:
  <section id="s-v4k"><div class="shead"><h2>Metric</h2><span class="lab" id="v4kscope"></span></div><div class="kpis" id="v4k"></div><p class="note" id="v4knote" style="margin-top:10px"></p></section>
  <section id="s-v4m"><div class="shead"><h2>เทียบเดือนต่อเดือน</h2><span class="lab" id="v4mscope"></span></div><div id="v4m"></div></section>
  <section id="s-v4f"><div class="shead"><h2>แยกแชททั้งหมด</h2><span class="lab" id="v4fscope"></span></div><div id="v4f"></div></section>
- <section id="s-v4n"><div class="shead"><h2>แท็กปะทะโน้ต · LINE OA</h2><span class="lab" id="v4nscope"></span></div><div id="v4n"></div></section>
+ <section id="s-v4n"><div class="shead"><h2>แชทที่ติดแท็ก / ติดโน้ต · LINE OA</h2><span class="lab" id="v4nscope"></span></div><div id="v4n"></div></section>
  <section id="s-v4s"><div class="shead"><h2>ความเร็วตอบแชท</h2><span class="lab" id="v4sscope"></span></div><div id="v4s"></div></section>
  <section id="s-v4a"><div class="shead"><h2>ภาระงานรายแอดมิน · LINE OA</h2><span class="lab" id="v4ascope"></span></div><div id="lnwork"></div></section>
  <section id="s-v4h"><div class="shead"><h2>ช่วงเวลาที่ลูกค้าทักเข้ามา · LINE OA</h2><span class="lab">เวลาไทย</span></div><div id="lnhour"></div></section>
@@ -1996,6 +1997,32 @@ function renderV4Speed(){
  <details class="fhelp" style="margin-top:10px"><summary>สรุป 3 อันดับที่ตอบช้าที่สุด และหมายเหตุ</summary><div class="note" style="margin-top:8px;display:grid;gap:6px;background:var(--card);border:1px solid var(--line);border-radius:10px;padding:12px 14px">${rkLines}<div><b>หมายเหตุ</b> — จัดอันดับจาก<b>จำนวน</b>แชทที่แอดมินตอบครั้งแรกช้ากว่า 60 นาที (ไม่ใช่ %) เพื่อให้เห็นชั่วโมงที่ลูกค้ารอนานมากที่สุดจริง · ชั่วโมงที่คนทักน้อยอาจมี % สูงแต่จำนวนน้อย จึงไม่ขึ้นอันดับ · เส้นคั่นหนาที่ 09.00 และ 21.00 = เปลี่ยนช่วงเวลาทำงาน · ยังไม่หักวันหยุด · ตั้งแต่ 22 ก.ย. 2026 ข้อความที่บันทึกไว้ซึ่งแอดมินกดส่งเองนับว่าแอดมินตอบแล้ว (Facebook ใช้ป้ายของ Meta · Instagram เทียบจากข้อความเดียวกันบน Facebook)</div></div></details>`;
 }
 
+
+/* ---------- แท็ก × โน้ต รายเดือน (agg.tagnote, จากชีท LINE รายปี) ---------- */
+const TN=()=>((AGG.tagnote||{}).months||{});
+const tnMonths=()=>scopeOf(LINEKEYS).filter(k=>TN()[k]);
+function tnTable(ks){
+ if(!ks.length)return '';
+ const C=[['TN','var(--ok,#1D9E75)','ติดแท็ก + มีโน้ต','บันทึกครบ'],['Tx','#EF9F27','ติดแท็ก ไม่มีโน้ต','ขาดโน้ต'],['xx','#E24B4A','ไม่มีทั้งแท็กและโน้ต','ยังไม่ได้บันทึกอะไรเลย'],['xN','#B4B2A9','มีโน้ต ไม่ติดแท็ก','ขาดแท็ก']];
+ const leg=C.map(c=>`<span class="tnk"><i style="background:${c[1]}"></i>${c[2]} · ${c[3]}</span>`).join('');
+ const row=k=>{const d=TN()[k], lo=d.notes<20;
+  const bar=`<div class="tnbar">${C.map(c=>`<span style="width:${d.rooms?d[c[0]]/d.rooms*100:0}%;background:${c[1]}"></span>`).join('')}</div>`;
+  const cell=(g)=>{const n=d[g]; let sub=pctS(n,d.rooms);
+   if(g==='Tx'&&d.txs&&d.txs['สมัครแล้ว'])sub+=`<div class="spsm">สมัครแล้ว ${nf(d.txs['สมัครแล้ว'])} · ยังไม่สมัคร ${nf(d.txs['ยังไม่สมัคร']||0)}</div>`;
+   const go=(g==='xx'||g==='xN')&&n?` role="button" tabindex="0" data-go="tnL-${g}-${k}" class="n tngo"`:' class="n"';
+   return `<td${go}><b>${nf(n)}</b><div class="spsm">${sub}</div></td>`;};
+  return `<tr${lo?' class="tnlo"':''}><td class="name">${MLABEL[k]||k}${lo?'<div class="spsm">เดือนนี้มีโน้ตน้อยผิดปกติ ยังสรุปไม่ได้</div>':''}${bar}</td><td class="n">${nf(d.rooms)}</td>${['TN','Tx','xx','xN'].map(cell).join('')}</tr>`;};
+ const lists=ks.map(k=>['xx','xN'].map(g=>{const L=((TN()[k].lists||{})[g])||[]; if(!L.length)return '';
+  const t=g==='xx'?'ไม่มีทั้งแท็กและโน้ต':'มีโน้ต แต่ไม่ได้ติดแท็ก';
+  return `<details class="ntdet" id="tnL-${g}-${k}"><summary><b>${MLABEL[k]||k}</b> · ${t} ${nf(L.length)} ห้อง</summary><div class="tw"><table><thead><tr><th>ลูกค้า</th><th>แอดมินที่ดูแล</th><th></th></tr></thead><tbody>`+
+   L.map(r=>`<tr><td class="name">${ntNm(r[0])||'<span class="ntold">(ไม่มีชื่อ)</span>'}</td><td>${ntNm(r[2])||'—'}</td><td>${ntOpen(r[1])}</td></tr>`).join('')+`</tbody></table></div></details>`;}).join('')).join('');
+ const help=`<details class="fhelp"><summary>ตารางนี้นับอย่างไร</summary><dl>`+
+  `<dt>นับอะไร</dt><dd>ทุกห้องแชท LINE OA ที่มีข้อความในเดือนนั้น แบ่งเป็น 4 กลุ่ม ห้องหนึ่งอยู่ได้กลุ่มเดียว บวกกันแล้วเท่ากับห้องทั้งหมดพอดี</dd>`+
+  `<dt>“ติดแท็ก” คือ</dt><dd>ห้องนั้นมีแท็กสถานะติดอยู่ จะเป็นแท็กไหนก็ได้ — สมัครแล้ว / ยังไม่สมัคร / ถามกับระบบ</dd>`+
+  `<dt>“มีโน้ต” คือ</dt><dd>ห้องนั้นมีโน้ตอย่างน้อย 1 ใบ ที่เขียนไว้ <b>ภายในสิ้นเดือนนั้น</b> — โน้ตที่เขียนไว้ตั้งแต่เดือนก่อนก็นับ เพราะยังติดอยู่ในห้อง และนับโน้ตทุกแบบ ไม่ใช่เฉพาะใบลงทะเบียน</dd>`+
+  `<dt>ควรดูช่องไหน</dt><dd><b>ติดแท็ก ไม่มีโน้ต</b> ที่แท็กว่า “สมัครแล้ว” = สมัครแล้วแต่ยังไม่มีใครจดรายละเอียดไว้ · <b>ไม่มีทั้งแท็กและโน้ต</b> = ห้องที่ยังไม่ได้ตามเก็บเลย กดที่ตัวเลขสีแดงหรือสีเทาเพื่อดูรายชื่อห้อง</dd>`+
+  `<dt>ข้อจำกัด</dt><dd>ข้อมูลมาจากชีท “Biopalm LINE Chat Log — 2026” จึงไม่มีโน้ตที่เขียนก่อนปี 2026 · ม.ค. 2026 ทั้งบัญชีมีโน้ตอยู่ใบเดียว แถวนั้นจึงยังสรุปไม่ได้ · ก.ย. 2026 ยังไม่จบเดือน ห้องที่เพิ่งเข้ามาอาจยังไม่ทันติดแท็ก</dd></dl></details>`;
+ return `<div class="tnleg">${leg}</div><div class="tw"><table class="tntab"><thead><tr><th>เดือน</th><th class="n">ห้องทั้งหมด</th>${C.map(c=>`<th class="n">${c[2]}<div class="spsm" style="font-weight:400">${c[3]}</div></th>`).join('')}</tr></thead><tbody>${ks.map(row).join('')}</tbody></table></div>`+help+lists;}
 /* ---------- แท็กปะทะโน้ต (LINE OA notes vs tags) ---------- */
 const NT=()=>(AGG.notes||{});
 const ntMonths=()=>scopeOf(LINEKEYS).filter(k=>(NT().months||{})[k]);
@@ -2007,11 +2034,12 @@ function ntGo(id){const e=document.getElementById(id);if(e){e.open=true;e.scroll
 
 function renderV4Notes(){
  const el=$('#v4n'), sec=document.getElementById('s-v4n');
- const ks=ntMonths(), show=CH==='line'&&ks.length>0;
+ const ks=ntMonths(), tks=tnMonths(), show=CH==='line'&&(ks.length>0||tks.length>0);
  if(sec)sec.hidden=!show;
  if(!show){if(el)el.innerHTML='';return;}
  $('#v4nscope').textContent=CHN[CH]+' · '+moLabel();
- const N=NT(), P=N.parse||{};
+ const N=NT(), P=N.parse||{}; const tnH=tnTable(tks);
+ if(!ks.length){el.innerHTML=tnH;el.querySelectorAll('[data-go]').forEach(b=>{const go=()=>ntGo(b.dataset.go);b.onclick=go;b.onkeydown=e=>{if(e.key==='Enter')go();};});return;}
 
  /* 1 — monthly registration summary */
  const sumRow=k=>{const d=N.months[k];
@@ -2099,8 +2127,8 @@ function renderV4Notes(){
   `<dt>เรื่องส่งตัวอย่างข้อสอบ</dt><dd>สแกนโน้ตทุกใบแล้ว <b>ไม่พบการบันทึกเรื่องส่งตัวอย่างข้อสอบเลย</b> (คำว่า “ข้อสอบ” ปรากฏ 0 ครั้ง) มีเทมเพลตเก่าที่มีช่อง “ส่งตัวอย่างคอร์สเรียน” แต่ปล่อยว่างทุกใบ จึงไม่มีตัวชี้วัดนี้ในส่วนนี้</dd>`+
   `</dl></details>`;
 
- el.innerHTML=t1+`<div class="ntnote">คลิกช่อง <b>เหลือง</b> หรือ <b>แดง</b> ในตารางกากบาทเพื่อเลื่อนไปดูรายห้อง</div>`+
-   ks.map(cross).join('')+ks.map(redBlock).join('')+ks.map(yelBlock).join('')+ks.map(discBlock).join('')+help;
+ el.innerHTML=tnH+`<h3 style="font-size:15px;margin:22px 0 6px">ใบลงทะเบียนจากโน้ต</h3><p class="note" style="margin-bottom:8px">มีเฉพาะเดือนที่ตรวจโน้ตละเอียดแล้ว (${ks.map(k=>MSHORT[k]||k).join(' · ')})</p>`+t1+
+   ks.map(redBlock).join('')+ks.map(yelBlock).join('')+ks.map(discBlock).join('')+help;
  el.querySelectorAll('[data-go]').forEach(b=>{
    const go=()=>ntGo(b.dataset.go);
    b.addEventListener('click',go);
