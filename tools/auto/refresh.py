@@ -509,7 +509,8 @@ def run_refresh(months, push=True):
     # build_v5 re-applies the strict "ทักมาแล้วหาย" split (14 + 30 day); post_v5_speed restores the
     # reply-speed tables that build_v5 drops. Skipping these reverted the live 14-day view every morning.
     # build_fu rebuilds the FB/IG "ตามแชท Auto reply" list and appends today's counts to its history.
-    for step in ('build_v5.py','post_v5_speed.py','build_fu.py'):
+    # tools/fb_links/cov.py recounts agg.fblinkcov (rooms with a direct Inbox link per month) for the FB note.
+    for step in ('build_v5.py','post_v5_speed.py','build_fu.py','tools/fb_links/cov.py'):
         r=subprocess.run(['bash','-lc',f'cd {REPO} && python3 {step} 2>&1|tail -3'],capture_output=True,text=True)
         log(step,r.stdout.strip()[-300:])
         if r.returncode!=0 or 'Traceback' in r.stdout: raise RuntimeError(step+' failed: '+r.stdout[-400:])
