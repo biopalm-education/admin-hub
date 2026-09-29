@@ -46,9 +46,9 @@ jobs:
     runs-on: ubuntu-latest
     timeout-minutes: 45
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@v5
 
-      - uses: actions/setup-python@v5
+      - uses: actions/setup-python@v6
         with:
           python-version: '3.11'
 
@@ -70,7 +70,7 @@ jobs:
               res['data'] คือ payload ของ tool, err เป็น '' เมื่อสำเร็จ
           refresh.py จึงเรียกใช้ได้โดยไม่ต้องแก้อะไรเลย
           """
-          import os, json, time
+          import os, json, time, threading
           import requests
 
           MCP_URL = os.environ.get('COMPOSIO_MCP_URL') or 'https://connect.composio.dev/mcp'
@@ -78,6 +78,7 @@ jobs:
           DEBUG = bool(os.environ.get('MCP_DEBUG'))
 
           _sess = None
+          _lock = threading.Lock()
 
 
           class _MCP(object):
@@ -208,11 +209,29 @@ jobs:
 
           def _client():
               global _sess
-              if _sess is None:
-                  if not _KEY:
-                      raise RuntimeError('ไม่พบ COMPOSIO_API_KEY — ตั้งเป็น repo secret ก่อน')
-                  _sess = _MCP(MCP_URL, _KEY).connect()
-              return _sess
+              with _lock:
+                  if _sess is None:
+                      if not _KEY:
+                          raise RuntimeError('ไม่พบ COMPOSIO_API_KEY — ตั้งเป็น repo secret ก่อน')
+                      _sess = _MCP(MCP_URL, _KEY).connect()
+                  return _sess
+
+
+          def _drop(c):
+              # รีเซ็ต session เฉพาะตัวที่พัง — refresh.py ยิง IG พร้อมกัน 6 thread
+              global _sess
+              with _lock:
+                  if _sess is c:
+                      _sess = None
+
+
+          def redact(obj):
+              # ห้าม token หลุดลง log — repo นี้เป็น public
+              if isinstance(obj, dict):
+                  return {k: ('***' if 'token' in str(k).lower() else redact(v)) for k, v in obj.items()}
+              if isinstance(obj, list):
+                  return [redact(x) for x in obj]
+              return obj
 
 
           def _dig(obj, slug):
@@ -230,14 +249,25 @@ jobs:
                           break
                   item = item or res[0]
                   if isinstance(item, dict):
+                      if isinstance(item.get('response'), dict):
+                          item = item['response']
                       if item.get('error'):
                           return None, str(item['error'])[:300]
                       if item.get('successful') is False:
                           return None, 'tool reported failure'
-                      inner = item.get('data', item)
-                      return {'data': inner.get('data', inner) if isinstance(inner, dict) and 'data' in inner else inner}, ''
+                      if 'data' not in item:
+                          return None, 'ไม่พบ data ในคำตอบ'
+                      return {'data': item['data']}, ''
               if obj.get('error'):
                   return None, str(obj['error'])[:300]
+              if isinstance(obj.get('data'), dict) and ('response' in obj['data'] or 'results' in obj['data']):
+                  return _dig(obj['data'], slug)
+              if isinstance(obj.get('response'), dict):
+                  r = obj['response']
+                  if r.get('error') or r.get('successful') is False:
+                      return None, str(r.get('error') or 'tool reported failure')[:300]
+                  if 'data' in r:
+                      return {'data': r['data']}, ''
               if 'data' in obj:
                   return {'data': obj['data']}, ''
               return {'data': obj}, ''
@@ -250,6 +280,7 @@ jobs:
               args = dict(arguments or {})
               for i in range(tries):
                   try:
+                      c = None
                       c = _client()
                       if tool_slug in c.tools:
                           raw = c.call(tool_slug, args)
@@ -259,15 +290,15 @@ jobs:
                               'sync_response_to_workbench': False,
                           })
                       if DEBUG:
-                          print('RAW[%s]: %s' % (tool_slug, json.dumps(raw, ensure_ascii=False)[:1500]))
+                          print('RAW[%s]: %s' % (tool_slug, json.dumps(redact(raw), ensure_ascii=False)[:1500]))
                       out, err = _dig(raw, tool_slug)
                       if out is not None:
                           return out, ''
                       last = err or 'แกะคำตอบไม่ได้'
                   except Exception as e:
                       last = '%s: %s' % (type(e).__name__, str(e)[:300])
-                      global _sess
-                      _sess = None
+                      if c is not None:
+                          _drop(c)
                   if i + 1 < tries:
                       time.sleep(delay * (i + 1))
               return {}, last
@@ -333,8 +364,7 @@ jobs:
               ok = True
               for name in ('GH_TOKEN', 'ADMIN_SECRET', 'COMPOSIO_API_KEY'):
                   v = (os.environ.get(name) or '').strip()
-                  tail = (' ...' + v[-4:]) if v else ''
-                  print('secret %-16s %s%s' % (name, 'พบ' if v else 'ไม่พบ', tail))
+                  print('secret %-16s %s' % (name, 'พบ (%d ตัวอักษร)' % len(v) if v else 'ไม่พบ'))
                   ok = ok and bool(v)
               print('MCP URL =', S.MCP_URL)
               print('เดือนที่จะดึงถ้ารันจริง:', _months())
@@ -351,7 +381,7 @@ jobs:
                       print('   ... และอีก', len(names) - 60)
               except Exception as e:
                   print('เชื่อมต่อ MCP ไม่สำเร็จ:', type(e).__name__, str(e)[:500])
-                  print('RAW:', getattr(getattr(S, "_sess", None), 'last_raw', '')[:1000])
+                  print('RAW:', getattr(getattr(S, "_sess", None), 'last_raw', '')[:300])
                   return False
               print('')
 
@@ -360,7 +390,7 @@ jobs:
               print('FACEBOOK_GET_USER_PAGES:', err or 'OK', '| pages =', len(pages),
                     '| มี access_token =', bool(pages and isinstance(pages[0], dict) and pages[0].get('access_token')))
               if err or not pages:
-                  print('   โครงคำตอบที่ได้:', json.dumps(res, ensure_ascii=False)[:1200])
+                  print('   โครงคำตอบที่ได้:', json.dumps(S.redact(res), ensure_ascii=False)[:1200])
                   ok = False
 
               res2, err2 = S.run_composio_tool(
@@ -368,7 +398,7 @@ jobs:
               convs = ((res2.get('data') or {}).get('data') or []) if isinstance(res2.get('data'), dict) else []
               print('INSTAGRAM_LIST_ALL_CONVERSATIONS:', err2 or 'OK', '| conversations =', len(convs))
               if err2 or not convs:
-                  print('   โครงคำตอบที่ได้:', json.dumps(res2, ensure_ascii=False)[:1200])
+                  print('   โครงคำตอบที่ได้:', json.dumps(S.redact(res2), ensure_ascii=False)[:1200])
                   ok = False
 
               print('\nselftest:', 'ผ่าน — รัน mode=refresh ได้' if ok else 'ไม่ผ่าน — ส่ง log นี้ให้ Claude')
@@ -389,6 +419,23 @@ jobs:
               with open(os.path.join(HERE, 'refresh.py'), encoding='utf-8') as f:
                   src = f.read()
               exec(compile(src, os.path.join(HERE, 'refresh.py'), 'exec'), g)
+
+              # กันข้อมูลไม่ครบ: refresh.py ทิ้งห้อง IG ที่ดึงพลาดแบบเงียบ ๆ
+              # ขาด → ดึงซ้ำ 1 รอบ · ยังขาดเกิน 1% → หยุด ไม่ push ทับหน้าเว็บ
+              _ig_pull = g['ig_pull']
+
+              def ig_pull_checked(mo):
+                  for attempt in (1, 2):
+                      cand, MS = _ig_pull(mo)
+                      miss = len(cand) - len(MS)
+                      print('IG %s ดึงครบ %d/%d ห้อง' % (mo, len(MS), len(cand)), flush=True)
+                      if miss <= 0:
+                          return cand, MS
+                  if miss > max(1, len(cand) // 100):
+                      raise RuntimeError('IG %s ขาด %d/%d ห้อง — ยกเลิก ไม่ push ข้อมูลไม่ครบ' % (mo, miss, len(cand)))
+                  return cand, MS
+
+              g['ig_pull'] = ig_pull_checked
               g['run_refresh'](months)
               print('เสร็จ', flush=True)
 
