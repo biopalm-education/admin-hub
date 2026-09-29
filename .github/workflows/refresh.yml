@@ -44,7 +44,7 @@ permissions:
 jobs:
   refresh:
     runs-on: ubuntu-latest
-    timeout-minutes: 45
+    timeout-minutes: 150         # ก.ย. จริง: FB 24 นาที + IG 7 นาทีต่อรอบ · จันทร์ดึง 2 เดือน
     steps:
       - uses: actions/checkout@v5
 
@@ -79,6 +79,10 @@ jobs:
 
           _sess = None
           _lock = threading.Lock()
+          # refresh.py ยิง IG พร้อมกัน 6 thread — Composio ตอบพลาดราว 20% (29 ก.ย.)
+          # จำกัดให้ยิงพร้อมกันไม่เกิน 3 และจดสาเหตุที่พลาดไว้รายงานท้ายรอบ
+          _gate = threading.BoundedSemaphore(int(os.environ.get('MCP_PARALLEL') or 3))
+          FAILS = {}
 
 
           class _MCP(object):
@@ -274,8 +278,18 @@ jobs:
 
 
           def run_composio_tool(tool_slug, arguments, retry_params=None, print_schema_for_tool=False, *, account=None):
-              tries = int((retry_params or {}).get('max_retries', 3)) or 1
-              delay = float((retry_params or {}).get('delay_ms', 2000)) / 1000.0
+              with _gate:
+                  out, err = _run(tool_slug, arguments, retry_params)
+              if err:
+                  with _lock:
+                      n, _ = FAILS.get(tool_slug, (0, ''))
+                      FAILS[tool_slug] = (n + 1, err[:200])
+              return out, err
+
+
+          def _run(tool_slug, arguments, retry_params=None):
+              tries = int((retry_params or {}).get('max_retries', 5)) or 1
+              delay = float((retry_params or {}).get('delay_ms', 3000)) / 1000.0
               last = 'unknown error'
               args = dict(arguments or {})
               for i in range(tries):
@@ -300,7 +314,7 @@ jobs:
                       if c is not None:
                           _drop(c)
                   if i + 1 < tries:
-                      time.sleep(delay * (i + 1))
+                      time.sleep(delay * (2 ** i))          # 3, 6, 12, 24 วินาที
               return {}, last
           PYEOF
           cat > tools/auto/ci_run.py <<'PYEOF'
@@ -424,11 +438,16 @@ jobs:
               # ขาด → ดึงซ้ำ 1 รอบ · ยังขาดเกิน 1% → หยุด ไม่ push ทับหน้าเว็บ
               _ig_pull = g['ig_pull']
 
+              import composio_shim as S
+
               def ig_pull_checked(mo):
                   for attempt in (1, 2):
+                      S.FAILS.clear()
                       cand, MS = _ig_pull(mo)
                       miss = len(cand) - len(MS)
                       print('IG %s ดึงครบ %d/%d ห้อง' % (mo, len(MS), len(cand)), flush=True)
+                      for slug, (n, e) in sorted(S.FAILS.items()):
+                          print('   %s พลาด %d ครั้ง · ล่าสุด: %s' % (slug, n, e), flush=True)
                       if miss <= 0:
                           return cand, MS
                   if miss > max(1, len(cand) // 100):
