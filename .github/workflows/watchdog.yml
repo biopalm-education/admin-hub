@@ -1,0 +1,61 @@
+name: watchdog
+
+# ตัวเฝ้าระวัง admin-hub — ไม่ดึงข้อมูล ไม่แตะหน้าเว็บ ไม่ต้องตั้ง secret ใด ๆ
+# ทุกเช้า 08:40 น. (เวลาไทย) เช็กว่ามี commit "อัปเดตอัตโนมัติ" ภายใน 30 ชั่วโมงล่าสุดหรือไม่
+# ถ้าไม่มี = งานอัปเดต Facebook + Instagram พังหรือไม่ได้รัน → รอบนี้จะขึ้น "failed"
+# และ GitHub จะส่งอีเมลแจ้งเตือนไปที่บัญชี biopalm-education เอง
+
+on:
+  schedule:
+    - cron: '40 1 * * *'        # 08:40 น. เวลาไทย ทุกวัน
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  check:
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    steps:
+      - name: เช็กว่าข้อมูล FB + IG อัปเดตล่าสุดเมื่อไร
+        env:
+          GH_TOKEN: ${{ github.token }}
+          REPO: ${{ github.repository }}
+          MAX_HOURS: '30'
+        run: |
+          python3 - <<'PYEOF'
+          import os, json, sys, urllib.request, datetime as dt
+
+          repo = os.environ['REPO']
+          max_h = float(os.environ['MAX_HOURS'])
+          req = urllib.request.Request(
+              f'https://api.github.com/repos/{repo}/commits?sha=main&per_page=100',
+              headers={'Authorization': 'Bearer ' + os.environ['GH_TOKEN'],
+                       'Accept': 'application/vnd.github+json'})
+          commits = json.load(urllib.request.urlopen(req, timeout=30))
+
+          now = dt.datetime.now(dt.timezone.utc)
+          th = dt.timezone(dt.timedelta(hours=7))
+          last = None
+          for c in commits:
+              msg = c['commit']['message']
+              if msg.startswith('อัปเดตอัตโนมัติ'):
+                  last = (dt.datetime.fromisoformat(c['commit']['committer']['date'].replace('Z', '+00:00')),
+                          c['sha'][:7], msg.splitlines()[0])
+                  break
+
+          if last is None:
+              print('::error title=admin-hub ไม่อัปเดต::ไม่พบ commit "อัปเดตอัตโนมัติ" ใน 100 commit ล่าสุด')
+              sys.exit(1)
+
+          when, sha, title = last
+          age = (now - when).total_seconds() / 3600
+          print(f'อัปเดตอัตโนมัติครั้งล่าสุด: {when.astimezone(th):%d/%m/%Y %H:%M} น. ({age:.1f} ชม.ที่แล้ว) · {sha} · {title}')
+          if age > max_h:
+              print(f'::error title=admin-hub ไม่อัปเดต {age/24:.1f} วัน::'
+                    f'ข้อมูล Facebook + Instagram ค้างตั้งแต่ {when.astimezone(th):%d/%m %H:%M} น. '
+                    f'— เช็ก Actions > refresh-dashboard และ Scheduled tasks ในแอป Claude ว่ารอบล่าสุดล้มหรือไม่')
+              sys.exit(1)
+          print('ปกติ')
+          PYEOF
