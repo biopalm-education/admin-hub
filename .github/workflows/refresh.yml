@@ -1,0 +1,230 @@
+name: refresh-dashboard
+
+# อัปเดต Facebook + Instagram ขึ้น GitHub Pages — รันบนเซิร์ฟเวอร์ GitHub ทั้งหมด
+# ไม่ใช้เครื่องผู้ใช้ ไม่ใช้ Composio workbench ไม่ดึง credential จาก Google Drive
+#
+# secrets ที่ต้องตั้ง (Settings > Secrets and variables > Actions):
+#   ADMIN_SECRET      ค่าในไฟล์ admin_secret.txt เดิม (รูปแบบ user:password)
+#   COMPOSIO_API_KEY  API key จาก dashboard.composio.dev
+#   ADMIN_GH_TOKEN    gh_token.txt เดิม (แนะนำให้ใส่ ช่วยให้ GitHub Pages rebuild แน่นอน)
+#   COMPOSIO_USER_ID  ใส่เฉพาะเมื่อ selftest ฟ้องว่า pages = 0
+#
+# ไฟล์นี้ self-contained: เขียน ci_run.py + composio_shim.py ออกมาตอนรัน
+# refresh.py และกฎการจัดหมวดใน repo ไม่ถูกแก้เลย
+
+on:
+  schedule:
+    - cron: '20 23 * * *'        # 06:20 น. เวลาไทย ทุกวัน
+  workflow_dispatch:
+    inputs:
+      months:
+        description: 'เดือนที่จะดึง คั่นด้วย comma เช่น 2026-08,2026-09 (เว้นว่าง = เดือนปัจจุบันตามเวลาไทย)'
+        required: false
+        default: ''
+      mode:
+        description: 'selftest = เช็ค secret + Composio อย่างเดียว ไม่แตะข้อมูล | refresh = ดึงจริงแล้ว push'
+        required: false
+        default: 'refresh'
+        type: choice
+        options:
+          - refresh
+          - selftest
+
+concurrency:
+  group: refresh-dashboard
+  cancel-in-progress: false
+
+permissions:
+  contents: write
+
+jobs:
+  refresh:
+    runs-on: ubuntu-latest
+    timeout-minutes: 45
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.11'
+
+      - name: ติดตั้ง dependency
+        run: pip install --quiet --disable-pip-version-check requests cryptography composio
+
+      - name: เขียนสคริปต์ช่วย
+        run: |
+          mkdir -p tools/auto
+          cat > tools/auto/composio_shim.py <<'PYEOF'
+          # -*- coding: utf-8 -*-
+          """run_composio_tool แบบที่รันนอก Composio workbench ได้ (ใช้ใน GitHub Actions)
+
+          สัญญาเหมือน helper ของ workbench ทุกประการ:
+              run_composio_tool(slug, arguments) -> (res, err)
+              res['data'] คือ payload ของ tool, err เป็น '' เมื่อสำเร็จ
+          refresh.py จึงเรียกใช้ได้โดยไม่ต้องแก้อะไรเลย
+          """
+          import os, time
+
+          _API_KEY = os.environ.get('COMPOSIO_API_KEY') or ''
+          _USER_ID = os.environ.get('COMPOSIO_USER_ID') or 'default'
+          _client = None
+
+
+          def _get_client():
+              global _client
+              if _client is None:
+                  if not _API_KEY:
+                      raise RuntimeError('ไม่พบ COMPOSIO_API_KEY — ตั้งเป็น repo secret ก่อน')
+                  from composio import Composio
+                  _client = Composio(api_key=_API_KEY)
+              return _client
+
+
+          def _as_dict(r):
+              """รับได้ทั้ง dict และ pydantic model จาก SDK"""
+              if isinstance(r, dict):
+                  return r
+              for m in ('model_dump', 'dict', 'to_dict'):
+                  f = getattr(r, m, None)
+                  if callable(f):
+                      try:
+                          d = f()
+                          if isinstance(d, dict):
+                              return d
+                      except Exception:
+                          pass
+              return {'data': getattr(r, 'data', {}),
+                      'error': getattr(r, 'error', None),
+                      'successful': getattr(r, 'successful', True)}
+
+
+          def run_composio_tool(tool_slug, arguments, retry_params=None, print_schema_for_tool=False, *, account=None):
+              tries = int((retry_params or {}).get('max_retries', 3)) or 1
+              delay = float((retry_params or {}).get('delay_ms', 2000)) / 1000.0
+              last = 'unknown error'
+              for i in range(tries):
+                  try:
+                      raw = _get_client().tools.execute(
+                          tool_slug, user_id=_USER_ID, arguments=dict(arguments or {}))
+                      d = _as_dict(raw)
+                      err = d.get('error')
+                      if err or d.get('successful') is False:
+                          last = str(err or 'tool reported failure')[:300]
+                      else:
+                          return {'data': d.get('data', {})}, ''
+                  except Exception as e:
+                      last = '%s: %s' % (type(e).__name__, str(e)[:300])
+                  if i + 1 < tries:
+                      time.sleep(delay * (i + 1))
+              return {}, last
+          PYEOF
+          cat > tools/auto/ci_run.py <<'PYEOF'
+          # -*- coding: utf-8 -*-
+          """จุดเริ่มของรอบอัปเดตใน GitHub Actions
+
+          ไม่แก้ refresh.py เลย — แค่เตรียมของให้ครบแล้ว exec ไฟล์เดิม
+            1. เขียน credential จาก env (GitHub secrets) ลง /tmp ตามที่ refresh.py คาดไว้
+            2. ยัด run_composio_tool เวอร์ชัน HTTP เข้าไปใน namespace แทน helper ของ workbench
+            3. เลือกเดือน: MONTHS ถ้ามี, ไม่งั้นเดือนปัจจุบันตามเวลาไทย
+               วันจันทร์เติมเดือนก่อนหน้าให้ด้วย ตามกฎใน tools/auto/README.md
+               (ยอดปิดจำนวนมากเกิดในเดือนถัดไป ถ้าไม่ดึงซ้ำยอดเดือนก่อนจะต่ำกว่าจริงถาวร)
+
+          MODE=selftest จะเช็ค secret + Composio แล้วออก ไม่แตะข้อมูลและไม่ push
+          """
+          import os, sys, datetime as dt
+
+          HERE = os.path.dirname(os.path.abspath(__file__))
+          sys.path.insert(0, HERE)
+          TH = dt.timezone(dt.timedelta(hours=7))
+
+
+          def _need(name):
+              v = (os.environ.get(name) or '').strip()
+              if not v:
+                  sys.exit('ขาด secret: %s — ตั้งใน Settings > Secrets and variables > Actions' % name)
+              return v
+
+
+          def _write_creds():
+              with open('/tmp/gh_token.txt', 'w', encoding='utf-8') as f:
+                  f.write(_need('GH_TOKEN'))
+              with open('/tmp/admin_secret.txt', 'w', encoding='utf-8') as f:
+                  f.write(_need('ADMIN_SECRET'))
+              os.chmod('/tmp/gh_token.txt', 0o600)
+              os.chmod('/tmp/admin_secret.txt', 0o600)
+
+
+          def _months():
+              raw = (os.environ.get('MONTHS') or '').strip()
+              if raw:
+                  out = []
+                  for m in raw.replace(' ', '').split(','):
+                      if not m:
+                          continue
+                      dt.datetime.strptime(m, '%Y-%m')      # ตรวจรูปแบบ ผิดแล้วหยุดทันที
+                      if m not in out:
+                          out.append(m)
+                  return out
+              now = dt.datetime.now(TH)
+              cur = now.strftime('%Y-%m')
+              if now.weekday() == 0:                        # จันทร์ = เติมเดือนก่อนหน้า
+                  first = now.replace(day=1)
+                  prev = (first - dt.timedelta(days=1)).strftime('%Y-%m')
+                  return [prev, cur]
+              return [cur]
+
+
+          def main():
+              mode = (os.environ.get('MODE') or 'refresh').strip()
+              from composio_shim import run_composio_tool
+
+              if mode == 'selftest':
+                  ok = True
+                  for name in ('GH_TOKEN', 'ADMIN_SECRET', 'COMPOSIO_API_KEY'):
+                      present = bool((os.environ.get(name) or '').strip())
+                      print('secret %-16s %s' % (name, 'พบ' if present else 'ไม่พบ'))
+                      ok = ok and present
+                  print('COMPOSIO_USER_ID =', os.environ.get('COMPOSIO_USER_ID') or '(default)')
+                  print('เดือนที่จะดึงถ้ารันจริง:', _months())
+
+                  res, err = run_composio_tool('FACEBOOK_GET_USER_PAGES', {})
+                  pages = ((res.get('data') or {}).get('data') or [])
+                  print('FACEBOOK_GET_USER_PAGES:', err or 'OK', '| pages =', len(pages),
+                        '| มี access_token =', bool(pages and pages[0].get('access_token')))
+                  ok = ok and not err and bool(pages)
+
+                  res2, err2 = run_composio_tool(
+                      'INSTAGRAM_LIST_ALL_CONVERSATIONS', {'limit': 1, 'fields': 'id,updated_time'})
+                  convs = ((res2.get('data') or {}).get('data') or [])
+                  print('INSTAGRAM_LIST_ALL_CONVERSATIONS:', err2 or 'OK', '| conversations =', len(convs))
+                  ok = ok and not err2
+
+                  print('\nselftest:', 'ผ่าน — รัน mode=refresh ได้' if ok else 'ไม่ผ่าน — ดูบรรทัดบน')
+                  sys.exit(0 if ok else 1)
+
+              months = _months()
+              _write_creds()
+              print('เดือนที่จะดึง:', months, flush=True)
+
+              g = {'__name__': 'ahb_refresh', 'run_composio_tool': run_composio_tool}
+              with open(os.path.join(HERE, 'refresh.py'), encoding='utf-8') as f:
+                  src = f.read()
+              exec(compile(src, os.path.join(HERE, 'refresh.py'), 'exec'), g)
+              g['run_refresh'](months)
+              print('เสร็จ', flush=True)
+
+
+          if __name__ == '__main__':
+              main()
+          PYEOF
+          python -c "import ast;[ast.parse(open(p,encoding='utf-8').read()) for p in ['tools/auto/composio_shim.py','tools/auto/ci_run.py']];print('syntax OK')"
+
+      - name: รันรอบอัปเดต
+        env:
+          GH_TOKEN: ${{ secrets.ADMIN_GH_TOKEN || github.token }}
+          ADMIN_SECRET: ${{ secrets.ADMIN_SECRET }}
+          COMPOSIO_API_KEY: ${{ secrets.COMPOSIO_API_KEY }}
+          COMPOSIO_USER_ID: ${{ secrets.COMPOSIO_USER_ID }}
+          MONTHS: ${{ inputs.months }}
+          MODE: ${{ inputs.mode || 'refresh' }}
+        run: python tools/auto/ci_run.py
