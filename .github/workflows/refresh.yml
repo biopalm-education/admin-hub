@@ -70,7 +70,7 @@ jobs:
               res['data'] คือ payload ของ tool, err เป็น '' เมื่อสำเร็จ
           refresh.py จึงเรียกใช้ได้โดยไม่ต้องแก้อะไรเลย
           """
-          import os, json, time, threading
+          import os, re, json, time, threading
           import requests
 
           MCP_URL = os.environ.get('COMPOSIO_MCP_URL') or 'https://connect.composio.dev/mcp'
@@ -195,7 +195,7 @@ jobs:
                           print('tools/list ไม่สำเร็จ:', e)
                   return self
 
-              def call(self, name, arguments, timeout=180):
+              def call(self, name, arguments, timeout=60):
                   res = self._rpc('tools/call', {'name': name, 'arguments': arguments}, timeout=timeout)
                   if res.get('isError'):
                       raise RuntimeError('tool error: %s' % json.dumps(res)[:300])
@@ -229,12 +229,17 @@ jobs:
                       _sess = None
 
 
+          _TOK = re.compile(r'(access_token=)[^&\s"\']+|\b(?:EAA|IGAA|IGQ)[A-Za-z0-9_\-]{20,}')
+
+
           def redact(obj):
-              # ห้าม token หลุดลง log — repo นี้เป็น public
+              # ห้าม token หลุดลง log — repo นี้เป็น public (รวม token ที่ฝังอยู่ในลิงก์ paging.next ของ IG)
               if isinstance(obj, dict):
                   return {k: ('***' if 'token' in str(k).lower() else redact(v)) for k, v in obj.items()}
               if isinstance(obj, list):
                   return [redact(x) for x in obj]
+              if isinstance(obj, str):
+                  return _TOK.sub(lambda m: (m.group(1) or '') + '***', obj)
               return obj
 
 
@@ -283,15 +288,19 @@ jobs:
               if err:
                   with _lock:
                       n, _ = FAILS.get(tool_slug, (0, ''))
-                      FAILS[tool_slug] = (n + 1, err[:200])
+                      FAILS[tool_slug] = (n + 1, redact(err)[:200])
               return out, err
 
 
           def _run(tool_slug, arguments, retry_params=None):
-              tries = int((retry_params or {}).get('max_retries', 5)) or 1
+              tries = int((retry_params or {}).get('max_retries', 4)) or 1
               delay = float((retry_params or {}).get('delay_ms', 3000)) / 1000.0
               last = 'unknown error'
               args = dict(arguments or {})
+              # หน้าละ 25 ข้อความแทน 100 — คำตอบก้อนเล็กลงเมื่อผ่าน MCP · refresh.py ไล่ cursor ต่อเองจนครบเหมือนเดิม
+              if tool_slug == 'INSTAGRAM_LIST_ALL_MESSAGES' and int(args.get('limit') or 0) > 25:
+                  args['limit'] = 25
+              t0 = time.time()
               for i in range(tries):
                   try:
                       c = None
@@ -310,7 +319,7 @@ jobs:
                           return out, ''
                       last = err or 'แกะคำตอบไม่ได้'
                   except Exception as e:
-                      last = '%s: %s' % (type(e).__name__, str(e)[:300])
+                      last = '%s หลัง %.0f วินาที: %s' % (type(e).__name__, time.time() - t0, str(e)[:300])
                       if c is not None:
                           _drop(c)
                   if i + 1 < tries:
