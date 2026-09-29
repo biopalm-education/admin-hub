@@ -3,11 +3,10 @@ name: refresh-dashboard
 # อัปเดต Facebook + Instagram ขึ้น GitHub Pages — รันบนเซิร์ฟเวอร์ GitHub ทั้งหมด
 # ไม่ใช้เครื่องผู้ใช้ ไม่ใช้ Composio workbench ไม่ดึง credential จาก Google Drive
 #
-# secrets ที่ต้องตั้ง (Settings > Secrets and variables > Actions):
+# secrets (Settings > Secrets and variables > Actions):
 #   ADMIN_SECRET      ค่าในไฟล์ admin_secret.txt เดิม (รูปแบบ user:password)
-#   COMPOSIO_API_KEY  API key จาก dashboard.composio.dev
-#   ADMIN_GH_TOKEN    gh_token.txt เดิม (แนะนำให้ใส่ ช่วยให้ GitHub Pages rebuild แน่นอน)
-#   COMPOSIO_USER_ID  ใส่เฉพาะเมื่อ selftest ฟ้องว่า pages = 0
+#   COMPOSIO_API_KEY  MCP consumer key ck_... จากหน้า API Key ของ Composio
+#   ADMIN_GH_TOKEN    gh_token.txt เดิม (ช่วยให้ GitHub Pages rebuild แน่นอน)
 #
 # ไฟล์นี้ self-contained: เขียน ci_run.py + composio_shim.py ออกมาตอนรัน
 # refresh.py และกฎการจัดหมวดใน repo ไม่ถูกแก้เลย
@@ -22,13 +21,18 @@ on:
         required: false
         default: ''
       mode:
-        description: 'selftest = เช็ค secret + Composio อย่างเดียว ไม่แตะข้อมูล | refresh = ดึงจริงแล้ว push'
+        description: 'selftest = เช็ค secret + MCP อย่างเดียว ไม่แตะข้อมูล | refresh = ดึงจริงแล้ว push'
         required: false
         default: 'refresh'
         type: choice
         options:
           - refresh
           - selftest
+      debug:
+        description: 'พิมพ์คำตอบดิบจาก MCP (ใช้ตอนหาสาเหตุ)'
+        required: false
+        default: false
+        type: boolean
 
 concurrency:
   group: refresh-dashboard
@@ -49,71 +53,221 @@ jobs:
           python-version: '3.11'
 
       - name: ติดตั้ง dependency
-        run: pip install --quiet --disable-pip-version-check requests cryptography composio
+        run: pip install --quiet --disable-pip-version-check requests cryptography
 
       - name: เขียนสคริปต์ช่วย
         run: |
           mkdir -p tools/auto
           cat > tools/auto/composio_shim.py <<'PYEOF'
           # -*- coding: utf-8 -*-
-          """run_composio_tool แบบที่รันนอก Composio workbench ได้ (ใช้ใน GitHub Actions)
+          """run_composio_tool ที่คุยกับ Composio MCP server ตรง ๆ (ใช้ใน GitHub Actions)
+
+          ไม่ใช้ composio SDK เพราะ key ของบัญชีนี้เป็น MCP consumer key (ck_...)
+          ซึ่งส่งใน header x-consumer-api-key ไม่ใช่ x-api-key ของ platform API
 
           สัญญาเหมือน helper ของ workbench ทุกประการ:
               run_composio_tool(slug, arguments) -> (res, err)
               res['data'] คือ payload ของ tool, err เป็น '' เมื่อสำเร็จ
           refresh.py จึงเรียกใช้ได้โดยไม่ต้องแก้อะไรเลย
           """
-          import os, time
+          import os, json, time
+          import requests
 
-          _API_KEY = os.environ.get('COMPOSIO_API_KEY') or ''
-          _USER_ID = os.environ.get('COMPOSIO_USER_ID') or 'default'
-          _client = None
+          MCP_URL = os.environ.get('COMPOSIO_MCP_URL') or 'https://connect.composio.dev/mcp'
+          _KEY = (os.environ.get('COMPOSIO_API_KEY') or '').strip()
+          DEBUG = bool(os.environ.get('MCP_DEBUG'))
 
-
-          def _get_client():
-              global _client
-              if _client is None:
-                  if not _API_KEY:
-                      raise RuntimeError('ไม่พบ COMPOSIO_API_KEY — ตั้งเป็น repo secret ก่อน')
-                  from composio import Composio
-                  _client = Composio(api_key=_API_KEY)
-              return _client
+          _sess = None
 
 
-          def _as_dict(r):
-              """รับได้ทั้ง dict และ pydantic model จาก SDK"""
-              if isinstance(r, dict):
-                  return r
-              for m in ('model_dump', 'dict', 'to_dict'):
-                  f = getattr(r, m, None)
-                  if callable(f):
+          class _MCP(object):
+              # เซิร์ฟเวอร์รับ key ได้หลายทาง ลองไล่จนกว่าจะผ่าน แล้วจำไว้ใช้ต่อ
+              AUTH_MODES = ('both', 'consumer', 'bearer')
+
+              def __init__(self, url, key):
+                  self.url = url
+                  self.key = key
+                  self.sid = None
+                  self.rid = 0
+                  self.tools = set()
+                  self.last_raw = ''
+                  self.last_reason = ''
+                  self.auth_ok = ''
+                  self.auth_mode = 'both'
+
+              def _headers(self):
+                  h = {'Content-Type': 'application/json',
+                       'Accept': 'application/json, text/event-stream'}
+                  if self.auth_mode in ('both', 'consumer'):
+                      h['x-consumer-api-key'] = self.key
+                  if self.auth_mode in ('both', 'bearer'):
+                      h['Authorization'] = 'Bearer ' + self.key
+                  if self.sid:
+                      h['Mcp-Session-Id'] = self.sid
+                  return h
+
+              def _post(self, payload, timeout=180):
+                  r = requests.post(self.url, json=payload, headers=self._headers(), timeout=timeout)
+                  for k in ('Mcp-Session-Id', 'mcp-session-id'):
+                      if r.headers.get(k):
+                          self.sid = r.headers[k]
+                          break
+                  self.last_raw = (r.text or '')[:4000]
+                  self.last_reason = r.headers.get('x-mcp-auth-failure-reason') or ''
+                  if r.status_code >= 400:
+                      raise RuntimeError('HTTP %d%s: %s' % (
+                          r.status_code,
+                          (' [' + self.last_reason + ']') if self.last_reason else '',
+                          (r.text or '')[:300]))
+                  return self._decode(r)
+
+              @staticmethod
+              def _decode(r):
+                  body = r.text or ''
+                  if 'text/event-stream' in (r.headers.get('content-type') or ''):
+                      out = None
+                      for line in body.splitlines():
+                          line = line.strip()
+                          if line.startswith('data:'):
+                              chunk = line[5:].strip()
+                              if chunk and chunk != '[DONE]':
+                                  try:
+                                      out = json.loads(chunk)
+                                  except Exception:
+                                      pass
+                      return out
+                  if not body.strip():
+                      return None
+                  return json.loads(body)
+
+              def _rpc(self, method, params=None, timeout=180):
+                  self.rid += 1
+                  req = {'jsonrpc': '2.0', 'id': self.rid, 'method': method}
+                  if params is not None:
+                      req['params'] = params
+                  resp = self._post(req, timeout=timeout)
+                  if not isinstance(resp, dict):
+                      raise RuntimeError('คำตอบไม่ใช่ JSON-RPC: %s' % str(resp)[:200])
+                  if resp.get('error'):
+                      raise RuntimeError('JSON-RPC error: %s' % json.dumps(resp['error'])[:300])
+                  return resp.get('result') or {}
+
+              def connect(self):
+                  init = {
+                      'protocolVersion': '2025-06-18',
+                      'capabilities': {},
+                      'clientInfo': {'name': 'admin-hub-ci', 'version': '1.0'},
+                  }
+                  errs = []
+                  for mode in self.AUTH_MODES:
+                      self.auth_mode = mode
+                      self.sid = None
                       try:
-                          d = f()
-                          if isinstance(d, dict):
-                              return d
-                      except Exception:
-                          pass
-              return {'data': getattr(r, 'data', {}),
-                      'error': getattr(r, 'error', None),
-                      'successful': getattr(r, 'successful', True)}
+                          self._rpc('initialize', init, timeout=60)
+                          self.auth_ok = mode
+                          break
+                      except Exception as e:
+                          errs.append('%s -> %s' % (mode, str(e)[:200]))
+                  else:
+                      raise RuntimeError('ล็อกอิน MCP ไม่ผ่านทุกวิธี:\n  ' + '\n  '.join(errs))
+                  try:
+                      self._post({'jsonrpc': '2.0', 'method': 'notifications/initialized'}, timeout=60)
+                  except Exception:
+                      pass
+                  try:
+                      cur = None
+                      for _ in range(10):
+                          p = {'cursor': cur} if cur else {}
+                          res = self._rpc('tools/list', p, timeout=60)
+                          for t in (res.get('tools') or []):
+                              if t.get('name'):
+                                  self.tools.add(t['name'])
+                          cur = res.get('nextCursor')
+                          if not cur:
+                              break
+                  except Exception as e:
+                      if DEBUG:
+                          print('tools/list ไม่สำเร็จ:', e)
+                  return self
+
+              def call(self, name, arguments, timeout=180):
+                  res = self._rpc('tools/call', {'name': name, 'arguments': arguments}, timeout=timeout)
+                  if res.get('isError'):
+                      raise RuntimeError('tool error: %s' % json.dumps(res)[:300])
+                  sc = res.get('structuredContent')
+                  if isinstance(sc, dict) and sc:
+                      return sc
+                  for part in (res.get('content') or []):
+                      if part.get('type') == 'text' and part.get('text'):
+                          try:
+                              return json.loads(part['text'])
+                          except Exception:
+                              return {'_text': part['text']}
+                  return res
+
+
+          def _client():
+              global _sess
+              if _sess is None:
+                  if not _KEY:
+                      raise RuntimeError('ไม่พบ COMPOSIO_API_KEY — ตั้งเป็น repo secret ก่อน')
+                  _sess = _MCP(MCP_URL, _KEY).connect()
+              return _sess
+
+
+          def _dig(obj, slug):
+              """ดึง payload ของ tool ออกมาจากคำตอบที่อาจถูกห่อหลายชั้น"""
+              if not isinstance(obj, dict):
+                  return None, 'คำตอบไม่ใช่ dict'
+              res = obj.get('results')
+              if res is None and isinstance(obj.get('data'), dict):
+                  res = obj['data'].get('results')
+              if isinstance(res, list) and res:
+                  item = None
+                  for x in res:
+                      if isinstance(x, dict) and x.get('tool_slug') == slug:
+                          item = x
+                          break
+                  item = item or res[0]
+                  if isinstance(item, dict):
+                      if item.get('error'):
+                          return None, str(item['error'])[:300]
+                      if item.get('successful') is False:
+                          return None, 'tool reported failure'
+                      inner = item.get('data', item)
+                      return {'data': inner.get('data', inner) if isinstance(inner, dict) and 'data' in inner else inner}, ''
+              if obj.get('error'):
+                  return None, str(obj['error'])[:300]
+              if 'data' in obj:
+                  return {'data': obj['data']}, ''
+              return {'data': obj}, ''
 
 
           def run_composio_tool(tool_slug, arguments, retry_params=None, print_schema_for_tool=False, *, account=None):
               tries = int((retry_params or {}).get('max_retries', 3)) or 1
               delay = float((retry_params or {}).get('delay_ms', 2000)) / 1000.0
               last = 'unknown error'
+              args = dict(arguments or {})
               for i in range(tries):
                   try:
-                      raw = _get_client().tools.execute(
-                          tool_slug, user_id=_USER_ID, arguments=dict(arguments or {}))
-                      d = _as_dict(raw)
-                      err = d.get('error')
-                      if err or d.get('successful') is False:
-                          last = str(err or 'tool reported failure')[:300]
+                      c = _client()
+                      if tool_slug in c.tools:
+                          raw = c.call(tool_slug, args)
                       else:
-                          return {'data': d.get('data', {})}, ''
+                          raw = c.call('COMPOSIO_MULTI_EXECUTE_TOOL', {
+                              'tools': [{'tool_slug': tool_slug, 'arguments': args}],
+                              'sync_response_to_workbench': False,
+                          })
+                      if DEBUG:
+                          print('RAW[%s]: %s' % (tool_slug, json.dumps(raw, ensure_ascii=False)[:1500]))
+                      out, err = _dig(raw, tool_slug)
+                      if out is not None:
+                          return out, ''
+                      last = err or 'แกะคำตอบไม่ได้'
                   except Exception as e:
                       last = '%s: %s' % (type(e).__name__, str(e)[:300])
+                      global _sess
+                      _sess = None
                   if i + 1 < tries:
                       time.sleep(delay * (i + 1))
               return {}, last
@@ -124,14 +278,14 @@ jobs:
 
           ไม่แก้ refresh.py เลย — แค่เตรียมของให้ครบแล้ว exec ไฟล์เดิม
             1. เขียน credential จาก env (GitHub secrets) ลง /tmp ตามที่ refresh.py คาดไว้
-            2. ยัด run_composio_tool เวอร์ชัน HTTP เข้าไปใน namespace แทน helper ของ workbench
+            2. ยัด run_composio_tool เวอร์ชัน MCP เข้าไปใน namespace แทน helper ของ workbench
             3. เลือกเดือน: MONTHS ถ้ามี, ไม่งั้นเดือนปัจจุบันตามเวลาไทย
                วันจันทร์เติมเดือนก่อนหน้าให้ด้วย ตามกฎใน tools/auto/README.md
                (ยอดปิดจำนวนมากเกิดในเดือนถัดไป ถ้าไม่ดึงซ้ำยอดเดือนก่อนจะต่ำกว่าจริงถาวร)
 
-          MODE=selftest จะเช็ค secret + Composio แล้วออก ไม่แตะข้อมูลและไม่ push
+          MODE=selftest เช็ค secret + MCP แล้วออก ไม่แตะข้อมูลและไม่ push
           """
-          import os, sys, datetime as dt
+          import os, sys, json, datetime as dt
 
           HERE = os.path.dirname(os.path.abspath(__file__))
           sys.path.insert(0, HERE)
@@ -174,34 +328,59 @@ jobs:
               return [cur]
 
 
+          def _selftest():
+              import composio_shim as S
+              ok = True
+              for name in ('GH_TOKEN', 'ADMIN_SECRET', 'COMPOSIO_API_KEY'):
+                  v = (os.environ.get(name) or '').strip()
+                  tail = (' ...' + v[-4:]) if v else ''
+                  print('secret %-16s %s%s' % (name, 'พบ' if v else 'ไม่พบ', tail))
+                  ok = ok and bool(v)
+              print('MCP URL =', S.MCP_URL)
+              print('เดือนที่จะดึงถ้ารันจริง:', _months())
+              print('')
+
+              try:
+                  c = S._client()
+                  print('เชื่อมต่อ MCP สำเร็จ · วิธี auth ที่ผ่าน =', c.auth_ok, '· session =', 'มี' if c.sid else 'ไม่มี')
+                  names = sorted(c.tools)
+                  print('tool ที่เซิร์ฟเวอร์เปิดให้ (%d ตัว):' % len(names))
+                  for n in names[:60]:
+                      print('   -', n)
+                  if len(names) > 60:
+                      print('   ... และอีก', len(names) - 60)
+              except Exception as e:
+                  print('เชื่อมต่อ MCP ไม่สำเร็จ:', type(e).__name__, str(e)[:500])
+                  print('RAW:', getattr(getattr(S, "_sess", None), 'last_raw', '')[:1000])
+                  return False
+              print('')
+
+              res, err = S.run_composio_tool('FACEBOOK_GET_USER_PAGES', {})
+              pages = ((res.get('data') or {}).get('data') or []) if isinstance(res.get('data'), dict) else []
+              print('FACEBOOK_GET_USER_PAGES:', err or 'OK', '| pages =', len(pages),
+                    '| มี access_token =', bool(pages and isinstance(pages[0], dict) and pages[0].get('access_token')))
+              if err or not pages:
+                  print('   โครงคำตอบที่ได้:', json.dumps(res, ensure_ascii=False)[:1200])
+                  ok = False
+
+              res2, err2 = S.run_composio_tool(
+                  'INSTAGRAM_LIST_ALL_CONVERSATIONS', {'limit': 1, 'fields': 'id,updated_time'})
+              convs = ((res2.get('data') or {}).get('data') or []) if isinstance(res2.get('data'), dict) else []
+              print('INSTAGRAM_LIST_ALL_CONVERSATIONS:', err2 or 'OK', '| conversations =', len(convs))
+              if err2 or not convs:
+                  print('   โครงคำตอบที่ได้:', json.dumps(res2, ensure_ascii=False)[:1200])
+                  ok = False
+
+              print('\nselftest:', 'ผ่าน — รัน mode=refresh ได้' if ok else 'ไม่ผ่าน — ส่ง log นี้ให้ Claude')
+              return ok
+
+
           def main():
               mode = (os.environ.get('MODE') or 'refresh').strip()
-              from composio_shim import run_composio_tool
-
               if mode == 'selftest':
-                  ok = True
-                  for name in ('GH_TOKEN', 'ADMIN_SECRET', 'COMPOSIO_API_KEY'):
-                      present = bool((os.environ.get(name) or '').strip())
-                      print('secret %-16s %s' % (name, 'พบ' if present else 'ไม่พบ'))
-                      ok = ok and present
-                  print('COMPOSIO_USER_ID =', os.environ.get('COMPOSIO_USER_ID') or '(default)')
-                  print('เดือนที่จะดึงถ้ารันจริง:', _months())
+                  sys.exit(0 if _selftest() else 1)
 
-                  res, err = run_composio_tool('FACEBOOK_GET_USER_PAGES', {})
-                  pages = ((res.get('data') or {}).get('data') or [])
-                  print('FACEBOOK_GET_USER_PAGES:', err or 'OK', '| pages =', len(pages),
-                        '| มี access_token =', bool(pages and pages[0].get('access_token')))
-                  ok = ok and not err and bool(pages)
-
-                  res2, err2 = run_composio_tool(
-                      'INSTAGRAM_LIST_ALL_CONVERSATIONS', {'limit': 1, 'fields': 'id,updated_time'})
-                  convs = ((res2.get('data') or {}).get('data') or [])
-                  print('INSTAGRAM_LIST_ALL_CONVERSATIONS:', err2 or 'OK', '| conversations =', len(convs))
-                  ok = ok and not err2
-
-                  print('\nselftest:', 'ผ่าน — รัน mode=refresh ได้' if ok else 'ไม่ผ่าน — ดูบรรทัดบน')
-                  sys.exit(0 if ok else 1)
-
+              from composio_shim import run_composio_tool
               months = _months()
               _write_creds()
               print('เดือนที่จะดึง:', months, flush=True)
@@ -224,7 +403,8 @@ jobs:
           GH_TOKEN: ${{ secrets.ADMIN_GH_TOKEN || github.token }}
           ADMIN_SECRET: ${{ secrets.ADMIN_SECRET }}
           COMPOSIO_API_KEY: ${{ secrets.COMPOSIO_API_KEY }}
-          COMPOSIO_USER_ID: ${{ secrets.COMPOSIO_USER_ID }}
+          COMPOSIO_MCP_URL: ${{ vars.COMPOSIO_MCP_URL }}
+          MCP_DEBUG: ${{ inputs.debug && '1' || '' }}
           MONTHS: ${{ inputs.months }}
           MODE: ${{ inputs.mode || 'refresh' }}
         run: python tools/auto/ci_run.py
