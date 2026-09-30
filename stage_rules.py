@@ -8,6 +8,9 @@
         Google Form (ฟอร์มทดลองเรียนปรับพื้นฐาน, from 8 ก.ย.)                          -> 'trial'
         Drive / YouTube                                                                -> 'clip'
         anything else (review links, the YouTube channel)                              -> 'other'
+  - the 3 known trial forms (TRIAL) count even as a bare link                          -> 'trial'
+  Not samples (checked ส.ค.–ก.ย.): the registration form after payment, Giveaway exam forms, shared FB posts of free
+  content, FB comment-reply system links.
   Links are normalised to the file / clip id first, so a link copied from a phone and the same link copied
   from a computer (youtu.be vs youtube.com/watch, ?usp=sharing vs ?usp=drive_link, /mobile/) are one link.
   Checked against the real chats Mar–Sep 2026: the template "แอดมินขออนุญาตแนบคลิปทดลองเรียน…" started
@@ -30,6 +33,9 @@ CLIP = {'yt:1lcHo7k-R5g', 'yt:4h6Wn0z46cg', 'yt:iFWz23NK-fY',
         'drive:folder:1eNJO12ynlxKNHFKJKcmIb1Vv60eR790E',      # ทดลองเรียน Module 2
         'drive:folder:15rJ0C9RntwQlHKUIoGbk4ceGy-4gPW0U',      # ทดลองเรียน Module 1
         'shorturl.at/295VE', 'shorturl.at/s0Q1Z'}
+TRIAL = {'docs:forms:1FAIpQLSc-ivH8bnCFeiHHcyH3p9lHVvQ7CS4ch3PT-CkFayECuRr6Vw',   # ฟอร์มทดลองเรียน (seen with "ทดลองเรียน"
+         'docs:forms:1FAIpQLScr4Y4nFtnxrGLAPUTbkIUYoVAQsLxgHkuyFInqw04aYFrZcw',   #  in ส.ค.–ก.ย.; also sent as a bare link)
+         'docs:forms:1FAIpQLSdm6eUXVMbR1OUV_YYqcAlmAHTM35bAE48aIqACKuqYlKjMbw'}
 ACC = re.compile(r'166\s*-?\s*3\s*-?\s*63464\s*-?\s*6|โอนชำระ(?:ค่าเรียน)?\s*ได้ที่')
 SUMS = re.compile(r'สรุปรายละเอียด|รหัสคอร์ส')
 AMT = re.compile(r'(?:\d{1,3},\d{3}|\d{4,5})(?:\.\d+)?\s*(?:บาท|฿|\.-)|ราคา\s*[:：]?\s*\d')
@@ -63,6 +69,7 @@ def sample_type(text):
     urls = [norm(u) for u in URL.findall(t)]
     if not urls: return None
     if any(u in CLIP for u in urls): return 'clip'
+    if any(u in TRIAL for u in urls): return 'trial'
     if not SK.search(t): return None
     if any(u.startswith('docs:forms') or u.startswith('forms.gle') for u in urls): return 'trial'
     if any(u.startswith('drive:') or u.startswith('yt:') for u in urls): return 'clip'
