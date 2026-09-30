@@ -8,17 +8,19 @@ Each chat row (FB/IG r[46], LINE room['s6']) gets one stage, reading the WHOLE t
   A1  แนบตัวอย่างแล้ว · ยังไม่สรุปจ่าย
   A2  แนบตัวอย่าง · สรุปจ่ายแล้ว (ยังไม่โอน)
   B2  ไม่ได้แนบตัวอย่าง · สรุปจ่ายแล้ว (ยังไม่โอน)   e.g. returning students (ราคานักเรียนเก่า)
-  W   ปิดการขาย (สลิปผ่าน)                     build_v4 stage W in that month
+  W   จ่ายเงินแล้ว (สลิปผ่าน)                  build_v4 stage W in that month
   ''  not counted: the customer never wrote (X) or Giveaway (G), or a month before STAGE_FROM
 r[47] / room['s6i'] = [first sample 'YYYY-MM-DD HH:MM', sample types 'clip,trial,other', first summary 'YYYY-MM-DD HH:MM']
 agg['stg'][ch][month] = counts per stage (ส.ค.+) · agg['adm'][ch][month]['sum'] = rows whose month holds a
-summary card (every month, for the quality table) · ['smp'] = rows whose month holds a sample ·
+summary card (every month, for the quality table) · ['sumpaid'] = of those, how many sent a verified slip after the card
+(any later month, up to the data end) · ['smp'] = rows whose month holds a sample ·
 LINE ['sby'] = {admin: rooms where that admin sent the month's first summary card} (per-admin table).
 Rules live in stage_rules.py. Run after build_adm.py, before build.py. Idempotent, one month file in memory at a time.
 """
 import os, json, glob, datetime, collections
 os.chdir(os.path.dirname(os.path.abspath(__file__)))
 from stage_rules import sample_type, summary_marks
+from build_pay import SLIP          # the verified-slip line (same rule as the payment follow-up list)
 
 STAGE_FROM = '2026-08'
 T0 = datetime.datetime(2026, 1, 1)
@@ -41,26 +43,36 @@ STATE = {}           # (channel, thread id) -> running flags through the months
 STG = {'fb': {}, 'ig': {}, 'line': {}}
 MON = {'fb': collections.defaultdict(lambda: [0, 0]), 'ig': collections.defaultdict(lambda: [0, 0]),
        'line': collections.defaultdict(lambda: [0, 0])}     # month -> [rows with a summary, rows with a sample]
+FIRST = {'fb': collections.Counter(), 'ig': collections.Counter(), 'line': collections.Counter()}   # month of a thread's first sample
+TYP = {'fb': collections.defaultdict(collections.Counter), 'ig': collections.defaultdict(collections.Counter), 'line': collections.defaultdict(collections.Counter)}
 SBY = {}             # LINE month -> {admin name: rooms where that admin sent the first summary card of the month}
+COH = []             # (channel, thread, month, minute of the month's first summary card, admin name or None)
+LASTSLIP = {}        # (channel, thread) -> minute of the latest verified slip
 
 
 def step(ch, tid, mo, st, msgs):
-    """msgs: [(minute, who, text)] who 'C' customer · 'H' person on our side · 'A' automation.
+    """msgs: [(minute, who, text, name)] who 'C' customer · 'H' person on our side · 'A' automation · name = LINE admin
        updates the thread state, returns (stage, info) for this month row"""
     s = STATE.setdefault((ch, tid), {'h': False, 'smp': '', 'typ': set(), 'sum': '', 'won': False})
     msgs = sorted(msgs, key=lambda m: m[0])
+    for t, who, x, _ in msgs:
+        if SLIP.search(x) and t > LASTSLIP.get((ch, tid), -1): LASTSLIP[(ch, tid)] = t
     had_sum = had_smp = False
-    for t, who, x in msgs:
+    tys = set()
+    for t, who, x, _ in msgs:
         if who == 'H': s['h'] = True
         if who in ('H', 'A'):
             ty = sample_type(x)
             if ty:
-                had_smp = True; s['typ'].add(ty)
-                if not s['smp']: s['smp'] = stamp(t)
-    marks = summary_marks([(t, who != 'C', x) for t, who, x in msgs])
+                had_smp = True; s['typ'].add(ty); tys.add(ty)
+                if not s['smp']: s['smp'] = stamp(t); FIRST[ch][s['smp'][:7]] += 1
+    for ty in tys: TYP[ch][mo][ty] += 1
+    marks = summary_marks([(t, who != 'C', x) for t, who, x, _ in msgs])
     if marks:
         had_sum = True
         if not s['sum']: s['sum'] = stamp(msgs[marks[0]][0])
+        m0 = msgs[marks[0]]
+        COH.append((ch, tid, mo, m0[0], m0[3] if (ch == 'line' and m0[1] == 'H') else None))
     if st == 'W': s['won'] = True
     MON[ch][mo][0] += had_sum; MON[ch][mo][1] += had_smp
     info = [s['smp'], ','.join(sorted(s['typ'])), s['sum']]
@@ -78,7 +90,7 @@ def fb_msgs(c, tx, b):
     for m in c[18]:
         x = str(tx(m[2])); r = m[1]
         if r == 3 or x.startswith(SYS): continue
-        out.append((b + m[0], 'C' if r == 0 else ('H' if r == 1 else 'A'), x))
+        out.append((b + m[0], 'C' if r == 0 else ('H' if r == 1 else 'A'), x, None))
     return out
 
 
@@ -115,20 +127,32 @@ for mo in months:
             mk = summary_marks([(t, who != 'C', x) for t, who, x, _ in msgs])
             if mk and msgs[mk[0]][1] == 'H':          # LINE names the admin: credit whoever sent the room's first summary card this month
                 sb = SBY.setdefault(mo, {}); nm = msgs[mk[0]][3]; sb[nm] = sb.get(nm, 0) + 1
-            g, info = step('line', str(r.get('id')), mo, r.get('sg'), [m[:3] for m in msgs])
+            g, info = step('line', str(r.get('id')), mo, r.get('sg'), msgs)
             r['s6'] = g or None; r['s6i'] = info if (info[0] or info[2]) else None
         dump(f, p); del f
 if ig: dump(ig, 'src/ig_all.json')
 
+# follow-through: of the chats that got a summary card in month M, how many sent a verified slip AFTER that card
+# (any later month, up to the data end) -> adm[ch][M]['sumpaid'] · LINE per admin -> ['sbypaid']
+PAID = collections.defaultdict(int); SBYP = collections.defaultdict(lambda: collections.defaultdict(int))
+for ch, tid, mo, t0, nm in COH:
+    ok = LASTSLIP.get((ch, tid), -1) > t0
+    PAID[(ch, mo)] += ok
+    if nm: SBYP[mo][nm] += ok
 agg['stg'] = STG
 for ch in MON:
     for mo, (ns, nm) in MON[ch].items():
         a = ((agg.get('adm') or {}).get(ch) or {}).get(mo)
         if a is not None:
-            a['sum'] = ns; a['smp'] = nm
-            if ch == 'line': a['sby'] = SBY.get(mo, {})
+            a['sum'] = ns; a['smp'] = nm; a['sumpaid'] = PAID.get((ch, mo), 0)
+            if ch == 'line': a['sby'] = SBY.get(mo, {}); a['sbypaid'] = dict(SBYP.get(mo, {}))
 agg['stgfrom'] = STAGE_FROM
 dump(agg, 'src/agg.json')
+# log (counts only): stages of the last 2 months, rows with a summary / a sample (by type), month of each thread's first sample
 for ch in STG:
     for mo in sorted(STG[ch])[-2:]:
-        print('stage', ch, mo, dict(sorted(STG[ch][mo].items())), 'summary rows', MON[ch][mo][0], 'sample rows', MON[ch][mo][1])
+        c = STG[ch][mo]; ty = TYP[ch][mo]
+        print('stage %s %s %s | sum %d paid %d smp %d (%s)' % (ch, mo, ' '.join('%s=%d' % (k, c.get(k, 0)) for k in ('N', 'A0', 'A1', 'A2', 'B2', 'W')),
+              MON[ch][mo][0], PAID.get((ch, mo), 0), MON[ch][mo][1], ' '.join('%s %d' % (k, ty[k]) for k in ('clip', 'trial', 'other') if ty[k])))
+for ch in FIRST:
+    print('first-sample %s: %s' % (ch, ' '.join('%s %d' % (k[2:], FIRST[ch][k]) for k in sorted(FIRST[ch]))))

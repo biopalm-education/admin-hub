@@ -520,8 +520,8 @@ def run_refresh(months, push=True):
     log('build_adm.py',r.stdout.strip()[-300:])
     # build_stage.py (30 ก.ย. 2026): stage ใหม่ของข้อมูลดิบ (บอทตอบ · ยังไม่แนบตัวอย่าง · แนบตัวอย่าง · สรุปจ่าย · ปิด) ตั้งแต่ ส.ค.
     # + จำนวนแชทที่สรุปจ่ายต่อเดือน — พลาดแล้วไม่หยุดรอบอัปเดตเช่นกัน
-    r=subprocess.run(['bash','-lc',f'cd {REPO} && python3 build_stage.py 2>&1|tail -8'],capture_output=True,text=True)
-    log('build_stage.py',r.stdout.strip()[-400:])
+    r=subprocess.run(['bash','-lc',f'cd {REPO} && python3 build_stage.py 2>&1|tail -12'],capture_output=True,text=True)
+    log('build_stage.py',r.stdout.strip()[-1800:])
     if not push: return done
     msg='อัปเดตอัตโนมัติ %s (%s)'%(dt.datetime.now(TH).strftime('%d/%m %H:%M'),', '.join(done))
     r=subprocess.run(['bash','-lc',f'cd {REPO} && sh deploy.sh "{msg}" 2>&1|tail -3'],capture_output=True,text=True)
