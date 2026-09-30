@@ -514,6 +514,10 @@ def run_refresh(months, push=True):
         r=subprocess.run(['bash','-lc',f'cd {REPO} && python3 {step} 2>&1|tail -3'],capture_output=True,text=True)
         log(step,r.stdout.strip()[-300:])
         if r.returncode!=0 or 'Traceback' in r.stdout: raise RuntimeError(step+' failed: '+r.stdout[-400:])
+    # build_adm.py (30 ก.ย. 2026): ตัวเลขชุดของทีมแอดมิน (agg.adm) สำหรับการ์ด Metric ใหม่ของ admin-hub
+    # พลาดแล้วไม่หยุดรอบอัปเดต — หน้าเว็บถอยไปใช้ตารางความเร็วชุดเดิมเอง
+    r=subprocess.run(['bash','-lc',f'cd {REPO} && python3 build_adm.py 2>&1|tail -4'],capture_output=True,text=True)
+    log('build_adm.py',r.stdout.strip()[-300:])
     if not push: return done
     msg='อัปเดตอัตโนมัติ %s (%s)'%(dt.datetime.now(TH).strftime('%d/%m %H:%M'),', '.join(done))
     r=subprocess.run(['bash','-lc',f'cd {REPO} && sh deploy.sh "{msg}" 2>&1|tail -3'],capture_output=True,text=True)
