@@ -297,7 +297,7 @@ jobs:
                       if item.get('successful') is False:
                           return None, 'tool reported failure'
                       if 'data' not in item:
-                          return None, 'ไม่พบ data ในคำตอบ'
+                          return None, 'ไม่พบ data ในคำตอบ (keys=%s)' % ','.join(sorted(map(str, item.keys()))[:8])
                       return {'data': item['data']}, ''
               if obj.get('error'):
                   return None, str(obj['error'])[:300]
@@ -726,6 +726,31 @@ jobs:
               return calls, width
 
 
+          def read_rows(sid, tab, r1, r2, width):
+              """อ่านแถว r1..r2 ทีละก้อนเล็ก (คำตอบก้อนใหญ่ Composio ไม่ส่ง data กลับ) · เติม '' ให้ครบทุกแถว/คอลัมน์"""
+              out, r = [], r1
+              step = max(25, min(2000, 4000 // max(1, width)))
+              while r <= r2:
+                  e = min(r2, r + step - 1)
+                  try:
+                      d = call('GOOGLESHEETS_BATCH_GET', {'spreadsheet_id': sid,
+                                                          'ranges': ['%s!A%d:%s%d' % (q(tab), r, col(width), e)],
+                                                          'valueRenderOption': 'UNFORMATTED_VALUE'}, tries=2)
+                  except BackupError:
+                      if step > 25:
+                          step = max(25, step // 4)
+                          continue
+                      raise
+                  vr = (d.get('valueRanges') or [{}])[0].get('values') or []
+                  if any(x in str(v) for row in vr for v in row for x in MOJI):
+                      raise BackupError('อ่านแท็บ %s ได้ภาษาไทยเพี้ยน — ไม่เขียนทับ' % tab)
+                  for k in range(e - r + 1):
+                      row = list(vr[k]) if k < len(vr) else []
+                      out.append(row[:width] + [''] * (width - len(row)))
+                  r = e + 1
+              return out
+
+
           def clear_tail(sid, tab, first_row, last_row, width):
               if last_row >= first_row:
                   call('GOOGLESHEETS_CLEAR_VALUES', {'spreadsheet_id': sid,
@@ -1013,29 +1038,25 @@ jobs:
               tabs = tabs_of(sid)
               info = tabs[IG_SUM]
               W = max(len(IG_SUM_HEAD), min(info['cols'] or 26, 26))
-              d = call('GOOGLESHEETS_BATCH_GET', {'spreadsheet_id': sid,
-                                                  'ranges': ['%s!A1:%s%d' % (q(IG_SUM), col(W), max(info['rows'], 2))],
-                                                  'valueRenderOption': 'UNFORMATTED_VALUE'})
-              vr = (d.get('valueRanges') or [{}])[0].get('values') or []
-              if any(x in str(v) for r in vr for v in r for x in MOJI):
-                  raise BackupError('อ่านแท็บ %s ได้ภาษาไทยเพี้ยน — ไม่เขียนทับ' % IG_SUM)
-              body = [list(r) for r in vr[1:]]
-              while body and not any(str(v).strip() for v in body[-1]):
-                  body.pop()
-              idx = [i for i, r in enumerate(body) if r and str(r[0]).strip() == short]
+              colA = read_rows(sid, IG_SUM, 2, max(info['rows'], 2), 1)   # คอลัมน์เดือนอย่างเดียว ก้อนเล็ก
+              n = len(colA)
+              while n and not str(colA[n - 1][0]).strip():
+                  n -= 1
+              idx = [i for i in range(n) if str(colA[i][0]).strip() == short]
               new = [r + [''] * (W - len(r)) for r in summ]
               if idx and idx == list(range(idx[0], idx[-1] + 1)):
                   start = idx[0]                                   # เดือนนี้อยู่ติดกัน → แทนที่ตรงนั้น แถวเดือนถัดไปเลื่อนตาม
-                  table = new + body[idx[-1] + 1:]
+                  table = new + read_rows(sid, IG_SUM, 2 + idx[-1] + 1, 1 + n, W)
               elif idx:
                   start = 0                                        # กระจัดกระจาย (มีคนเรียงตารางใหม่) → เอาออกแล้วต่อท้าย
+                  body = read_rows(sid, IG_SUM, 2, 1 + n, W)
                   table = [r for i, r in enumerate(body) if i not in set(idx)] + new
               else:
-                  start = len(body)                                # เดือนใหม่ → ต่อท้าย
+                  start = n                                        # เดือนใหม่ → ต่อท้าย
                   table = new
               table = [r + [''] * (W - len(r)) for r in table]
               calls, _ = write(sid, IG_SUM, table, start=2 + start)
-              end_new, end_old = 1 + start + len(table), 1 + len(body)
+              end_new, end_old = 1 + start + len(table), 1 + n
               if end_old > end_new:
                   clear_tail(sid, IG_SUM, end_new + 1, end_old, W)
               log('   %s: เดือน %s %d แถว (เดิม %d) · ทั้งตาราง %s แถว (%d ครั้ง)' % (
