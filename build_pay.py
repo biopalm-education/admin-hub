@@ -1,11 +1,11 @@
 # -*- coding: utf-8 -*-
 """Payment follow-up list (admin-hub "Follow up · ตามโอนเงิน", Sep 23 2026).
 
-30 ก.ย. 2026 (preview, key "v8"): "quote" is now the PAYMENT SUMMARY CARD only (stage_rules.summary_marks: สรุปรายละเอียด/รหัสคอร์ส
+30 ก.ย. 2026 (deployed): "quote" is now the PAYMENT SUMMARY CARD only (stage_rules.summary_marks: สรุปรายละเอียด/รหัสคอร์ส
 + amount + account/"โอนชำระค่าเรียนได้ที่" within 30 min). The old PRICE/BILL rule below counted every price
-mention (~8x too many). Groups after the card: A = customer silent · B = customer talked after the card.
-Adds the "sp" list (ยังไม่ส่งตัวอย่าง, ส.ค.+) — see judge_sp(). Until the preview page is deployed, the top-level keys keep
-the old price rule (the live page reads them) and the new rule is written to followup.json["v8"] (the preview page reads it).
+mention (~8x too many) and is no longer run. Groups after the card: A = customer silent · B = customer talked after the card.
+Follow up lists written: sp (แอดมินตอบแล้ว แต่ยังไม่แนบตัวอย่าง) · np (+ แนบตัวอย่างแล้ว แต่ยังไม่ได้สรุปจ่าย) · pay (+ แนบตัวอย่าง
++ สรุปจ่ายแล้ว แต่ลูกค้ายังไม่โอน) · pz (ส่งสรุปจ่ายแล้วแต่ยังไม่โอน, no sample). Samples count from 19 ส.ค. 2026 (stage_rules.sample_at).
 
 A chat is listed when OUR side (admin, saved reply or automation - never the customer) sent a price
 and no verified slip came back AFTER that quote:
@@ -34,7 +34,7 @@ Whole thread, all months stitched by thread id (same as build_fu.py).
 Writes key "pay" into src/followup.json (run right after build_fu.py; build_fu.py calls it itself).
 """
 import json, glob, re, datetime, collections, gc
-from stage_rules import summary_marks, sample_type
+from stage_rules import summary_marks, sample_at, SAMPLE_FROM
 T0 = datetime.datetime(2026, 1, 1)
 def base(mo): return int((datetime.datetime(int(mo[:4]), int(mo[5:7]), 1) - T0).total_seconds() // 60)
 def stamp(mi): return (T0 + datetime.timedelta(minutes=mi)).strftime('%Y-%m-%d %H:%M')
@@ -120,7 +120,7 @@ def judge(ms, end, extra=None, cut=None):
     q = [i for i in q if i > lastSlip]
     if PAYSMP is not None:        # which round: the open one (after the last slip), or the one the last slip paid for
         lo, hi = (lastSlip, len(ms)) if q else ((sl[-2] if len(sl) > 1 else -1), lastSlip)
-        if any(ms[i][1] != 0 and sample_type(ms[i][2]) for i in range(lo + 1, hi)) != PAYSMP: return None, 'split'
+        if any(ms[i][1] != 0 and sample_at(ms[i][0], ms[i][2]) for i in range(lo + 1, hi)) != PAYSMP: return None, 'split'
     if not q:
         # paid: was the round before the slip followed up?
         prev = sl[-2] if len(sl) > 1 else -1
@@ -243,7 +243,7 @@ def judge_np(ms, end, extra=None, cut=None, need_smp=None):
     QS = qset(ms)
     if any(i in QS for i in range(i0, len(ms))): return None, 'quoted'
     rnd = ms[i0:]
-    if (NPSMP if need_smp is None else need_smp) and not any(x[1] != 0 and sample_type(x[2]) for x in rnd): return None, 'nosample'
+    if (NPSMP if need_smp is None else need_smp) and not any(x[1] != 0 and sample_at(x[0], x[2]) for x in rnd): return None, 'nosample'
     # 30 ก.ย. 2026: a short line ending in ค่ะ/ครับ is only 'polite' when it says nothing about a course or grade —
     # "สนใจคอร์ส ม.2 ค่ะ" / "ม.1 ค่ะ" are real answers and used to be dropped here
     creal = [x for x in rnd if x[1] == 0 and real(x[2]) and not (POLITE.search(x[2]) and len(x[2]) < 30 and not QUEST.search(x[2])
@@ -334,15 +334,15 @@ def finish_np(th, end, ch, out):
                                  'out': dict(res)}
 
 # ---- (30 ก.ย. 2026) fourth list "sp": ยังไม่ส่งตัวอย่าง — same chats as np (customer typed about a course, an admin
-#      answered, no payment summary yet) but ALSO: our side never sent a sample (stage_rules.sample_type: clip, trial form,
+#      answered, no payment summary yet) but ALSO: our side never sent a sample from 19 ส.ค. 2026 on (stage_rules.sample_at: clip, trial form,
 #      other sample link) anywhere in the thread, the customer never paid before (existing students do not need samples),
-#      and the customer's latest real message is from ส.ค. 2026 on (SP_FROM). Groups A/B/F/X as np.
-SP_FROM = base('2026-08')
+#      and the customer's latest real message is from 19 ส.ค. 2026 on (SP_FROM). Groups A/B/F/X as np.
+SP_FROM = SAMPLE_FROM          # 19 ส.ค. 2026 (stage_rules)
 def judge_sp(ms, end, extra=None, cut=None):
     r, g = judge_np(ms, end, extra, cut, need_smp=False)
     if not r: return r, g
     ms2 = [x for x in ms if x[0] <= cut] if cut is not None else ms
-    if any(x[1] != 0 and sample_type(x[2]) for x in ms2): return None, 'sampled'
+    if any(x[1] != 0 and sample_at(x[0], x[2]) for x in ms2): return None, 'sampled'
     if any(SLIP.search(x[2]) for x in ms2): return None, 'paidbefore'
     if r['lastc_m'] < SP_FROM: return None, 'before'
     return r, g
@@ -398,11 +398,12 @@ RUN = {False: fresh(), True: fresh()}
 PZ = fresh()      # v8 "pz": summary sent WITHOUT a sample, not paid yet (the pay list of RUN[True] keeps the sampled ones)
 
 def both(th, end, ch):
-    """old rule -> the keys the live page reads today; new rule (+ sp) -> F['v8'] for the preview page. Deploying the preview
-       makes the page read v8; after that the old pass can go."""
+    """30 ก.ย. 2026 (deployed): only the summary-card rule runs; its lists go to the top-level keys the page reads
+       (pay = สรุปจ่ายแล้ว + แนบตัวอย่าง · pz = สรุปจ่ายแล้ว ไม่แนบตัวอย่าง · np = แนบตัวอย่างแล้ว ยังไม่สรุปจ่าย · sp = ยังไม่แนบตัวอย่าง).
+       The old price rule (NEW=False) is kept in the code for reference only."""
     global NEW, PAYSMP, NPSMP
     keys = ('OLD', 'FLOW', 'FUSTAT', 'NPOLD', 'NPFLOW', 'NPSTAT', 'SPOLD', 'SPFLOW', 'SPSTAT')
-    for rule in (False, True):
+    for rule in (True,):
         NEW = rule; R = RUN[rule]; globals().update({k: R[k] for k in keys})
         PAYSMP = True if rule else None; NPSMP = rule          # v8 splits the lists by "แนบตัวอย่างแล้ว"
         finish(th, end, ch, R['PAY'][ch], R['stat']); finish_np(th, end, ch, R['NP'][ch])
@@ -463,14 +464,16 @@ def main():
         # weekly history of the headline pile (A+B+C, 1-6 / 7-29 / 30-89 days) per channel
         ph = [h for h in (D.get('payhist') or []) if h[0] != day] + [[day] + heads(PAY['fb']) + heads(PAY['ig']) + heads(PAY['line'])]
         D['payhist'] = sorted(ph)[-120:]
-    put(F, RUN[False], False)                     # live page: unchanged rule
-    F['v8'] = F.get('v8') or {}; put(F['v8'], RUN[True], True)   # preview page: summary-card rule + sp
-    # v8 "pz" = summary sent without a sample (same row / stat / flow shapes as pay, keys prefixed pz)
-    z = {'payhist': F['v8'].get('pzhist')}; put(z, PZ, False)
-    for k in ('pay', 'paystat', 'pay90', 'payflow', 'payfu', 'payhist'): F['v8']['pz' + k[3:]] = z[k]
+    v8 = F.pop('v8', None)                        # preview-era copy: its history is the summary-card history, keep it
+    if v8:
+        F['payhist'] = v8.get('payhist') or []; F['pzhist'] = v8.get('pzhist') or []
+    put(F, RUN[True], True)
+    # "pz" = summary sent without a sample (same row / stat / flow shapes as pay, keys prefixed pz)
+    z = {'payhist': F.get('pzhist')}; put(z, PZ, False)
+    for k in ('pay', 'paystat', 'pay90', 'payflow', 'payfu', 'payhist'): F['pz' + k[3:]] = z[k]
     json.dump(F, open('src/followup.json.tmp', 'w', encoding='utf-8'), separators=(',', ':'), ensure_ascii=False)
     import os; os.replace('src/followup.json.tmp', 'src/followup.json')   # never leave a half-written file behind
-    for rule in (False, True):
+    for rule in (True,):
         R = RUN[rule]; tag = 'new' if rule else 'old'
         for ch, L in R['PAY'].items():
             c = collections.Counter((r[2], '<1' if r[3] < 1 else '1-6' if r[3] < 7 else '7-29' if r[3] < 30 else '30-89' if r[3] < 90 else '90+') for r in L)

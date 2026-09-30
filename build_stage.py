@@ -22,7 +22,7 @@ Rules live in stage_rules.py. Run after build_adm.py, before build.py. Idempoten
 """
 import os, json, glob, datetime, collections
 os.chdir(os.path.dirname(os.path.abspath(__file__)))
-from stage_rules import sample_type, summary_marks
+from stage_rules import sample_at, summary_marks
 from build_pay import SLIP          # the verified-slip line (same rule as the payment follow-up list)
 
 STAGE_FROM = '2026-08'
@@ -71,7 +71,7 @@ def step(ch, tid, mo, st, msgs, reg=False):
             continue
         if who == 'H': s['h'] = True
         if who in ('H', 'A'):
-            ty = sample_type(x)
+            ty = sample_at(t, x)                 # samples count from 19 ส.ค. 2026 on
             if ty:
                 had_smp = True; s['typ'].add(ty); tys.add(ty); s['rtyp'].add(ty)
                 if not s['smp']: s['smp'] = stamp(t); FIRST[ch][s['smp'][:7]] += 1

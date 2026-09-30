@@ -9,6 +9,10 @@
         Drive / YouTube                                                                -> 'clip'
         anything else (review links, the YouTube channel)                              -> 'other'
   - the 3 known trial forms (TRIAL) count even as a bare link                          -> 'trial'
+  - any link into the sample drive of 19 ส.ค. 2026 (sample_links.py: ปรับพื้นฐาน Module 1–4 videos -> 'clip',
+    their PDFs -> 'doc', ข้อสอบประเมิน forms / exam PDFs -> 'trial'), even as a bare link
+  - keyword now also "แบบทดสอบ" / "ข้อสอบประเมิน" (not in Giveaway messages)
+  Only messages sent from 19 ส.ค. 2026 on count (sample_at) — the team's start date for the new samples.
   Not samples (checked ส.ค.–ก.ย.): the registration form after payment, Giveaway exam forms, shared FB posts of free
   content, FB comment-reply system links.
   Links are normalised to the file / clip id first, so a link copied from a phone and the same link copied
@@ -23,11 +27,15 @@
   "แอดมินสรุปยอดชำระให้ซักครู่นะคะ" (a promise) does not count. Slip-check replies are ignored.
   Replaces the old "any price mention" rule, which counted ~8x too many chats (FB ก.ย. 1,647 -> 215).
 """
-import re
+import re, datetime
 from urllib.parse import urlsplit
+from sample_links import DRIVE, FORMS
 
 URL = re.compile(r'https?://[^\s<>"\'`)\]]+', re.I)
-SK = re.compile(r'ตัวอย่าง|ทดลองเรียน')
+SK = re.compile(r'ตัวอย่าง|ทดลองเรียน|แบบทดสอบ|ข้อสอบประเมิน')
+GIVE = re.compile(r'giveaway', re.I)            # Giveaway exam forms are prizes, not samples
+# 30 ก.ย. 2026 (ทีมแอดมิน): นับการส่งตัวอย่างตั้งแต่ 19 ส.ค. 2026 เป็นต้นไป — วันที่สร้าง drive ตัวอย่างชุดใหม่
+SAMPLE_FROM = int((datetime.datetime(2026, 8, 19) - datetime.datetime(2026, 1, 1)).total_seconds() // 60)
 CLIP = {'yt:1lcHo7k-R5g', 'yt:4h6Wn0z46cg', 'yt:iFWz23NK-fY',
         'drive:folder:1YXE_bX9Vm0vObqVhWP3323SOBpavsTiq',      # คลิปตัวอย่างการสอน ม.ปลาย
         'drive:folder:1eNJO12ynlxKNHFKJKcmIb1Vv60eR790E',      # ทดลองเรียน Module 2
@@ -64,16 +72,30 @@ def norm(u):
         return u[:60]
 
 
+def _drive(u):
+    """type of a link into the sample drive (sample_links.py), else None"""
+    if u.startswith('drive:'): return DRIVE.get(u.rsplit(':', 1)[1])
+    if u.startswith('docs:forms:'): return FORMS.get(u.rsplit(':', 1)[1]) and 'trial'
+    return None
+
+
 def sample_type(text):
     t = str(text or '')
     urls = [norm(u) for u in URL.findall(t)]
     if not urls: return None
+    tys = [x for x in (_drive(u) for u in urls) if x]
+    if tys: return 'trial' if 'trial' in tys else ('clip' if 'clip' in tys else tys[0])
     if any(u in CLIP for u in urls): return 'clip'
     if any(u in TRIAL for u in urls): return 'trial'
-    if not SK.search(t): return None
+    if not SK.search(t) or GIVE.search(t): return None
     if any(u.startswith('docs:forms') or u.startswith('forms.gle') for u in urls): return 'trial'
     if any(u.startswith('drive:') or u.startswith('yt:') for u in urls): return 'clip'
     return 'other'
+
+
+def sample_at(minute, text):
+    """sample_type() for a message sent at `minute` (minutes since 1 ม.ค. 2026) — only from SAMPLE_FROM (19 ส.ค. 2026) on"""
+    return sample_type(text) if minute >= SAMPLE_FROM else None
 
 
 def summary_marks(msgs):
