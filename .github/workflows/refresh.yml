@@ -8,8 +8,13 @@ name: refresh-dashboard
 #   COMPOSIO_API_KEY  MCP consumer key ck_... จากหน้า API Key ของ Composio
 #   ADMIN_GH_TOKEN    gh_token.txt เดิม (ช่วยให้ GitHub Pages rebuild แน่นอน)
 #
-# ไฟล์นี้ self-contained: เขียน ci_run.py + composio_shim.py ออกมาตอนรัน
+# ไฟล์นี้ self-contained: เขียน ci_run.py + composio_shim.py + sheets_backup.py ออกมาตอนรัน
 # refresh.py และกฎการจัดหมวดใน repo ไม่ถูกแก้เลย
+#
+# หลัง push แล้วสำรองแชทชุดเดียวกันลง Google Sheets (ผ่าน Composio ตัวเดิม ไม่ต้องตั้ง secret เพิ่ม)
+#   FB: "Biopalm FB Chat Log — <เดือน> <ปี>" แยกไฟล์ละเดือน (ไม่มี = สร้างในโฟลเดอร์เดียวกับเดือนก่อน)
+#   IG: "Biopalm IG Chat Log — ..." แท็บ สรุปรายแชท ทุกเดือน + ข้อความดิบ (<เดือน> <ปี>)
+#   ปิดได้ด้วย repository variable SHEETS_BACKUP=0 · เดือนก่อน ก.ย. 2026 ไม่แตะ
 
 on:
   schedule:
@@ -44,7 +49,7 @@ permissions:
 jobs:
   refresh:
     runs-on: ubuntu-latest
-    timeout-minutes: 150         # ก.ย. จริง: FB 24 นาที + IG 7 นาทีต่อรอบ · จันทร์ดึง 2 เดือน
+    timeout-minutes: 150         # ก.ย. จริง: FB 24 + IG 7 + Sheets ~10 นาทีต่อเดือน · จันทร์/วันที่ 1 ดึง 2 เดือน
     steps:
       - uses: actions/checkout@v5
 
@@ -360,7 +365,12 @@ jobs:
             2. ยัด run_composio_tool เวอร์ชัน MCP เข้าไปใน namespace แทน helper ของ workbench
             3. เลือกเดือน: MONTHS ถ้ามี, ไม่งั้นเดือนปัจจุบันตามเวลาไทย
                วันจันทร์เติมเดือนก่อนหน้าให้ด้วย ตามกฎใน tools/auto/README.md
+               และวันที่ 1 ของเดือนด้วย เพื่อปิดยอดวันสุดท้ายของเดือนก่อนให้ครบทันที
                (ยอดปิดจำนวนมากเกิดในเดือนถัดไป ถ้าไม่ดึงซ้ำยอดเดือนก่อนจะต่ำกว่าจริงถาวร)
+
+          หลัง push สำเร็จ สำรองแชทชุดเดียวกันลง Google Sheets (sheets_backup.py)
+            ถ้าสำรองไม่ผ่าน หน้าเว็บยังอัปเดตแล้ว แต่รอบนี้จะขึ้น failed ให้ GitHub ส่งอีเมลเตือน
+            ปิดการสำรองได้ด้วย repository variable SHEETS_BACKUP=0
 
           MODE=selftest เช็ค secret + MCP แล้วออก ไม่แตะข้อมูลและไม่ push
           """
@@ -400,7 +410,7 @@ jobs:
                   return out
               now = dt.datetime.now(TH)
               cur = now.strftime('%Y-%m')
-              if now.weekday() == 0:                        # จันทร์ = เติมเดือนก่อนหน้า
+              if now.weekday() == 0 or now.day == 1:        # จันทร์ / วันที่ 1 = เติมเดือนก่อนหน้า
                   first = now.replace(day=1)
                   prev = (first - dt.timedelta(days=1)).strftime('%Y-%m')
                   return [prev, cur]
@@ -449,6 +459,12 @@ jobs:
                   print('   โครงคำตอบที่ได้:', json.dumps(S.redact(res2), ensure_ascii=False)[:1200])
                   ok = False
 
+              res3, err3 = S.run_composio_tool('GOOGLESHEETS_SEARCH_SPREADSHEETS', {
+                  'query': 'Biopalm', 'search_type': 'name', 'max_results': 50})
+              d3 = res3.get('data') if isinstance(res3.get('data'), dict) else {}
+              print('GOOGLESHEETS_SEARCH_SPREADSHEETS:', err3 or 'OK', '| พบสเปรดชีต Biopalm… =',
+                    len(d3.get('spreadsheets') or []), '(ใช้ตอนสำรองแชทลง Google Sheets)')
+
               print('\nselftest:', 'ผ่าน — รัน mode=refresh ได้' if ok else 'ไม่ผ่าน — ส่ง log นี้ให้ Claude')
               return ok
 
@@ -489,14 +505,559 @@ jobs:
                   return cand, MS
 
               g['ig_pull'] = ig_pull_checked
+
+              # เก็บตารางที่ refresh.py คำนวณเสร็จแล้วไว้สำรองลง Google Sheets หลัง push (ไม่ดึงซ้ำ ไม่คำนวณใหม่)
+              CAP = {'fb': {}, 'ig': {}}
+              _fb_columns, _fb_month_files = g['fb_columns'], g['fb_month_files']
+
+              def fb_columns_cap(mo, recs):
+                  out = _fb_columns(mo, recs)
+                  CAP['fb'].setdefault(mo, {})['cols'] = out
+                  return out
+
+              def fb_month_files_cap(mo, *a):
+                  out = _fb_month_files(mo, *a)
+                  CAP['fb'].setdefault(mo, {})['agg'] = out[1]
+                  return out
+
+              def ig_pull_cap(mo):
+                  out = ig_pull_checked(mo)
+                  CAP['ig'][mo] = out
+                  return out
+
+              g['fb_columns'], g['fb_month_files'], g['ig_pull'] = fb_columns_cap, fb_month_files_cap, ig_pull_cap
               g['run_refresh'](months)
-              print('เสร็จ', flush=True)
+              print('เสร็จ — หน้าเว็บอัปเดตแล้ว', flush=True)
+
+              if (os.environ.get('SHEETS_BACKUP') or '1').strip().lower() in ('0', 'false', 'no', 'off'):
+                  print('ข้ามการสำรองลง Google Sheets (SHEETS_BACKUP=0)', flush=True)
+                  return
+              import sheets_backup
+              if not sheets_backup.run(months, CAP, g):
+                  sys.exit('หน้าเว็บอัปเดตแล้ว แต่สำรองแชทลง Google Sheets ไม่ครบ — ดูบรรทัด sheets ด้านบน')
 
 
           if __name__ == '__main__':
               main()
           PYEOF
-          python -c "import ast;[ast.parse(open(p,encoding='utf-8').read()) for p in ['tools/auto/composio_shim.py','tools/auto/ci_run.py']];print('syntax OK')"
+          cat > tools/auto/sheets_backup.py <<'PYEOF'
+          # -*- coding: utf-8 -*-
+          """สำรองแชท Facebook + Instagram ลง Google Sheets หลังหน้าเว็บอัปเดตเสร็จ
+
+          ใช้ Composio MCP ตัวเดียวกับที่ดึงแชท (composio_shim) — ไม่มี credential เพิ่ม
+            FB  สเปรดชีตแยกเดือน "Biopalm FB Chat Log — <เดือนย่อ> <ปี>" โฟลเดอร์เดียวกับเดือนก่อน ๆ
+                (ยังไม่มี = สร้างใหม่) แท็บ สรุปรายแชท · ข้อความ part 1/2/3 · สรุปภาพรวม · คำอธิบาย
+                หัวตารางเหมือนชีต ส.ค./เม.ย. เดิม + คอลัมน์ U หมวดตามเกณฑ์ admin-hub
+            IG  สเปรดชีตเดิม "Biopalm IG Chat Log — ..."
+                สรุปรายแชท ทุกเดือน  แทนที่เฉพาะแถวของเดือนนั้น (เดือนอื่นไม่แตะ)
+                ข้อความดิบ (<เดือน> <ปี>)  เขียนใหม่ทั้งแท็บ
+          เดือนก่อน BACKUP_FROM (ค่าเริ่ม 2026-09) ไม่แตะเลย — ชีตเดือนเก่าที่ทำมือไว้คงเดิม
+          เขียนก่อนแล้วค่อยล้างแถวเกินท้าย จึงไม่มีช่วงที่ข้อมูลหายระหว่างเขียน
+          repo นี้ public: log บอกแค่ชื่อแท็บและจำนวนแถว ไม่พิมพ์ชื่อลูกค้า ข้อความ หรือ ID ไฟล์
+          """
+          import os, re, json, time, datetime as dt
+          import composio_shim as S
+
+          FB_PREFIX = 'Biopalm FB Chat Log — '
+          FB_QUERY = 'Biopalm FB Chat Log'     # คำค้นไม่มีขีดยาว (ทดสอบกับ Drive จริงแล้ว เจอครบ 7 ไฟล์)
+          IG_PREFIX = 'Biopalm IG Chat Log'
+          IG_SUM = 'สรุปรายแชท ทุกเดือน'
+          BACKUP_FROM = (os.environ.get('BACKUP_FROM') or '2026-09').strip()
+          MAX_ROWS = 800                       # ต่อการเขียน 1 ครั้ง
+          MAX_BYTES = 450000                   # ขนาด JSON ต่อครั้ง (ภาษาไทยถูก escape เป็น \\uXXXX)
+          TH = dt.timezone(dt.timedelta(hours=7))
+          PAUSE = float(os.environ.get('SHEETS_PAUSE') or 1)   # ทดสอบในเครื่องใช้ 0
+
+          FB_SUM_HEAD = ['เดือน', 'Thread ID', 'ชื่อลูกค้า (FB)', 'กลุ่ม', 'มาจากโฆษณา', 'ป้าย Meta', 'วันที่', 'ชม.',
+                         'ข้อความรวม', 'ลูกค้า', 'แอดมินพิมพ์เอง', 'สำเร็จรูป', 'สลับถาม-ตอบ', 'แอดมินพิมพ์เองครั้งแรก',
+                         'รอนานสุด', 'ค้างไม่ตอบ', 'ทีมที่ตอบ', 'ได้รับราคา', 'ลูกค้าแจ้งจ่าย', 'ถามชั้นซ้ำ',
+                         'หมวด (เกณฑ์ admin-hub)']
+          FB_MSG_HEAD = ['เดือน', 'Thread ID', 'ชื่อลูกค้า (FB)', 'กลุ่ม', 'ลำดับ', 'เวลา', 'ฝ่าย', 'ประเภท', 'ข้อความ']
+          IG_SUM_HEAD = ['เดือน', 'IG Account', 'กลุ่ม', 'สาเหตุ', 'ทีมที่ตอบ', 'วันที่', 'ชม.', 'ลูกค้า', 'แอดมินพิมพ์เอง',
+                         'สำเร็จรูป', 'สลับถาม-ตอบ', 'แอดมินพิมพ์เองครั้งแรก', 'รอนานสุด', 'ค้างไม่ตอบ', 'ได้รับราคา',
+                         'ถามวิธีจ่าย', 'ปิดการขาย', 'ถามชั้นซ้ำ', 'หมวด (เกณฑ์ admin-hub)']
+          IG_RAW_HEAD = ['Thread ID', 'IG Account', 'กลุ่ม', 'ลำดับ', 'เวลา', 'ผู้ส่ง', 'ข้อความ', 'ไฟล์แนบ',
+                         'หมวด (เกณฑ์ admin-hub)']
+
+          # หมวดตามเกณฑ์ admin-hub (build_v4 / build_v5 เก็บไว้ที่ r[37])
+          FB_CAT = {'W': 'ปิดการขาย', 'Q': 'สนใจจริง · ส่งราคาแล้ว', 'T': 'คุยแล้ว แต่ไม่ถึงราคา',
+                    'V': 'ทักมาแล้วหาย · กดปุ่มโฆษณาแล้วเงียบ', 'H': 'ทักทาย/กดเมนู · ไม่ได้ถามอะไร',
+                    'F': 'กดปุ่มโฆษณา แล้วกลับมาถามทีหลัง', 'X': 'ลูกค้าไม่ได้ส่งข้อความ', 'G': 'เรื่องอื่น · ของแถม',
+                    'S': 'เรื่องอื่น · นักเรียนเดิม', 'O': 'เรื่องอื่น ๆ'}
+          # IG ใช้คำเดิมของชีต IG เพื่อให้กรอง/นับข้ามเดือนได้ต่อเนื่อง (IG ไม่มี V — H คือกลุ่มเดิมของ V)
+          IG_CAT = {'W': 'ปิดการขาย', 'Q': 'สนใจจริง (ส่งราคาแล้ว)', 'T': 'ทักมาแล้วหาย (คุยแต่ยังไม่ได้ราคา)',
+                    'V': 'ทักมาแล้วหาย (กดปุ่ม/ทักสั้น)', 'H': 'ทักมาแล้วหาย (กดปุ่ม/ทักสั้น)',
+                    'F': 'ทักมาแล้วหาย (กดปุ่ม/ทักสั้น)', 'X': 'แอดมินทักไป ลูกค้าไม่ตอบ',
+                    'G': 'เรื่องอื่น · ของแถม/Giveaway', 'S': 'เรื่องอื่น', 'O': 'เรื่องอื่น'}
+          IG_STG = {'S0': 'S0 ไม่มีข้อความลูกค้า', 'S1': 'S1 ไม่ใช่ลีด', 'S2': 'S2 สนใจคอร์ส', 'S3': 'S3 ได้รับราคา',
+                    'S4': 'S4 ขอสมัคร/ถามวิธีจ่าย', 'S5': 'S5 ปิดการขาย', 'G': 'G Giveaway'}
+          IG_WHO = {0: 'ลูกค้า', 1: 'แอดมิน(พิมพ์เอง)', 2: 'ข้อความสำเร็จรูป', 3: 'บรอดแคสต์'}
+
+
+          class BackupError(RuntimeError):
+              pass
+
+
+          def _safe(err):
+              # ข้อความ error อาจยกค่าในเซลล์มาด้วย — ตัดทุกอย่างที่อาจเป็นเนื้อหาแชทหรือ ID ไฟล์ออกก่อนพิมพ์
+              s = str(err)
+              s = re.sub(r'"(?:[^"\\]|\\.)*"', '"…"', s)
+              s = re.sub(r"'(?:[^'\\]|\\.)*'", "'…'", s)
+              s = re.sub(r'[฀-๿]+', '…', s)
+              s = re.sub(r'[A-Za-z0-9_\-]{25,}', '<id>', s)
+              return s[:220]
+
+
+          def log(*a):
+              print(dt.datetime.now(TH).strftime('%H:%M:%S'), 'sheets', *a, flush=True)
+
+
+          def call(slug, args, tries=3):
+              res, err = S.run_composio_tool(slug, args, retry_params={'max_retries': tries, 'delay_ms': 3000})
+              if err:
+                  raise BackupError('%s: %s' % (slug, _safe(err)))
+              d = res.get('data')
+              return d if isinstance(d, dict) else {}
+
+
+          def q(tab):
+              return "'" + tab.replace("'", "''") + "'"
+
+
+          def col(n):
+              s = ''
+              while n:
+                  n, r = divmod(n - 1, 26)
+                  s = chr(65 + r) + s
+              return s
+
+
+          def cell(v):
+              if v is None:
+                  return ''
+              if isinstance(v, bool):
+                  return 'Y' if v else ''
+              if isinstance(v, (int, float)):
+                  return v
+              v = str(v)
+              return v if len(v) <= 45000 else v[:45000] + ' …[ตัดเกิน 45,000 ตัวอักษร]'
+
+
+          def tabs_of(sid):
+              d = call('GOOGLESHEETS_GET_SPREADSHEET_INFO', {
+                  'spreadsheet_id': sid,
+                  'fields': 'sheets.properties(sheetId,title,index,gridProperties(rowCount,columnCount))'})
+              out = {}
+              for s in d.get('sheets') or []:
+                  p = s.get('properties') or {}
+                  if p.get('title') is not None:
+                      gp = p.get('gridProperties') or {}
+                      out[p['title']] = {'id': p.get('sheetId'), 'index': p.get('index', 0),
+                                         'rows': int(gp.get('rowCount') or 0), 'cols': int(gp.get('columnCount') or 0)}
+              return out
+
+
+          def add_tab(sid, title, nrows, ncols, index=None):
+              props = {'title': title, 'gridProperties': {'rowCount': max(nrows, 2), 'columnCount': ncols,
+                                                          'frozenRowCount': 1}}
+              if index is not None:
+                  props['index'] = index
+              try:
+                  call('GOOGLESHEETS_ADD_SHEET', {'spreadsheet_id': sid, 'title': title, 'force_unique': False,
+                                                  'properties': props}, tries=1)
+              except BackupError:
+                  if title not in tabs_of(sid):      # ครั้งก่อนอาจสร้างสำเร็จแต่คำตอบหลุด → มีแล้วก็ใช้ต่อ
+                      raise
+
+
+          def write(sid, tab, rows, start=1):
+              """เขียน rows ลงแท็บตั้งแต่แถว start — แบ่งเป็นก้อน ถ้าก้อนไหนพลาดจะแบ่งให้เล็กลงแล้วลองใหม่"""
+              width = max([len(r) for r in rows] or [1])
+              rows = [[cell(v) for v in r] + [''] * (width - len(r)) for r in rows]
+              i, n, calls, fails, streak = 0, len(rows), 0, 0, 0
+              size = limit = MAX_ROWS
+              bad = {}
+              while i < n:
+                  j = min(n, i + size)
+                  while j - i > 25 and len(json.dumps(rows[i:j])) > MAX_BYTES:
+                      j = i + max(25, (j - i) // 2)
+                  chunk = rows[i:j]
+                  rng = '%s!A%d:%s%d' % (q(tab), start + i, col(width), start + j - 1)
+                  try:
+                      d = call('GOOGLESHEETS_VALUES_UPDATE', {'spreadsheet_id': sid, 'range': rng,
+                                                              'value_input_option': 'RAW', 'values': chunk,
+                                                              'auto_expand_sheet': True}, tries=2)
+                      got = d.get('updatedRows')
+                      need = sum(1 for r in chunk if any(v != '' for v in r))
+                      if isinstance(got, int) and got < need:
+                          raise BackupError('เขียนได้ %d จาก %d แถว' % (got, need))
+                  except BackupError as e:
+                      # พลาด = ก้อนอาจใหญ่เกิน หรือเน็ต/Composio สะดุดชั่วคราว → แบ่งให้เล็กลงแล้วลองต่อ
+                      # ยอมแพ้เมื่อพลาดติดกัน 6 ครั้งที่ตำแหน่งเดียวกัน
+                      fails += 1
+                      streak = 0
+                      if fails >= 6:
+                          raise BackupError('%s แถว %d-%d: %s' % (tab, start + i, start + j - 1, e))
+                      bad[len(chunk)] = bad.get(len(chunk), 0) + 1
+                      size = max(25, len(chunk) // 2)
+                      if bad[len(chunk)] >= 2:          # ขนาดนี้พลาดซ้ำ = น่าจะใหญ่เกินจริง ไม่ขยายกลับไปอีก
+                          limit = min(limit, size)
+                      log('   %s: ก้อน %d แถวไม่ผ่าน (ครั้งที่ %d) ลองใหม่ทีละ %d แถว' % (tab, len(chunk), fails, size))
+                      time.sleep(min(30, 5 * fails) * PAUSE)
+                      continue
+                  calls += 1
+                  fails = 0
+                  i = j
+                  streak += 1
+                  if streak >= 8 and size < limit:       # สะดุดชั่วคราวผ่านไปแล้ว → ขยายก้อนกลับ
+                      size, streak = min(limit, size * 2), 0
+              return calls, width
+
+
+          def clear_tail(sid, tab, first_row, last_row, width):
+              if last_row >= first_row:
+                  call('GOOGLESHEETS_CLEAR_VALUES', {'spreadsheet_id': sid,
+                                                     'range': '%s!A%d:%s%d' % (q(tab), first_row, col(width), last_row)})
+
+
+          def put_tab(sid, tabs, tab, rows, index=None):
+              """แท็บทั้งแท็บ = rows (รวมหัวตาราง) · ไม่มีแท็บ = สร้าง · เขียนก่อนแล้วล้างส่วนเกินท้าย"""
+              if tab not in tabs:
+                  add_tab(sid, tab, len(rows) + 1, max(len(r) for r in rows), index)
+                  old_rows, old_cols = 0, 0
+              else:
+                  old_rows, old_cols = tabs[tab]['rows'], tabs[tab]['cols']
+              calls, width = write(sid, tab, rows)
+              if old_rows > len(rows):
+                  clear_tail(sid, tab, len(rows) + 1, old_rows, old_cols or width)
+              log('   %s: %s แถว (%d ครั้ง)' % (tab, format(len(rows) - 1, ','), calls))
+
+
+          def search(prefix, query=None):
+              d = call('GOOGLESHEETS_SEARCH_SPREADSHEETS', {'query': query or prefix, 'search_type': 'name',
+                                                             'max_results': 100, 'include_trashed': False})
+              return [x for x in (d.get('spreadsheets') or d.get('files') or [])
+                      if isinstance(x, dict) and not x.get('trashed') and str(x.get('name') or '').startswith(prefix)]
+
+
+          def _find_id(obj):
+              if isinstance(obj, dict):
+                  for k in ('spreadsheetId', 'spreadsheet_id'):
+                      if isinstance(obj.get(k), str) and obj[k]:
+                          return obj[k]
+                  for v in obj.values():
+                      r = _find_id(v)
+                      if r:
+                          return r
+              elif isinstance(obj, list):
+                  for v in obj:
+                      r = _find_id(v)
+                      if r:
+                          return r
+              return None
+
+
+          # ---------------- Facebook ----------------
+          def fb_sheet(g, mo):
+              short = g['MSHORT'][int(mo[5:7])]
+              name = '%s%s %s' % (FB_PREFIX, short, mo[:4])
+              found = search(FB_PREFIX, FB_QUERY)
+              if not found:
+                  # มีชีต FB เดือนเก่าอยู่แล้วหลายไฟล์ ค้นไม่เจอเลย = การค้นหามีปัญหา → ไม่สร้างใหม่ กันไฟล์ซ้ำทุกวัน
+                  raise BackupError('ค้นหา "%s" ใน Drive ไม่เจอสักไฟล์ — ไม่สร้างไฟล์ใหม่เพื่อกันไฟล์ซ้ำ' % FB_QUERY)
+              same = [x for x in found if x.get('name') == name]
+              if len(same) > 1:
+                  log('   พบชื่อ "%s" %d ไฟล์ — ใช้ไฟล์ที่แก้ไขล่าสุด' % (name, len(same)))
+              if same:
+                  return same[0]['id'], name, False
+              folder = None
+              for x in found:                       # โฟลเดอร์เดียวกับชีตเดือนก่อน ๆ
+                  try:
+                      d = call('GOOGLEDRIVE_GET_FILE_METADATA', {'fileId': x['id'], 'fields': 'id,parents'}, tries=2)
+                      ps = d.get('parents') or []
+                      if ps:
+                          folder = ps[0]
+                          break
+                  except BackupError:
+                      continue
+              args = {'title': name}
+              if folder:
+                  args['folder_id'] = folder
+              d = call('GOOGLESHEETS_CREATE_GOOGLE_SHEET1', args, tries=1)   # ห้ามลองซ้ำ — อาจได้ไฟล์ซ้ำ
+              sid = _find_id(d)
+              if not sid:
+                  raise BackupError('สร้างสเปรดชีต FB ใหม่แล้วแต่ไม่ได้ ID กลับมา')
+              log('   สร้างสเปรดชีตใหม่ "%s"%s' % (name, '' if folder else ' (ไม่พบโฟลเดอร์เดิม — อยู่หน้าแรกของ Drive)'))
+              # แท็บแรกที่ Google สร้างให้ → เปลี่ยนชื่อเป็น สรุปรายแชท
+              first = None
+              for s in d.get('sheets') or []:
+                  p = s.get('properties') or {}
+                  if p.get('index', 0) == 0:
+                      first = p.get('sheetId')
+              if first is None:
+                  t = tabs_of(sid)
+                  first = sorted(t.values(), key=lambda v: v['index'])[0]['id'] if t else None
+              if first is not None:
+                  try:
+                      call('GOOGLESHEETS_UPDATE_SHEET_PROPERTIES', {
+                          'spreadsheetId': sid,
+                          'updateSheetProperties': {'properties': {'sheetId': first, 'title': 'สรุปรายแชท',
+                                                                   'gridProperties': {'frozenRowCount': 1}},
+                                                    'fields': 'title,gridProperties.frozenRowCount'}}, tries=2)
+                  except BackupError as e:
+                      log('   เปลี่ยนชื่อแท็บแรกไม่สำเร็จ (ไม่กระทบข้อมูล):', e)
+              return sid, name, True
+
+
+          def _pct(a, b):
+              return ('%.1f%%' % (100.0 * a / b)) if b else '—'
+
+
+          def fb_overview(g, mo, agg, sumrows, upto):
+              fmt = g['fmt']
+              label = '%s %s' % (g['MLABEL'][int(mo[5:7])], mo[:4])
+              L, T = agg.get('leads', 0), agg.get('threads', 0)
+              mix = agg.get('mix') or {}
+              tot = sum(mix.values()) or 1
+              inbound = mix.get('na', 0) + mix.get('nc', 0) + mix.get('no', 0) + mix.get('rb', 0)
+              who = agg.get('who') or {}
+              days = sorted({str(r[6]) for r in sumrows if str(r[6])})
+              rng = ('%s–%s %s' % (int(days[0]), int(days[-1]), label)) if days else label
+              R = [['ตัวชี้วัด', 'ค่า', 'หมายเหตุ'],
+                   ['ช่วงข้อมูล', rng, 'เวลาไทย · เพจ BioPalm (Facebook) · ข้อมูลถึง %s น.' % upto],
+                   ['แชททั้งหมด', T, 'แชทที่มีข้อความอย่างน้อย 1 ข้อความในเดือน %s' % g['MSHORT'][int(mo[5:7])]],
+                   ['ข้อความทั้งหมด', agg.get('msgs', 0), 'ไม่รวมข้อความระบบของ Meta'],
+                   ['— แชทที่สนใจคอร์ส (S2–S5)', L, _pct(L, T) + ' ของแชททั้งหมด'],
+                   ['— แชทอื่น ๆ (S0/S1)', agg.get('other', 0), ''],
+                   ['— มารับของแถม (G)', agg.get('gw', 0), ''],
+                   ['มาจากโฆษณา (มีข้อความ ad ในแชท)', agg.get('fromAd', 0),
+                    _pct(agg.get('fromAd', 0), T) + ' ของแชททั้งหมด · คอลัมน์นี้จับได้ต่ำกว่าจริง ให้ยึด Meta เป็นหลัก'],
+                   ['ปิดการขายได้', agg.get('closed', 0), 'ทีมติดป้าย Meta = สร้างคอนเวอร์ชั่นแล้ว หรือส่งข้อความยืนยันการสมัคร'],
+                   ['— อัตราปิดต่อลีด', _pct(agg.get('closed', 0), L), ''],
+                   ['— ลีดจากโฆษณา ปิดได้', agg.get('adClosed', 0),
+                    'จาก %s ลีด = %s' % (format(agg.get('adLeads', 0), ','), _pct(agg.get('adClosed', 0), agg.get('adLeads', 0)))],
+                   ['— ลีดไม่ได้มาจากโฆษณา ปิดได้', agg.get('noAdClosed', 0),
+                    'จาก %s ลีด = %s' % (format(agg.get('noAdLeads', 0), ','), _pct(agg.get('noAdClosed', 0), agg.get('noAdLeads', 0)))],
+                   ['ติดป้าย "มีคุณสมบัติ"', agg.get('qual', 0), 'ทีมคัดแล้วว่าเป็นลีดจริง'],
+                   ['ไม่เคยได้รับข้อความที่คนพิมพ์เอง', agg.get('notyped', 0), _pct(agg.get('notyped', 0), L) + ' ของลีด'],
+                   ['ค้างไม่มีใครตอบต่อ', agg.get('unans', 0), _pct(agg.get('unans', 0), L) + ' ของลีด'],
+                   ['ถูกถามระดับชั้นซ้ำ ≥2 ครั้ง', agg.get('ask2', 0), _pct(agg.get('ask2', 0), L) + ' ของลีด'],
+                   ['แอดมินพิมพ์ตอบครั้งแรก (ค่ากลาง)', fmt(agg.get('ftMed', 0)), 'นับจากข้อความแรกของลูกค้า'],
+                   ['— p75', fmt(agg.get('ftP75', 0)), ''],
+                   ['— p90', fmt(agg.get('ftP90', 0)), ''],
+                   ['ตอบครั้งแรกรวมข้อความสำเร็จรูป (ค่ากลาง)', fmt(agg.get('faMed', 0)), ''],
+                   ['สลับถาม-ตอบ (ค่ากลาง)', agg.get('turnsMed', 0), ''],
+                   ['ข้อความต่อแชท — ลูกค้า / แอดมินพิมพ์เอง / สำเร็จรูป',
+                    '%s / %s / %s' % (agg.get('mc', 0), agg.get('mh', 0), agg.get('ma', 0)), 'เฉพาะลีด'],
+                   [],
+                   ['— ที่มาของแชท (ใครเริ่มก่อน) —', '', '']]
+              for k, t in (('na', 'ทักใหม่ · มาจากโฆษณา'), ('nc', 'ทักใหม่ · จากคอมเมนต์ใต้โพสต์'), ('no', 'ทักใหม่ · ออร์แกนิก'),
+                           ('rb', 'ลูกค้าเก่าทักกลับมาเอง'), ('fr', 'แอดมินตามเอง · ลูกค้าตอบกลับ'), ('fs', 'แอดมินตามเอง · ลูกค้าเงียบ')):
+                  R.append([t, mix.get(k, 0), _pct(mix.get(k, 0), tot)])
+              R.append(['รวม ลูกค้าทักเข้ามาเอง', inbound, _pct(inbound, tot)])
+              R.append(['รวม แอดมินตามเอง', mix.get('fr', 0) + mix.get('fs', 0), _pct(mix.get('fr', 0) + mix.get('fs', 0), tot)])
+              R += [[], ['— ทีมที่ตอบ (เฉพาะลีด) —', '', ''],
+                    ['ทีม A (ลงท้าย ครับ)', who.get('A', 0), ''], ['ทีม B (ลงท้าย ค่ะ)', who.get('B', 0), ''],
+                    ['มีทั้งสองทีม', who.get('AB', 0), ''],
+                    ['ระบุทีมไม่ได้', who.get('-', 0), 'ไม่มีข้อความที่คนพิมพ์เอง หรือไม่มีคำลงท้ายที่ระบุได้']]
+              return R
+
+
+          def fb_notes(g, mo, parts, nsum, upto):
+              short = g['MSHORT'][int(mo[5:7])]
+              label = '%s %s' % (g['MLABEL'][int(mo[5:7])], mo[:4])
+              R = [['Biopalm — Facebook Page chat log (%s %s)' % (short, mo[:4]), ''],
+                   ['อัปเดตอัตโนมัติล่าสุด', upto + ' น. · GitHub Actions (refresh-dashboard) รันทุกเช้า 06:20 น.'],
+                   ['ที่มา', 'Facebook Graph API · เพจ BioPalm (%s) · ดึงผ่าน Composio' % g['PAGE']],
+                   ['ขอบเขต', 'ข้อความทุกข้อความที่เกิดในเดือน%s (เวลาไทย) จนถึงเวลาที่อัปเดต · %s แชท' % (label, format(nsum, ','))],
+                   ['เกณฑ์ที่ใช้', 'เกณฑ์เดียวกับหน้า admin-hub (tools/auto/refresh.py) — เทียบกับชีตเดือนก่อน ๆ ได้ตรง ๆ'],
+                   ['แดชบอร์ด', 'https://biopalm-education.github.io/admin-hub/'],
+                   ['⚠️ ชีตนี้ระบบเขียนทับทุกเช้า', 'อย่าพิมพ์โน้ตในแท็บข้อมูล — ถ้าจะจด ให้ทำในไฟล์อื่น หรือทำสำเนาชีตออกไปก่อน'],
+                   [],
+                   ['รหัสกลุ่ม', '']]
+              for k in ('S0', 'S1', 'S2', 'S3', 'S4', 'S5', 'G'):
+                  R.append([k, g['LBL'][k].split(' ', 1)[1] if ' ' in g['LBL'][k] else g['LBL'][k]])
+              R += [[],
+                    ['คอลัมน์ "หมวด (เกณฑ์ admin-hub)"', 'กลุ่มเดียวกับหน้าแดชบอร์ด: ปิดการขาย (สลิปตรวจสำเร็จ) · สนใจจริง · คุยแล้ว · ทักมาแล้วหาย · ทักทาย/กดเมนู · เรื่องอื่น'],
+                    ['คอลัมน์ "ทีมที่ตอบ"', 'A = ข้อความที่แอดมินพิมพ์เองมี "ครับ/คับ", B = มี "ค่ะ/คะ", AB = มีทั้งสองคน'],
+                    ['คอลัมน์ "มาจากโฆษณา"', 'แชทนั้นมีข้อความโฆษณา "BIOPALM ติวเตอร์วิชาชีวะ" ปรากฏ — จับได้ต่ำกว่าจริง'],
+                    ['ประเภทข้อความ "สำเร็จรูป"', 'ข้อความฝั่งธุรกิจที่ซ้ำเป๊ะกัน ≥5 ครั้งในเดือน และยาวเกิน 12 ตัวอักษร หรือส่งจากระบบอัตโนมัติ'],
+                    [],
+                    ['การแบ่งแท็บข้อความ', 'แบ่งเป็น 3 แท็บตามช่วงวันที่ หัวตารางเหมือนกันทุกแท็บ']]
+              for t, n in parts:
+                  R.append([t, '%s แถว' % format(n, ',')])
+              R.append(['วิธีค้นแชทหนึ่งแบบ', 'คัดลอก Thread ID จากแท็บ สรุปรายแชท ไปวางใน Ctrl+F ของแท็บ part ที่ตรงกับวันที่ของแชทนั้น'])
+              return R
+
+
+          def backup_fb(g, mo, cap, upto):
+              if 'cols' not in cap or 'agg' not in cap:
+                  raise BackupError('ไม่มีข้อมูล FB ของเดือนนี้ในรอบนี้')
+              sumrows, extra, msgrows, mix = cap['cols']
+              agg = cap['agg']
+              short = g['MSHORT'][int(mo[5:7])]
+              y, m = int(mo[:4]), int(mo[5:7])
+              last = (dt.date(y + (m == 12), (m % 12) + 1, 1) - dt.timedelta(days=1)).day
+              cat = {}
+              try:
+                  f = json.load(open('%s/src/fb_%s.json' % (g['REPO'], mo), encoding='utf-8'))
+                  for c in f.get('chats') or []:
+                      if len(c) > 37 and c[37]:
+                          cat[str(c[19])] = c[37]
+              except Exception as e:
+                  log('   อ่านหมวดจาก fb_%s.json ไม่ได้ (คอลัมน์ U จะว่าง): %s' % (mo, type(e).__name__))
+              sid, name, new = fb_sheet(g, mo)
+              log('FB %s → "%s"%s' % (mo, name, ' (ใหม่)' if new else ''))
+              tabs = tabs_of(sid)
+              S1 = [FB_SUM_HEAD]
+              for r in sumrows:
+                  tid = str(r[1])
+                  k = cat.get(tid[2:] if tid.startswith('t_') else tid, '')
+                  S1.append(list(r) + [FB_CAT.get(k, k)])
+              order = {str(r[1]): i for i, r in enumerate(sumrows)}
+              msgs = sorted(msgrows, key=lambda r: (order.get(str(r[1]), 10 ** 9), str(r[1]), int(r[4])))
+              parts = [('ข้อความ part 1 (1-10 %s)' % short, 1, 10), ('ข้อความ part 2 (11-20 %s)' % short, 11, 20),
+                       ('ข้อความ part 3 (21-%d %s)' % (last, short), 21, last)]
+              put_tab(sid, tabs, 'สรุปรายแชท', S1)
+              counts = []
+              for t, a, b in parts:
+                  rows = [FB_MSG_HEAD] + [r for r in msgs if a <= int(str(r[5])[:2]) <= b]
+                  put_tab(sid, tabs, t, rows)
+                  counts.append((t, len(rows) - 1))
+              put_tab(sid, tabs, 'สรุปภาพรวม', fb_overview(g, mo, agg, sumrows, upto))
+              put_tab(sid, tabs, 'คำอธิบาย', fb_notes(g, mo, counts, len(sumrows), upto))
+              return '%s: %s แชท / %s ข้อความ' % (name, format(len(sumrows), ','), format(len(msgrows), ','))
+
+
+          # ---------------- Instagram ----------------
+          def ig_sheet():
+              sid = (os.environ.get('IG_SHEET_ID') or '').strip()
+              if sid:
+                  return sid, 'IG_SHEET_ID'
+              found = search(IG_PREFIX)
+              for x in found:                         # เรียงแก้ไขล่าสุดก่อน · เลือกไฟล์ที่มีแท็บสรุปรายแชท ทุกเดือน
+                  try:
+                      if IG_SUM in tabs_of(x['id']):
+                          return x['id'], x.get('name') or IG_PREFIX
+                  except BackupError:
+                      continue
+              raise BackupError('ไม่พบสเปรดชีต "%s…" ที่มีแท็บ %s' % (IG_PREFIX, IG_SUM))
+
+
+          def ig_rows(g, mo, IG, cap):
+              TH_ = g['TH']
+              fmt = g['fmt']
+              short = g['MSHORT'][int(mo[5:7])]
+              rows = list(((IG.get('months') or {}).get(mo) or {}).get('leads') or [])
+              rows.sort(key=lambda r: ((r[18][0][0] if r[18] else 10 ** 9), str(r[19])))
+              D = IG.get('dict') or []
+              MS = (cap or (None, {}))[1] or {}
+
+              def th(s):
+                  return dt.datetime.strptime(s, '%Y-%m-%dT%H:%M:%S%z').astimezone(TH_)
+
+              summ, raw, fallback = [], [], 0
+              y, m = int(mo[:4]), int(mo[5:7])
+              for r in rows:
+                  k = r[37] if len(r) > 37 else ''
+                  catl = IG_CAT.get(k, k or '')
+                  nm = r[0] or ''
+                  summ.append([short, ('@' + nm) if nm else '', r[1], r[2], r[13] or '—', int(r[3]), r[4], r[6], r[7], r[8],
+                               r[9], fmt(r[10]) if (r[10] is not None and r[10] >= 0) else '—',
+                               fmt(r[11]) if r[11] is not None else '—', 'Y' if r[12] else '', 'Y' if r[15] else '',
+                               'Y' if r[16] else '', 'Y' if r[17] else '', r[14] if r[14] and r[14] >= 2 else '', catl])
+                  tid = str(r[19])
+                  ms = sorted([x for x in MS.get(tid, []) if x.get('created_time') and th(x['created_time']).strftime('%Y-%m') == mo],
+                              key=lambda x: x['created_time'])
+                  stg = IG_STG.get(r[1], r[1])
+                  if len(ms) == len(r[18]):
+                      for i, (x, e) in enumerate(zip(ms, r[18]), 1):
+                          tx = (x.get('message') or '').strip()
+                          att = ('ไฟล์แนบ' if x.get('attachments') else 'ตอบกลับสตอรี่' if x.get('story') else
+                                 'แชร์โพสต์' if x.get('shares') else ('' if tx else 'ไม่รองรับ'))
+                          raw.append([tid, nm, stg, i, th(x['created_time']).strftime('%d/%m %H:%M:%S'),
+                                      IG_WHO.get(e[1], str(e[1])), tx, att, catl])
+                  else:                                # ไม่มีข้อความดิบครบ → ใช้ข้อความในไฟล์แดชบอร์ด (เวลาละเอียดถึงนาที)
+                      fallback += 1
+                      for i, e in enumerate(r[18], 1):
+                          t = D[e[2]] if isinstance(e[2], int) and 0 <= e[2] < len(D) else str(e[2])
+                          t = t.replace('\x01', nm)
+                          att = {'[ไฟล์แนบ]': 'ไฟล์แนบ', '[ตอบกลับสตอรี่]': 'ตอบกลับสตอรี่', '[แชร์โพสต์]': 'แชร์โพสต์',
+                                 '[ข้อความที่ IG ไม่รองรับ]': 'ไม่รองรับ'}.get(t, '')
+                          d0, mi = divmod(int(e[0]), 1440)
+                          raw.append([tid, nm, stg, i, '%02d/%02d %02d:%02d:00' % (d0 + 1, m, mi // 60, mi % 60),
+                                      IG_WHO.get(e[1], str(e[1])), '' if att else t, att, catl])
+              return summ, raw, fallback
+
+
+          def backup_ig(g, mo, cap):
+              IG = json.load(open('%s/src/ig_all.json' % g['REPO'], encoding='utf-8'))
+              summ, raw, fallback = ig_rows(g, mo, IG, cap)
+              if not summ:
+                  return 'IG %s: ไม่มีแชท — ข้าม' % mo
+              short = g['MSHORT'][int(mo[5:7])]
+              sid, name = ig_sheet()
+              log('IG %s → "%s"' % (mo, name))
+              tabs = tabs_of(sid)
+              info = tabs[IG_SUM]
+              W = max(len(IG_SUM_HEAD), min(info['cols'] or 26, 26))
+              d = call('GOOGLESHEETS_BATCH_GET', {'spreadsheet_id': sid,
+                                                  'ranges': ['%s!A1:%s%d' % (q(IG_SUM), col(W), max(info['rows'], 2))],
+                                                  'valueRenderOption': 'UNFORMATTED_VALUE'})
+              vr = (d.get('valueRanges') or [{}])[0].get('values') or []
+              body = [list(r) for r in vr[1:]]
+              while body and not any(str(v).strip() for v in body[-1]):
+                  body.pop()
+              idx = [i for i, r in enumerate(body) if r and str(r[0]).strip() == short]
+              new = [r + [''] * (W - len(r)) for r in summ]
+              if idx and idx == list(range(idx[0], idx[-1] + 1)):
+                  start = idx[0]                                   # เดือนนี้อยู่ติดกัน → แทนที่ตรงนั้น แถวเดือนถัดไปเลื่อนตาม
+                  table = new + body[idx[-1] + 1:]
+              elif idx:
+                  start = 0                                        # กระจัดกระจาย (มีคนเรียงตารางใหม่) → เอาออกแล้วต่อท้าย
+                  table = [r for i, r in enumerate(body) if i not in set(idx)] + new
+              else:
+                  start = len(body)                                # เดือนใหม่ → ต่อท้าย
+                  table = new
+              table = [r + [''] * (W - len(r)) for r in table]
+              calls, _ = write(sid, IG_SUM, table, start=2 + start)
+              end_new, end_old = 1 + start + len(table), 1 + len(body)
+              if end_old > end_new:
+                  clear_tail(sid, IG_SUM, end_new + 1, end_old, W)
+              log('   %s: เดือน %s %d แถว (เดิม %d) · ทั้งตาราง %s แถว (%d ครั้ง)' % (
+                  IG_SUM, short, len(new), len(idx), format(start + len(table), ','), calls))
+              rawtab = 'ข้อความดิบ (%s %s)' % (short, mo[:4])
+              pos = None
+              if rawtab not in tabs and 'คำอธิบาย' in tabs:
+                  pos = tabs['คำอธิบาย']['index'] + 1               # ต่อจากคำอธิบาย เหมือนแท็บ ส.ค. ที่ทำไว้เดิม
+              put_tab(sid, tabs, rawtab, [IG_RAW_HEAD] + raw, index=pos)
+              if fallback:
+                  log('   %d แชทไม่มีข้อความดิบครบ → ใช้ข้อความจากไฟล์แดชบอร์ดแทน (เวลาละเอียดถึงนาที)' % fallback)
+              return '%s: %s เดือน %s %d แชท / %s ข้อความ' % (name, IG_SUM, short, len(new), format(len(raw), ','))
+
+
+          def run(months, CAP, g):
+              upto = dt.datetime.now(TH).strftime('%d/%m/%Y %H:%M')
+              todo = [mo for mo in months if mo >= BACKUP_FROM]
+              for mo in months:
+                  if mo < BACKUP_FROM:
+                      log('%s อยู่ก่อน %s — ไม่แตะชีตเดือนเก่าที่ทำมือไว้' % (mo, BACKUP_FROM))
+              ok, done = True, []
+              for mo in todo:
+                  for ch, fn in (('FB', lambda: backup_fb(g, mo, CAP['fb'].get(mo) or {}, upto)),
+                                 ('IG', lambda: backup_ig(g, mo, CAP['ig'].get(mo)))):
+                      t0 = time.time()
+                      try:
+                          done.append(fn() + ' · %.0f วิ' % (time.time() - t0))
+                      except Exception as e:
+                          ok = False
+                          why = str(e)[:400] if isinstance(e, BackupError) else _safe(e)   # BackupError กรองมาแล้ว
+                          log('%s %s สำรองไม่สำเร็จ: %s %s' % (ch, mo, type(e).__name__, why))
+              for x in done:
+                  log('สำเร็จ ·', x)
+              return ok
+          PYEOF
+          python -c "import ast;[ast.parse(open(p,encoding='utf-8').read()) for p in ['tools/auto/composio_shim.py','tools/auto/ci_run.py','tools/auto/sheets_backup.py']];print('syntax OK')"
 
       - name: รันรอบอัปเดต
         env:
@@ -507,4 +1068,6 @@ jobs:
           MCP_DEBUG: ${{ inputs.debug && '1' || '' }}
           MONTHS: ${{ inputs.months }}
           MODE: ${{ inputs.mode || 'refresh' }}
+          SHEETS_BACKUP: ${{ vars.SHEETS_BACKUP }}
+          IG_SHEET_ID: ${{ secrets.IG_SHEET_ID }}
         run: python tools/auto/ci_run.py
