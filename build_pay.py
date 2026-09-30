@@ -79,6 +79,8 @@ FU_DUE = 7 * 1440       # a follow-up the customer ignored for this long -> due 
 FU_MERGE = 30           # admin messages this close together are one follow-up
 
 NEW = True   # True: summary-card rule (30 ก.ย. 2026) · False: the old price/bill rule — main() runs both, see there
+PAYSMP = None   # pay list split (v8): True = only chats our side sent a sample in that round · False = only chats with no sample
+NPSMP = False   # np list (v8): True = only chats that already got a sample (แนบตัวอย่างแล้ว แต่ยังไม่สรุปจ่าย)
 def qset(ms):
     """indices of our quotes in ms [(minute, role, text)]: payment-summary cards (stage_rules), or with NEW off the
        old rule (any PRICE/BILL message from our side)"""
@@ -116,6 +118,9 @@ def judge(ms, end, extra=None, cut=None):
     sl = [i for i, x in enumerate(ms) if SLIP.search(x[2])]
     lastSlip = sl[-1] if sl else -1
     q = [i for i in q if i > lastSlip]
+    if PAYSMP is not None:        # which round: the open one (after the last slip), or the one the last slip paid for
+        lo, hi = (lastSlip, len(ms)) if q else ((sl[-2] if len(sl) > 1 else -1), lastSlip)
+        if any(ms[i][1] != 0 and sample_type(ms[i][2]) for i in range(lo + 1, hi)) != PAYSMP: return None, 'split'
     if not q:
         # paid: was the round before the slip followed up?
         prev = sl[-2] if len(sl) > 1 else -1
@@ -225,7 +230,7 @@ GRADE = re.compile(r'ม\.?\s?[1-6]|ป\.?\s?[1-6]|ม\.ต้น|ม\.ปลา
 ASKC = re.compile(r'คอร์ส|คอส|ครอส|ราคา|ค่าเรียน|สมัคร|เท่าไ|กี่บาท|โปร|ตาราง|ลงเรียน|สอวน|IJSO|A-?Level|สอบเข้า|MWIT|KVIS|เตรียมอุดม|onsite|online|ออนไลน์|เรียนสด|เทป|โมดูล|module', re.I)
 NP_TODO = ('A', 'B')
 REGD = re.compile(r'(?<!ถ้า)(?<!หลัง)(?<!ก่อน)สมัคร(?:คอร์ส|คอส|เรียน|\s){0,3}(?:ไป)?แล้ว|ซื้อคอร์ส(?:ไป)?แล้ว|ลงทะเบียน(?:ไป)?แล้ว')   # "หนูสมัครคอร์สไปแล้ว ต้องเข้าเรียนที่ไหน"
-def judge_np(ms, end, extra=None, cut=None):
+def judge_np(ms, end, extra=None, cut=None, need_smp=None):
     """whole thread; in the list when the customer typed about a course, an ADMIN (person) answered the customer's latest
        real message, and our side never sent a price / payment summary in the open round (after the last verified slip).
        anchor = the admin's first answer after the customer's latest real message; age = days since that answer.
@@ -238,6 +243,7 @@ def judge_np(ms, end, extra=None, cut=None):
     QS = qset(ms)
     if any(i in QS for i in range(i0, len(ms))): return None, 'quoted'
     rnd = ms[i0:]
+    if (NPSMP if need_smp is None else need_smp) and not any(x[1] != 0 and sample_type(x[2]) for x in rnd): return None, 'nosample'
     # 30 ก.ย. 2026: a short line ending in ค่ะ/ครับ is only 'polite' when it says nothing about a course or grade —
     # "สนใจคอร์ส ม.2 ค่ะ" / "ม.1 ค่ะ" are real answers and used to be dropped here
     creal = [x for x in rnd if x[1] == 0 and real(x[2]) and not (POLITE.search(x[2]) and len(x[2]) < 30 and not QUEST.search(x[2])
@@ -333,7 +339,7 @@ def finish_np(th, end, ch, out):
 #      and the customer's latest real message is from ส.ค. 2026 on (SP_FROM). Groups A/B/F/X as np.
 SP_FROM = base('2026-08')
 def judge_sp(ms, end, extra=None, cut=None):
-    r, g = judge_np(ms, end, extra, cut)
+    r, g = judge_np(ms, end, extra, cut, need_smp=False)
     if not r: return r, g
     ms2 = [x for x in ms if x[0] <= cut] if cut is not None else ms
     if any(x[1] != 0 and sample_type(x[2]) for x in ms2): return None, 'sampled'
@@ -389,16 +395,22 @@ def fresh():
                 stat=collections.defaultdict(collections.Counter), PAY={'fb': [], 'ig': [], 'line': []}, NP={'fb': [], 'ig': [], 'line': []},
                 SPL={'fb': [], 'ig': [], 'line': []})
 RUN = {False: fresh(), True: fresh()}
+PZ = fresh()      # v8 "pz": summary sent WITHOUT a sample, not paid yet (the pay list of RUN[True] keeps the sampled ones)
 
 def both(th, end, ch):
     """old rule -> the keys the live page reads today; new rule (+ sp) -> F['v8'] for the preview page. Deploying the preview
        makes the page read v8; after that the old pass can go."""
-    global NEW
+    global NEW, PAYSMP, NPSMP
+    keys = ('OLD', 'FLOW', 'FUSTAT', 'NPOLD', 'NPFLOW', 'NPSTAT', 'SPOLD', 'SPFLOW', 'SPSTAT')
     for rule in (False, True):
-        NEW = rule; R = RUN[rule]; globals().update({k: R[k] for k in ('OLD', 'FLOW', 'FUSTAT', 'NPOLD', 'NPFLOW', 'NPSTAT', 'SPOLD', 'SPFLOW', 'SPSTAT')})
+        NEW = rule; R = RUN[rule]; globals().update({k: R[k] for k in keys})
+        PAYSMP = True if rule else None; NPSMP = rule          # v8 splits the lists by "แนบตัวอย่างแล้ว"
         finish(th, end, ch, R['PAY'][ch], R['stat']); finish_np(th, end, ch, R['NP'][ch])
-        if rule: finish_sp(th, end, ch, R['SPL'][ch])
-    NEW = True
+        if rule:
+            finish_sp(th, end, ch, R['SPL'][ch])
+            globals().update({k: PZ[k] for k in keys}); PAYSMP = False
+            finish(th, end, ch, PZ['PAY'][ch], PZ['stat'])
+    NEW = True; PAYSMP = None; NPSMP = False
 
 def main():
     F = json.load(open('src/followup.json', encoding='utf-8'))
@@ -453,6 +465,9 @@ def main():
         D['payhist'] = sorted(ph)[-120:]
     put(F, RUN[False], False)                     # live page: unchanged rule
     F['v8'] = F.get('v8') or {}; put(F['v8'], RUN[True], True)   # preview page: summary-card rule + sp
+    # v8 "pz" = summary sent without a sample (same row / stat / flow shapes as pay, keys prefixed pz)
+    z = {'payhist': F['v8'].get('pzhist')}; put(z, PZ, False)
+    for k in ('pay', 'paystat', 'pay90', 'payflow', 'payfu', 'payhist'): F['v8']['pz' + k[3:]] = z[k]
     json.dump(F, open('src/followup.json.tmp', 'w', encoding='utf-8'), separators=(',', ':'), ensure_ascii=False)
     import os; os.replace('src/followup.json.tmp', 'src/followup.json')   # never leave a half-written file behind
     for rule in (False, True):
@@ -463,6 +478,8 @@ def main():
         for ch, L in R['NP'].items():
             c = collections.Counter((r[2], '<1' if r[3] < 1 else '1-6' if r[3] < 7 else '7-29' if r[3] < 30 else '30-89') for r in L)
             print(tag, 'np', ch, len(L), sorted(c.items()), dict(R['NPSTAT'][ch]))
+    for ch, L in PZ['PAY'].items():
+        print('new pz', ch, len(L), dict(PZ['stat'][ch]))
     for ch, L in RUN[True]['SPL'].items():
         c = collections.Counter((r[2], '<1' if r[3] < 1 else '1-6' if r[3] < 7 else '7-29' if r[3] < 30 else '30-89') for r in L)
         print('new sp', ch, len(L), sorted(c.items()), dict(RUN[True]['SPSTAT'][ch]))

@@ -566,6 +566,43 @@ tr.tnrlate td{background:var(--risk-soft,#FBEAE9)}
 .ovad.on{background:var(--leaf);border-color:var(--leaf);color:#fff}.ovad.on span{color:#dfe9f0}
 .fuown{margin-top:8px}
 .lnwarn{border-left:3px solid var(--risk);padding-left:8px}
+/* 30 ก.ย. 2026 · ภาพรวม: แต่ละหมวดเป็นกล่องสีของตัวเอง + เลขหมวด + แถบ "ไปที่" */
+#app{counter-reset:ovs}
+.ovs{--sec:var(--teal);--sec-soft:var(--teal-soft);background:var(--card);border:1px solid var(--line);border-top:4px solid var(--sec);
+ border-radius:14px;padding:0 20px 22px;margin:0 0 30px;box-shadow:var(--shadow);scroll-margin-top:128px}
+.ovs>.shead{background:var(--sec-soft);margin:0 -20px 18px;padding:13px 20px 12px;border-bottom:1px solid var(--line);border-radius:10px 10px 0 0;align-items:center}
+.ovs>.shead::before{display:none}
+.ovs>.shead h2{display:flex;align-items:center;gap:10px}
+.ovs>.shead h2::before{content:counter(ovs);counter-increment:ovs;display:inline-grid;place-items:center;min-width:28px;height:28px;border-radius:50%;
+ background:var(--sec);color:#fff;font:600 13px "IBM Plex Mono",monospace;flex:none}
+.ovs>.shead .lab{color:var(--sec);opacity:.85}
+.ovs h3{background:var(--sec-soft);border-left:4px solid var(--sec);border-radius:0 8px 8px 0;padding:7px 12px;margin:28px 0 10px!important;font-size:15.5px!important}
+.ovs .shead+* h3:first-child,.ovs h3.first{margin-top:6px!important}
+#s-v4k{--sec:#0B7E93;--sec-soft:#E0F2F5}
+#s-v4m{--sec:#1F63AE;--sec-soft:#E8F0FA}
+#s-v4f{--sec:#C42B28;--sec-soft:#FBEAE9}
+#s-v4s{--sec:#A35F00;--sec-soft:#FFF3D6}
+#s-v4q{--sec:#2E7D4F;--sec-soft:#E5F3EA}
+#s-v4a,#s-v4n{--sec:#6A4BB5;--sec-soft:#EFEAF9}
+.ovnav{display:flex;gap:6px;overflow-x:auto;padding:0 0 10px;scrollbar-width:none;align-items:center}
+.ovnav::-webkit-scrollbar{display:none}
+.ovnav>.lab{white-space:nowrap;margin-right:2px}
+.ovnav button{font:inherit;font-size:12.5px;border:1px solid var(--line);background:var(--card);color:var(--ink-2);border-radius:999px;
+ padding:3px 11px 3px 4px;white-space:nowrap;cursor:pointer;display:flex;align-items:center;gap:6px}
+.ovnav button i{width:20px;height:20px;border-radius:50%;background:var(--c);color:#fff;font:600 11px "IBM Plex Mono",monospace;display:inline-grid;place-items:center;font-style:normal}
+.ovnav button:hover{border-color:var(--c);color:var(--ink)}
+.ovnav button[aria-current="true"]{border-color:var(--c);color:var(--ink);background:color-mix(in srgb,var(--c) 11%,var(--card));font-weight:600}
+.ovmore{margin:6px 0 4px}
+.ovmore>summary{cursor:pointer;list-style:none;display:flex;align-items:center;gap:8px;border:1px dashed var(--sec);border-radius:10px;
+ padding:10px 14px;color:var(--sec);font-weight:600;background:var(--card)}
+.ovmore>summary::-webkit-details-marker{display:none}
+.ovmore>summary::before{content:"▸";transition:transform .15s}
+.ovmore[open]>summary::before{transform:rotate(90deg)}
+.ovmore[open]>summary{margin-bottom:10px}
+.ovtop{background:var(--sec-soft);border-radius:10px;padding:10px 14px;margin:0 0 10px;font-size:13.5px;display:grid;gap:4px}
+.fucur.sp{border-left-color:#A35F00}.fucur.pz{border-left-color:#8a6d3b}
+@media(max-width:640px){.ovs{padding:0 12px 16px;border-radius:12px;margin-bottom:22px}.ovs>.shead{margin:0 -12px 14px;padding:11px 12px}
+ .ovs>.shead .lab{display:none}.ovs{scroll-margin-top:170px}}
 </style>
 </head>
 <body>
@@ -613,15 +650,15 @@ tr.tnrlate td{background:var(--risk-soft,#FBEAE9)}
    <button data-v="fu" aria-pressed="false" id="vfu" hidden>Follow up</button>
   </div></div>
  <div class="now" id="now"></div>
-</div></div>
+</div><div class="wrap"><nav class="ovnav" id="ovnav" aria-label="ไปที่หมวด" hidden></nav></div></div>
 <div class="wrap">
- <section id="s-v4k"><div class="shead"><h2>Metric</h2><span class="lab" id="v4kscope"></span></div><div class="kpis" id="v4k"></div><div id="v4knote" style="margin-top:10px"></div></section>
- <section id="s-v4m"><div class="shead"><h2>เทียบเดือนต่อเดือน</h2><span class="lab" id="v4mscope"></span></div><div id="v4m"></div></section>
- <section id="s-v4f"><div class="shead"><h2>แชทที่แอดมินยังไม่ตอบ</h2><span class="lab" id="v4fscope"></span></div><div id="v4f"></div></section>
- <section id="s-v4s"><div class="shead"><h2>ความเร็วตอบแชท</h2><span class="lab" id="v4sscope"></span></div><div id="v4s"></div></section>
- <section id="s-v4q"><div class="shead"><h2>คุณภาพการตอบ</h2><span class="lab" id="v4qscope"></span></div><div id="v4q"></div></section>
- <section id="s-v4a"><div class="shead"><h2>ภาระงานรายแอดมิน · LINE OA</h2><span class="lab" id="v4ascope"></span></div><div id="lnwork"></div></section>
- <section id="s-v4n"><div class="shead"><h2>แชทที่ติดแท็ก / ติดโน้ต · LINE OA</h2><span class="lab" id="v4nscope"></span></div><div id="v4n"></div></section>
+ <section id="s-v4k" class="ovs"><div class="shead"><h2>Metric</h2><span class="lab" id="v4kscope"></span></div><div class="kpis" id="v4k"></div><div id="v4knote" style="margin-top:10px"></div></section>
+ <section id="s-v4m" class="ovs"><div class="shead"><h2>เทียบเดือนต่อเดือน</h2><span class="lab" id="v4mscope"></span></div><div id="v4m"></div></section>
+ <section id="s-v4f" class="ovs"><div class="shead"><h2>แชทที่แอดมินยังไม่ตอบ</h2><span class="lab" id="v4fscope"></span></div><div id="v4f"></div></section>
+ <section id="s-v4s" class="ovs"><div class="shead"><h2>ความเร็วตอบแชท</h2><span class="lab" id="v4sscope"></span></div><div id="v4s"></div></section>
+ <section id="s-v4q" class="ovs"><div class="shead"><h2>คุณภาพการตอบ</h2><span class="lab" id="v4qscope"></span></div><div id="v4q"></div></section>
+ <section id="s-v4a" class="ovs"><div class="shead"><h2>ภาระงานรายแอดมิน · LINE OA</h2><span class="lab" id="v4ascope"></span></div><div id="lnwork"></div></section>
+ <section id="s-v4n" class="ovs"><div class="shead"><h2>แชทที่ติดแท็ก / ติดโน้ต · LINE OA</h2><span class="lab" id="v4nscope"></span></div><div id="v4n"></div></section>
  <section id="s-fu" hidden><div class="shead"><h2 id="fuh2">Follow up</h2><span class="lab" id="fuscope"></span></div><div id="fu"></div></section>
  <section id="s-raw"><div class="shead"><h2>ข้อมูลดิบ</h2><span class="lab" id="rawscope"></span></div><div id="raw"></div></section>
 </div>
@@ -2282,12 +2319,12 @@ function renderV4Speed(){
   return `<div><b>${c==='all'?'รวมทุกช่องทาง':CHN[c]}</b> — ${r.map(([hr,k])=>{const b=hb(o,+hr),n=b.reduce((p,q)=>p+q,0),s=b[4]+b[5]+b[6]+b[7];return `อันดับ ${k}: ${hh(+hr)}.00–${hh(+hr)}.59 น. มี ${nf(s)} แชทที่ตอบช้ากว่า 60 นาที จากทั้งหมด ${nf(n)} แชท (${pctS(s,n)})`;}).join(' · ')}</div>`;}).join('');
  el.innerHTML=`<details class="fhelp" style="margin:0 0 12px"><summary>ความเร็วตอบ · n · ค่ากลาง นับอย่างไร</summary><div class="warnbox" style="margin-top:8px;line-height:1.75"><b>ความเร็วตอบ</b> = เวลาจากข้อความแรกของลูกค้า ถึงข้อความแรกที่<b>แอดมินตอบเอง</b> — พิมพ์เองหรือกดส่งข้อความที่บันทึกไว้ก็นับ (Facebook ดูจากป้ายของ Meta ว่าคนเป็นผู้ส่ง · ไม่นับบอท ข้อความอัตโนมัติ ป้ายระบบ Meta) · <b>n</b> = จำนวนแชทที่ใช้คำนวณช่องนั้น ช่องที่ n &lt; 30 เป็นสีจาง · <b>ค่ากลาง</b> = คิดเฉพาะแชทที่แอดมินตอบ ครึ่งหนึ่งได้คำตอบเร็วกว่านี้ อีกครึ่งช้ากว่า · <b>ช่วงเวลาที่ทัก</b> = เวลาไทยของข้อความแรกลูกค้า · นับเฉพาะแชทสนใจคอร์ส</div></details>
  <h3 style="font-size:15px;margin:4px 0 4px">1 · แต่ละช่องทางตอบเร็วแค่ไหน</h3><p class="note" style="margin-bottom:8px">ตัวเลขใหญ่ = % ของ${ADMOK()?'แชทที่ลูกค้าทักมา (ทุกเรื่อง ไม่นับ Giveaway)':'แชทสนใจคอร์ส'}ในช่องทางนั้น · บรรทัดล่าง = จำนวนแชท · <b>จ่ายเงิน</b> = คุณภาพการตอบของแชทที่ตอบด้วยความเร็วนั้น (จ่ายเงินแล้ว ÷ แชท) ใช้ดูว่าตอบเร็วแล้วลูกค้าจ่ายเงินมากขึ้นจริงไหม</p>${t1}
- <h3 style="font-size:15px;margin:20px 0 4px">2 · รายชั่วโมง: แต่ละช่องทางทักมาเท่าไร ตอบนานแค่ไหน</h3><details class="fhelp" style="margin:0 0 10px"><summary>วิธีอ่านตัวเลขในแต่ละช่อง</summary><div class="warnbox" style="margin-top:8px;line-height:1.8"><b>อ่านช่องละ 5 บรรทัด</b> (ตัวอย่าง: 191 แชท · ตอบภายใน 60 นาที 18 · ตอบช้ากว่า 60 นาที 72 · ไม่มีแอดมินตอบ 101 · ค่ากลางเวลารอ 7.2 ชม.)<br>
+ <h3 style="font-size:15px;margin:20px 0 4px">2 · รายชั่วโมง: แต่ละช่องทางทักมาเท่าไร ตอบนานแค่ไหน</h3><div class="ovtop"><b>ชั่วโมงที่ตอบช้ากว่า 60 นาทีมากที่สุด</b>${rkLines}</div><details class="ovmore"><summary>เปิดตารางรายชั่วโมง (24 ชั่วโมง × ช่องทาง)</summary><details class="fhelp" style="margin:0 0 10px"><summary>วิธีอ่านตัวเลขในแต่ละช่อง</summary><div class="warnbox" style="margin-top:8px;line-height:1.8"><b>อ่านช่องละ 5 บรรทัด</b> (ตัวอย่าง: 191 แชท · ตอบภายใน 60 นาที 18 · ตอบช้ากว่า 60 นาที 72 · ไม่มีแอดมินตอบ 101 · ค่ากลางเวลารอ 7.2 ชม.)<br>
  ① <b>191 แชท</b> = ลูกค้าส่งข้อความแรกเข้ามาในชั่วโมงนั้น รวมทุกวันในช่วงเวลาที่เลือก<br>
  ② ③ ④ = แบ่ง 191 แชทนั้นเป็น 3 กลุ่มที่บวกกันได้ครบ: แอดมินตอบภายใน 60 นาที <b>18</b> + ตอบช้ากว่า 60 นาที <b>72</b> + ไม่มีแอดมินตอบเลย <b>101</b> = 191 · % ในวงเล็บคิดจากจำนวนแชทของช่องนั้น<br>
  ⑤ <b>ค่ากลางเวลารอ 7.2 ชม.</b> = เอาเฉพาะแชทที่แอดมินตอบ (18 + 72 = 90 แชท) มาเรียงจากเร็วไปช้า แชทที่อยู่ตรงกลางรอ 7.2 ชม. — ครึ่งหนึ่งได้คำตอบเร็วกว่านี้ อีกครึ่งช้ากว่านี้ <b>ไม่ได้แปลว่าทุกแชทได้คำตอบภายใน 7.2 ชม.</b><br>
  <b>สีแดงเข้ม → อ่อน</b> = 3 ชั่วโมงที่มีจำนวนแชท “ตอบช้ากว่า 60 นาที” มากที่สุดของช่องทางนั้น</div></details>${t3}
- <details class="fhelp" style="margin-top:10px"><summary>สรุป 3 อันดับที่ตอบช้าที่สุด และหมายเหตุ</summary><div class="note" style="margin-top:8px;display:grid;gap:6px;background:var(--card);border:1px solid var(--line);border-radius:10px;padding:12px 14px">${rkLines}<div><b>หมายเหตุ</b> — จัดอันดับจาก<b>จำนวน</b>แชทที่แอดมินตอบครั้งแรกช้ากว่า 60 นาที (ไม่ใช่ %) เพื่อให้เห็นชั่วโมงที่ลูกค้ารอนานมากที่สุดจริง · ชั่วโมงที่คนทักน้อยอาจมี % สูงแต่จำนวนน้อย จึงไม่ขึ้นอันดับ · เส้นคั่นหนาที่ 09.00 และ 21.00 = เปลี่ยนช่วงเวลาทำงาน · ยังไม่หักวันหยุด · ตั้งแต่ 22 ก.ย. 2026 ข้อความที่บันทึกไว้ซึ่งแอดมินกดส่งเองนับว่าแอดมินตอบแล้ว (Facebook ใช้ป้ายของ Meta · Instagram เทียบจากข้อความเดียวกันบน Facebook)</div></div></details>
+ <details class="fhelp" style="margin-top:10px"><summary>หมายเหตุการจัดอันดับ</summary><div class="note" style="margin-top:8px;display:grid;gap:6px;background:var(--card);border:1px solid var(--line);border-radius:10px;padding:12px 14px"><div><b>หมายเหตุ</b> — จัดอันดับจาก<b>จำนวน</b>แชทที่แอดมินตอบครั้งแรกช้ากว่า 60 นาที (ไม่ใช่ %) เพื่อให้เห็นชั่วโมงที่ลูกค้ารอนานมากที่สุดจริง · ชั่วโมงที่คนทักน้อยอาจมี % สูงแต่จำนวนน้อย จึงไม่ขึ้นอันดับ · เส้นคั่นหนาที่ 09.00 และ 21.00 = เปลี่ยนช่วงเวลาทำงาน · ยังไม่หักวันหยุด · ตั้งแต่ 22 ก.ย. 2026 ข้อความที่บันทึกไว้ซึ่งแอดมินกดส่งเองนับว่าแอดมินตอบแล้ว (Facebook ใช้ป้ายของ Meta · Instagram เทียบจากข้อความเดียวกันบน Facebook)</div></div></details></details>
  <h3 style="font-size:15px;margin:22px 0 4px">3 · ที่ตอบ “มากกว่า 60 นาที” เกิดขึ้นตอนไหน</h3><p class="note" style="margin-bottom:8px">แยกแชทที่แอดมินตอบช้ากว่า 60 นาที ตามช่วงเวลาที่ลูกค้าทักเข้ามา</p>${t2}`;
 }
 
@@ -2359,7 +2396,7 @@ let FU=null, FU_B='7', FU_K='all', FU_T='', FU_W='', FU_Q='', FU_PAGE=0;
    FU_B 'all' = every age (used when a status-box number is clicked). */
 let FU_G='never', FU_MODE='ar';
 let FU_ASK=false;   /* Sep 23 2026: opening Follow up asks which list first (popup) */
-try{const m=localStorage.getItem('bp_fu_mode');if(m==='pay'||m==='ar'||m==='np'||m==='sp'||m==='tn')FU_MODE=m;}catch(e){}
+try{const m=localStorage.getItem('bp_fu_mode');if(m==='pay'||m==='ar'||m==='np'||m==='sp'||m==='pz'||m==='tn')FU_MODE=m;}catch(e){}
 const FU_GN={never:'ไม่เคยมีแอดมินคุย',prior:'เคยคุยแล้ว · ถามรอบใหม่ยังไม่มีคนตอบ',both:'รวมสองกลุ่ม',skip:'ไม่ต้องตาม',done:'กดตอบแล้ว · รอรอบ 05:00 ยืนยัน'};
 const FU_KN={all:'ทั้งหมด',A:'ถามจริง · ตามก่อน',B:'กดปุ่มสนใจคอร์ส',C:'ไม่ต้องตาม'};
 let FU_KORD=['A','B'];
@@ -2502,7 +2539,7 @@ async function renderFU(){
  if(FU_MODE==='tn')return renderTN();
  if(FU_MODE!=='ar'){puSetMode(FU_MODE);return renderPay();}
  const LN=CH==='line', chn=CH==='ig'?'Instagram':(LN?'LINE OA':'Facebook');
- $('#fuh2').textContent='Follow up · แชทที่มีแต่ Auto reply ยังไม่มีแอดมินตอบ';
+ $('#fuh2').textContent='Follow up · บอทตอบ - ไม่มีแอดมินตอบ';
  const endS=LN?FU.lend:FU.end;
  if(LN&&!endS){el.innerHTML=fuModeBar()+'<p class="note">ยังไม่มีข้อมูล LINE OA ในรายการนี้ — จะขึ้นหลังรอบอัปเดตถัดไป</p>';fuModeBind(el);sc.textContent='LINE OA';return;}
  const endT=endS?fuDay(endS)+' '+endS.slice(11,16)+' น.':'';
@@ -2625,13 +2662,15 @@ function fuModeCounts(){
  const pay=FU&&FU.pay?puRows('pay').filter(o=>PAYCFG.TODO.includes(o.g)&&o.wait>=1&&o.wait<30).length:null;
  const np=FU&&FU.np?puRows('np').filter(o=>NPCFG.TODO.includes(o.g)&&o.wait>=1&&o.wait<30).length:null;
  const sp=FU&&FU.sp?puRows('sp').filter(o=>SPCFG.TODO.includes(o.g)&&o.wait>=1&&o.wait<30).length:null;
+ const pz=FU&&FU.pz?puRows('pz').filter(o=>PAYCFG.TODO.includes(o.g)&&o.wait>=1&&o.wait<30).length:null;
  const tn=(LN&&AGG&&AGG.tnfu)?tnfTodo():null;
- return {ar,pay,np,sp,tn};}
+ return {ar,pay,np,sp,pz,tn};}
 const FU_MODES=[
- ['ar','💬','ตอบแชทค้าง · Auto reply','ลูกค้าได้แต่ข้อความอัตโนมัติ ยังไม่มีแอดมินตอบ','แชท · ค้าง 7 วันขึ้นไป'],
- ['sp','🎬','ยังไม่ส่งตัวอย่าง','ลูกค้าถามเรื่องคอร์ส แอดมินตอบแล้ว แต่ยังไม่เคยส่งคลิปตัวอย่าง/ฟอร์มทดลองเรียน · ตั้งแต่ ส.ค.','แชท · แอดมินตอบ 1–29 วันก่อน'],
- ['np','🗨️','คุยแล้วยังไม่สรุปยอด','ลูกค้าถามเรื่องคอร์ส แอดมินตอบแล้ว แต่ยังไม่ได้ส่งสรุปยอด','แชท · แอดมินตอบ 1–29 วันก่อน'],
- ['pay','💸','ส่งสรุปยอดแล้วยังไม่โอน','ส่งสรุปยอด (รหัสคอร์ส + ยอด + เลขบัญชี) ไปแล้ว แต่ยังไม่มีสลิป “ตรวจสอบสลิปสำเร็จ”','แชท · ส่งสรุปยอด 1–29 วันก่อน'],
+ ['ar','🤖','บอทตอบ - ไม่มีแอดมินตอบ','ลูกค้าได้แต่ข้อความอัตโนมัติ (บอท) ยังไม่มีแอดมินตอบข้อความล่าสุด','แชท · ค้าง 7 วันขึ้นไป'],
+ ['sp','🎬','แอดมินตอบแล้ว แต่ยังไม่แนบตัวอย่าง','ลูกค้าถามเรื่องคอร์ส แอดมินตอบแล้ว แต่ยังไม่เคยส่งคลิปตัวอย่าง/ฟอร์มทดลองเรียน · ลูกค้าทักตั้งแต่ ส.ค.','แชท · แอดมินตอบ 1–29 วันก่อน'],
+ ['np','🗨️','แอดมินตอบแล้ว + แนบตัวอย่างแล้ว แต่ยังไม่ได้สรุปจ่าย','ส่งตัวอย่างแล้ว แต่ยังไม่ได้ส่งใบสรุปยอด (รหัสคอร์ส + ยอด + เลขบัญชี)','แชท · แอดมินตอบ 1–29 วันก่อน'],
+ ['pay','💸','แอดมินตอบแล้ว + แนบตัวอย่างแล้ว + สรุปจ่ายแล้ว แต่ลูกค้ายังไม่โอน','ส่งตัวอย่างและใบสรุปยอดแล้ว แต่ยังไม่มีสลิป “สถานะ: ตรวจสอบสลิปสำเร็จ”','แชท · ส่งสรุปยอด 1–29 วันก่อน'],
+ ['pz','🧾','ส่งสรุปจ่ายแล้วแต่ยังไม่โอน','ส่งใบสรุปยอดโดยไม่ได้แนบตัวอย่าง (เช่น นักเรียนเก่าสมัครต่อ) แต่ยังไม่มีสลิป “สถานะ: ตรวจสอบสลิปสำเร็จ”','แชท · ส่งสรุปยอด 1–29 วันก่อน'],
  ['tn','🏷️','ติดแท็ก / ใส่โน้ต ให้ครบ','ห้องที่ยังไม่ได้ติดแท็กสถานะ หรือยังไม่มีโน้ต — เฉพาะ LINE OA','ห้อง · สถานะล่าสุด']];
 const fuModeList=()=>FU_MODES.filter(m=>m[0]!=='tn'||CH==='line');   /* แท็ก/โน้ตเป็นของ LINE อย่างเดียว */
 function fuModeBar(){const c=fuModeCounts(),m=fuModeList().find(x=>x[0]===FU_MODE)||FU_MODES[0];
@@ -2729,7 +2768,7 @@ const PAYCFG={GN:PU_GN,GS:PU_GS,GD:PU_GD,ORD:PU_ORD,TODO:PU_TODO};
 const NPCFG={GN:{all:'ทั้งหมดที่ต้องตาม',A:'บอกชั้น/คอร์สแล้ว · ยังไม่สรุปยอด',B:'ถามเรื่องคอร์ส · ยังไม่สรุปยอด',F:'ตามแล้ว · รอลูกค้าตอบ',X:'ไม่ต้องตาม'},
  GS:{A:'บอกชั้น/คอร์สแล้ว',B:'ถามทั่วไป',F:'ตามแล้ว'},
  GD:{A:'ลูกค้าบอกชั้นเรียน (ม.1–6 / ป.4–6 / ซิ่ว) และถามเรื่องคอร์ส ราคา ตาราง หรือการสมัคร — ใกล้ตัดสินใจ ส่งสรุปยอดได้เลย',
-  B:'ลูกค้าถามเรื่องคอร์สทั่วไป แอดมินตอบแล้ว แต่ยังไม่มีใบสรุปยอดจากฝั่งเรา',
+  B:'ลูกค้าถามเรื่องคอร์สทั่วไป แอดมินตอบและส่งตัวอย่างแล้ว แต่ยังไม่มีใบสรุปยอดจากฝั่งเรา',
   F:'แอดมินทักตามแล้วหลังลูกค้าเงียบ 12 ชม.ขึ้นไป (หรือกด “ตามแล้ว” เอง) และลูกค้ายังไม่ตอบ — ครบ 7 วันยังเงียบ แชทกลับไปรายการที่ต้องตามพร้อมป้าย “ครบกำหนดตามรอบถัดไป”',
   X:'ลูกค้าบอกว่าโอนแล้ว · ดูเป็นนักเรียนแล้ว · ปฏิเสธ/ขอคิดก่อน · ย้ายไปคุย LINE · หรือแอดมินย้ายเอง'},
  ORD:['A','B'],TODO:['A','B']};
@@ -2741,12 +2780,14 @@ const SPCFG={GN:{all:'ทั้งหมดที่ต้องส่งตั�
   F:'แอดมินทักตามแล้วหลังลูกค้าเงียบ 12 ชม.ขึ้นไป (หรือกด “ตามแล้ว” เอง) และลูกค้ายังไม่ตอบ — ครบ 7 วันยังเงียบ แชทกลับไปรายการที่ต้องตามพร้อมป้าย “ครบกำหนดตามรอบถัดไป”',
   X:'ลูกค้าบอกว่าโอนแล้ว · ดูเป็นนักเรียนแล้ว · ปฏิเสธ/ขอคิดก่อน · ย้ายไปคุย LINE · หรือแอดมินย้ายเอง'},
  ORD:['A','B'],TODO:['A','B']};
-function puSetMode(m){const C=m==='sp'?SPCFG:(m==='np'?NPCFG:PAYCFG);PU_KEY=(m==='np'||m==='sp')?m:'pay';PU_GN=C.GN;PU_GS=C.GS;PU_GD=C.GD;PU_ORD=C.ORD;PU_TODO=C.TODO;}
+const PAYM=()=>PU_KEY==='pay'||PU_KEY==='pz';     /* pay = สรุปจ่ายแล้ว (แนบตัวอย่าง) · pz = สรุปจ่ายแล้ว (ไม่แนบตัวอย่าง) — ข้อมูลรูปแบบเดียวกัน */
+const FUT={sp:'ยังไม่แนบตัวอย่าง',np:'แนบตัวอย่างแล้ว · ยังไม่สรุปจ่าย',pay:'แนบตัวอย่าง + สรุปจ่ายแล้ว · ยังไม่โอน',pz:'สรุปจ่ายแล้ว (ไม่แนบตัวอย่าง) · ยังไม่โอน'};
+function puSetMode(m){const C=m==='sp'?SPCFG:(m==='np'?NPCFG:PAYCFG);PU_KEY=['np','sp','pay','pz'].includes(m)?m:'pay';PU_GN=C.GN;PU_GS=C.GS;PU_GD=C.GD;PU_ORD=C.ORD;PU_TODO=C.TODO;}
 function puRows(k){const K=k||PU_KEY;if(!FU||!FU[K])return [];
  return (FU[K][CH]||[]).map(r=>{const o={tid:r[0],name:r[1],g:r[2],g0:r[2],wait:r[3],q0:r[4],q1:r[5],last:r[6],lastc:r[7],bill:r[8],amt:r[9]||'',qt:r[10]||'',nq:r[11],
    said:r[12]||'',after:r[13]||'',ball:r[14],tags:r[15]||[],flags:r[16]||[],src:r[17]||'',owner:r[18]||'',week:r[19],
    nfu:r[20]||0,fu1:r[21]||'',due:r[22]||0,bg:r[23]||r[2]};
-  o.ovtid=K+':'+o.tid; o.ovlast=o.q1+'/'+o.lastc;          /* a new quote or a new customer message brings a moved chat back */
+  o.ovtid=(K==='pz'?'pay':K)+':'+o.tid;   /* pz shares the pay list's manual moves (same chats before the split) */ o.ovlast=o.q1+'/'+o.lastc;          /* a new quote or a new customer message brings a moved chat back */
   const ov=OV[ovKey(CH,o.ovtid,o.ovlast)];
   if(ov){o.ov=ov;
    if(ov.st==='skip'&&/^ตอบแล้ว/.test(ov.why||'')){o.ansMan=1;if(o.g==='R')o.g='B';}
@@ -2758,9 +2799,9 @@ function puRows(k){const K=k||PU_KEY;if(!FU||!FU[K])return [];
 function puInB(o,b){return b==='all'?true:(b==='1'?(o.wait>=1&&o.wait<7):(b==='7'?(o.wait>=7&&o.wait<30):(o.wait>=30&&o.wait<90)));}
 function puInG(o,g){return g==='all'?PU_TODO.includes(o.g):o.g===g;}
 function puFilt(skipWeek){const q=PU_Q.trim().toLowerCase();
- return puRows().filter(o=>puInB(o,PU_B)&&puInG(o,PU_G)&&(!FU_O||o.owner===FU_O)&&(!PU_T||(PU_KEY!=='pay'?o.tags.includes(PU_T):o.amt===PU_T))&&(skipWeek||!PU_W||o.week===PU_W)
+ return puRows().filter(o=>puInB(o,PU_B)&&puInG(o,PU_G)&&(!FU_O||o.owner===FU_O)&&(!PU_T||(!PAYM()?o.tags.includes(PU_T):o.amt===PU_T))&&(skipWeek||!PU_W||o.week===PU_W)
   &&(!q||String(o.name).toLowerCase().includes(q)||String(o.said).toLowerCase().includes(q)||String(o.amt).includes(q)||String(o.qt).toLowerCase().includes(q)));}
-function puExport(){const rows=puFilt(false),NPM=PU_KEY!=='pay';
+function puExport(){const rows=puFilt(false),NPM=!PAYM();
  const head=NPM?['ช่องทาง','ชื่อลูกค้า','กลุ่ม','แอดมินตอบล่าสุดมาแล้ว (วัน)','ลูกค้าถามครั้งแรก','แอดมินตอบล่าสุด','แอดมินตอบกี่ข้อความ','ลูกค้าถามอะไร','แอดมินตอบว่าอะไร',
   'ลูกค้าพิมพ์อะไรหลังแอดมินตอบ','ลูกค้าทักล่าสุด','หัวข้อ','ข้อสังเกต','มาจาก','ลิงก์ตรงห้องแชท (ถ้ามี)','แอดมินย้ายเอง','ผู้ติดตาม','วันที่ติดตาม','ผลการติดตาม']:['ช่องทาง','ชื่อลูกค้า','กลุ่ม','ส่งสรุปยอดล่าสุดมาแล้ว (วัน)','ส่งสรุปยอดครั้งแรก','ส่งสรุปยอดล่าสุด','ส่งสรุปยอดกี่ครั้ง','ราคาที่ส่ง','สรุปยอด/เลขบัญชีแล้ว','ข้อความราคาล่าสุด',
   'ลูกค้าพิมพ์อะไรหลังได้สรุปยอด','ลูกค้าทักล่าสุด','หัวข้อ','ข้อสังเกต','มาจาก','ลิงก์ตรงห้องแชท (ถ้ามี)','แอดมินย้ายเอง','ผู้ติดตาม','วันที่ติดตาม','ผลการติดตาม'];
@@ -2769,7 +2810,7 @@ function puExport(){const rows=puFilt(false),NPM=PU_KEY!=='pay';
   CH==='line'?('LINE · ผู้ดูแล '+(o.owner||'-')):(o.src==='ad'?'โฆษณา':(o.src==='comment'?'คอมเมนต์':'ทักเอง')),fuLink(o)||'',
   o.ov?((o.ov.st==='skip'?'ไม่ต้องตาม':'กลับมาตาม')+(o.ov.why?' · '+o.ov.why:'')+(o.ov.by?' · '+o.ov.by:'')):'','','','']));
  const end=FU?FU.end.slice(0,10):'';
- downloadCSV((PU_KEY==='sp'?'ยังไม่ส่งตัวอย่าง-':(NPM?'ยังไม่สรุปยอด-':'ตามโอน-'))+(CH==='ig'?'instagram':(CH==='line'?'line':'facebook'))+(FU_O?'-'+FU_O:'')+'-'+(PU_B==='1'?'1-6วัน':(PU_B==='7'?'7-29วัน':(PU_B==='30'?'30-89วัน':'ทุกช่วง')))+(PU_G!=='all'?'-'+(PU_GS[PU_G]||'ไม่ต้องตาม'):'')+'-'+end+'.csv',out);}
+ downloadCSV(({sp:'ยังไม่แนบตัวอย่าง-',np:'แนบตัวอย่าง-ยังไม่สรุปจ่าย-',pay:'แนบตัวอย่าง-สรุปจ่าย-ยังไม่โอน-',pz:'สรุปจ่าย-ไม่แนบตัวอย่าง-ยังไม่โอน-'}[PU_KEY]||'ตามโอน-')+(CH==='ig'?'instagram':(CH==='line'?'line':'facebook'))+(FU_O?'-'+FU_O:'')+'-'+(PU_B==='1'?'1-6วัน':(PU_B==='7'?'7-29วัน':(PU_B==='30'?'30-89วัน':'ทุกช่วง')))+(PU_G!=='all'?'-'+(PU_GS[PU_G]||'ไม่ต้องตาม'):'')+'-'+end+'.csv',out);}
 function puOvCtl(o,i){
  if(o.ov&&o.ov.st==='skip')return `<div class="fuov on">ย้ายเป็นไม่ต้องตาม${o.ov.by?' โดย '+esc(o.ov.by):''}${o.ov.why?'<br><span class="nsm">'+esc(o.ov.why)+'</span>':''}<button class="fuovb" data-pui="${i}" data-ovst="clear">ยกเลิก</button></div>`;
  if(o.ov&&o.ov.st==='follow')return `<div class="fuov">ย้ายกลับมาตาม${o.ov.by?' โดย '+esc(o.ov.by):''}<button class="fuovb" data-pui="${i}" data-ovst="clear">ยกเลิก</button></div>`;
@@ -2781,60 +2822,61 @@ function puOvCtl(o,i){
 function renderPay(){
  const el=$('#fu'), sc=$('#fuscope'), LN=CH==='line', chn=CH==='ig'?'Instagram':(LN?'LINE OA':'Facebook');
  puSetMode(FU_MODE);const SPM=PU_KEY==='sp',NPM=PU_KEY==='np'||SPM;
- $('#fuh2').textContent=SPM?'Follow up · ยังไม่ส่งตัวอย่าง':(NPM?'Follow up · คุยแล้วยังไม่สรุปยอด':'Follow up · สรุปยอดแล้ว ยังไม่โอน');
+ $('#fuh2').textContent='Follow up · '+((FU_MODES.find(m=>m[0]===PU_KEY)||[])[2]||'');
  if(!FU[PU_KEY]){el.innerHTML=fuModeBar()+'<p class="note">ยังไม่มีข้อมูลรายการนี้ในชุดข้อมูล — จะขึ้นหลังรอบอัปเดตถัดไป</p>';fuModeBind(el);return;}
  const endS=LN?FU.lend:FU.end, endT=endS?fuDay(endS)+' '+endS.slice(11,16)+' น.':'';
  sc.textContent=chn+' · ข้อมูลถึง '+endT;
  const R=puRows().filter(o=>!FU_O||o.owner===FU_O);
  const inG=R.filter(o=>puInG(o,PU_G));
  const c1=inG.filter(o=>puInB(o,'1')).length,c7=inG.filter(o=>puInB(o,'7')).length,c30=inG.filter(o=>puInB(o,'30')).length;
- const c0=inG.filter(o=>o.wait<1).length,P90=((FU[SPM?'sp90':(NPM?'np90':'pay90')]||{})[CH])||{},c90=PU_G==='all'?PU_ORD.reduce((a,k)=>a+(P90[k]||0),0):(P90[PU_G]||0);
+ const c0=inG.filter(o=>o.wait<1).length,P90=((FU[PU_KEY+'90']||{})[CH])||{},c90=PU_G==='all'?PU_ORD.reduce((a,k)=>a+(P90[k]||0),0):(P90[PU_G]||0);
  const QW=NPM?'แอดมินตอบ':'ส่งสรุปยอด';
- const H=NPM?[]:(FU.payhist||[]),hi=CH==='ig'?4:(LN?7:1),prevH=H.length>1?H[H.length-2]:null;
+ const H=NPM?[]:(FU[PU_KEY+'hist']||[]),hi=CH==='ig'?4:(LN?7:1),prevH=H.length>1?H[H.length-2]:null;
  const dd=(now,prev)=>prev==null||PU_G!=='all'||FU_O||!prevH?'':(now-prev===0?'<span class="fud0">เท่าเดิม</span>':(now<prev?'<span class="fudok">▼ '+nf(prev-now)+'</span>':'<span class="fudbad">▲ '+nf(now-prev)+'</span>'))+' <span class="nsm">เทียบรอบ '+fuDay(prevH[0])+'</span>';
  const card=(b,cls,lab,v,sub,d)=>`<button class="fucard ${cls}" data-pub="${b}" aria-pressed="${PU_B===b}"><span class="lab">${lab}</span><span class="v">${nf(v)}</span><span class="s">${sub}</span>${d?'<span class="d">'+d+'</span>':''}</button>`;
- const gl=PU_G==='all'?(SPM?'ยังไม่ได้รับตัวอย่าง':(NPM?'คุยแล้วยังไม่สรุปยอด':'สรุปยอดแล้วยังไม่โอน')):PU_GN[PU_G];
+ const gl=PU_G==='all'?(FUT[PU_KEY]||''):PU_GN[PU_G];
  const cards=fuModeBar()+`<div class="fucards c3">`+
   card('1','risk',gl+' · 1–6 วัน',c1,NPM?(SPM?'แอดมินตอบล่าสุดเมื่อ 1–6 วันก่อน · ส่งคลิปตัวอย่าง/ฟอร์มทดลองเรียนให้เลย ตอนลูกค้ายังสนใจ':'แอดมินตอบล่าสุดเมื่อ 1–6 วันก่อน · ส่งสรุปยอด/โปรให้เลย ตอนลูกค้ายังสนใจ'):'ส่งสรุปยอดล่าสุดเมื่อ 1–6 วันก่อน · ตามรอบแรก ช่วงที่ลูกค้ายังจำได้',dd(c1,prevH&&prevH[hi]))+
   card('7','warn',gl+' · 7–29 วัน',c7,NPM?(SPM?'ทักถามต่อ · ส่งตัวอย่างพร้อมแนะนำคอร์สที่ตรงชั้นของน้อง':'ทักถามต่อ · เสนอรอบเรียนที่ใกล้เริ่มพร้อมราคา'):'ตามรอบสอง · เสนอโปร/รอบเรียนที่ใกล้เริ่ม',dd(c7,prevH&&prevH[hi+1]))+
   card('30','',gl+' · 30–89 วัน',c30,'ลูกค้าเก่า · ปลุกด้วยข่าวคอร์สใหม่/เปิดรอบใหม่',dd(c30,prevH&&prevH[hi+2]))+`</div>`;
  /* whole-thread status: every room our side ever quoted */
- const S=((FU[SPM?'spstat':(NPM?'npstat':'paystat')]||{})[CH])||{};
+ const S=((FU[PU_KEY+'stat']||{})[CH])||{};
  const quoted=(S.paid||0)+['R','A','B','C','X'].reduce((a,k)=>a+(S[k]||0),0);
  const go=(g,lab,cls)=>{const n=R.filter(o=>o.g===g).length;return `<button type="button" class="fust go ${cls||''}" data-pugo="${g}" aria-pressed="${PU_G===g&&PU_B==='all'}" title="กดเพื่อดูรายชื่อแชทกลุ่มนี้ (ส่งสรุปยอดภายใน 90 วัน)"><b>${nf(n)}</b> ${lab}</button>`;};
- const stat=`<details class="fustd" data-std="pay"${PU_STD?' open':''}><summary>สถานะทุกห้องที่เคยส่งสรุปยอดตั้งแต่ ม.ค. · ${nf(quoted)} ห้อง · โอนแล้ว ${nf(S.paid||0)}</summary><div class="fustat"><span class="lab">อ่านทั้งห้องแชท (ทุกเดือนต่อกัน) · ${nf(quoted)} ห้องที่ฝั่งเราเคยส่งสรุปยอดตั้งแต่ ม.ค. 2026 · จ่ายเงินแล้ว ${quoted?Math.round((S.paid||0)/quoted*1000)/10:0}% · <b>กดตัวเลขที่มีกรอบ</b>เพื่อเปิดรายชื่อแชท (นับเฉพาะที่ส่งสรุปยอดภายใน 90 วัน)</span>`+
+ const stat=`<details class="fustd" data-std="pay"${PU_STD?' open':''}><summary>สถานะทุกห้องที่เคยส่งสรุปยอด${PU_KEY==='pz'?' (ไม่ได้แนบตัวอย่าง)':' (แนบตัวอย่างแล้ว)'}ตั้งแต่ ม.ค. · ${nf(quoted)} ห้อง · โอนแล้ว ${nf(S.paid||0)}</summary><div class="fustat"><span class="lab">อ่านทั้งห้องแชท (ทุกเดือนต่อกัน) · ${nf(quoted)} ห้องที่ฝั่งเราเคยส่งสรุปยอดตั้งแต่ ม.ค. 2026 · จ่ายเงินแล้ว ${quoted?Math.round((S.paid||0)/quoted*1000)/10:0}% · <b>กดตัวเลขที่มีกรอบ</b>เพื่อเปิดรายชื่อแชท (นับเฉพาะที่ส่งสรุปยอดภายใน 90 วัน)</span>`+
   `<span class="fust ok"><b>${nf(S.paid||0)}</b> โอนแล้ว (สลิปผ่านหลังได้สรุปยอด${LN?' หรือแท็กสมัครแล้ว':''})</span>`+
   go('R','ลูกค้าถามค้าง','risk')+go('A','สรุปยอดแล้ว ลูกค้าเงียบ','warn')+go('B','คุยต่อแล้วเงียบ','')+go('C','ได้สรุปยอดแล้วเงียบเลย','')+go('F','ตามแล้ว รอลูกค้าตอบ','ok')+go('X','ไม่ต้องตาม','')+`</div></details>`;
  const npAsk=['A','B','F','X'].reduce((a,k)=>a+(S[k]||0),0);
- const statNP=`<details class="fustd" data-std="pay"${PU_STD?' open':''}><summary>สถานะทุกห้องที่ลูกค้าถามเรื่องคอร์สแล้วแอดมินตอบ · ${SPM?'ยังไม่ได้รับตัวอย่าง':'ยังไม่สรุปยอด'} ${nf(npAsk)} ห้อง</summary><div class="fustat"><span class="lab">อ่านทั้งห้องแชท (ทุกเดือนต่อกัน) · นับห้องที่ลูกค้าพิมพ์ถามเรื่องคอร์ส แอดมินตอบแล้ว แต่ฝั่งเรายังไม่เคยส่งสรุปยอด (นับจากหลังสลิปผ่านครั้งล่าสุด) · <b>กดตัวเลขที่มีกรอบ</b>เพื่อเปิดรายชื่อแชท (นับเฉพาะที่แอดมินตอบภายใน 90 วัน)</span>`+
-  `${SPM?'<span class="fust ok"><b>'+nf(S.sampled||0)+'</b> ห้องที่ส่งตัวอย่างแล้ว</span>':''}<span class="fust ok"><b>${nf(S.quoted||0)}</b> ห้องที่ส่งสรุปยอดแล้ว (อยู่ในรายการ “ส่งสรุปยอดแล้วยังไม่โอน” หรือโอนแล้ว)</span><span class="fust"><b>${nf(S.waiting||0)}</b> ลูกค้าถามล่าสุด ยังรอแอดมินตอบ</span>`+
+ const statNP=`<details class="fustd" data-std="pay"${PU_STD?' open':''}><summary>สถานะทุกห้องที่ลูกค้าถามเรื่องคอร์สแล้วแอดมินตอบ · ${SPM?'ยังไม่ได้รับตัวอย่าง':'แนบตัวอย่างแล้ว ยังไม่สรุปจ่าย'} ${nf(npAsk)} ห้อง</summary><div class="fustat"><span class="lab">อ่านทั้งห้องแชท (ทุกเดือนต่อกัน) · นับห้องที่ลูกค้าพิมพ์ถามเรื่องคอร์ส แอดมินตอบแล้ว แต่ฝั่งเรายังไม่เคยส่งสรุปยอด (นับจากหลังสลิปผ่านครั้งล่าสุด) · <b>กดตัวเลขที่มีกรอบ</b>เพื่อเปิดรายชื่อแชท (นับเฉพาะที่แอดมินตอบภายใน 90 วัน)</span>`+
+  `${SPM?'<span class="fust ok"><b>'+nf(S.sampled||0)+'</b> ห้องที่ส่งตัวอย่างแล้ว (ไปหมวด “แนบตัวอย่างแล้ว แต่ยังไม่ได้สรุปจ่าย”)</span>':'<span class="fust"><b>'+nf(S.nosample||0)+'</b> ห้องที่ยังไม่ได้แนบตัวอย่าง (อยู่หมวด “แอดมินตอบแล้ว แต่ยังไม่แนบตัวอย่าง”)</span>'}<span class="fust ok"><b>${nf(S.quoted||0)}</b> ห้องที่ส่งสรุปยอดแล้ว (อยู่หมวด “สรุปจ่ายแล้ว แต่ลูกค้ายังไม่โอน” หรือโอนแล้ว)</span><span class="fust"><b>${nf(S.waiting||0)}</b> ลูกค้าถามล่าสุด ยังรอแอดมินตอบ</span>`+
   go('A','บอกชั้น/คอร์สแล้ว','risk')+go('B','ถามเรื่องคอร์สทั่วไป','warn')+go('F','ตามแล้ว รอลูกค้าตอบ','ok')+go('X','ไม่ต้องตาม','')+`</div></details>`;
- const PF=NPM?S:(((FU.payfu||{})[CH])||{});
+ const PF=NPM?S:(((FU[PU_KEY+'fu']||{})[CH])||{});
  const payNow=new Map(puRows().filter(o=>PU_TODO.includes(o.g)&&o.wait>=1&&o.wait<90).map(o=>[String(o.tid),o.name||'']));
- const flow=FU_O?'<p class="note fusm">สรุป “แชทค้างไปไหน” ดูได้เมื่อเลือกแอดมินผู้ดูแล “ทุกคน”</p>':PU_G!=='all'?'<p class="note fusm">สรุป “แชทค้างไปไหน” นับรวมทุกกลุ่มที่ต้องตาม — เลือกกลุ่ม “ทั้งหมดที่ต้องตาม” เพื่อดู</p>':(NPM?flowBox(((FU[SPM?'spflow':'npflow']||{})[CH]||{})[PU_FLD],PU_FLD,PU_FLK,'flk','fld',
-  [['sampled','ส่งตัวอย่างแล้ว','ok'],['quoted','ส่งสรุปยอดแล้ว → ไปรายการตามโอน','ok'],['paid','โอนแล้ว','ok'],['fu','ตามแล้ว → รอลูกค้าตอบ','ok'],['waiting','ลูกค้าถามต่อ → รอแอดมินตอบ','warn'],['x','ไม่ต้องตาม',''],['aged','หลุดเพราะแอดมินตอบเกิน 90 วัน',''],['moved','แอดมินกดเอง (ตามแล้ว / ไม่ต้องตาม)','ok']],
+ const flow=FU_O?'<p class="note fusm">สรุป “แชทค้างไปไหน” ดูได้เมื่อเลือกแอดมินผู้ดูแล “ทุกคน”</p>':PU_G!=='all'?'<p class="note fusm">สรุป “แชทค้างไปไหน” นับรวมทุกกลุ่มที่ต้องตาม — เลือกกลุ่ม “ทั้งหมดที่ต้องตาม” เพื่อดู</p>':(NPM?flowBox(((FU[PU_KEY+'flow']||{})[CH]||{})[PU_FLD],PU_FLD,PU_FLK,'flk','fld',
+  [['sampled','ส่งตัวอย่างแล้ว','ok'],['quoted','ส่งสรุปยอดแล้ว → ไปหมวดสรุปจ่ายแล้ว','ok'],['paid','โอนแล้ว','ok'],['fu','ตามแล้ว → รอลูกค้าตอบ','ok'],['waiting','ลูกค้าถามต่อ → รอแอดมินตอบ','warn'],['x','ไม่ต้องตาม',''],['aged','หลุดเพราะแอดมินตอบเกิน 90 วัน',''],['moved','แอดมินกดเอง (ตามแล้ว / ไม่ต้องตาม)','ok']],
   [['fudue','ตามแล้วแต่ครบกำหนดอีก','warn'],['still','ยังไม่มีใครตาม','risk']],
   `ย้อนหลัง 7 วัน แอดมินทักตามในแชท <b>${nf(S.fu_7d||0)}</b> แชท · ตัวเลขนี้นับจากข้อความในแชทอย่างเดียว`,
   {nowSet:payNow,scope:'ทั้งหมดที่ต้องตาม',passive:['aged'],clearLab:'เคลียร์ได้',clearVerb:'เคลียร์',newLab:'เข้ารายการใหม่',how:'“ค้างตอนนี้” = การ์ด 1–6 + 7–29 + 30–89 วัน ด้านบน (บอกชั้น/คอร์สแล้ว + ถามทั่วไป) · “เคลียร์ได้” = ส่งสรุปยอดแล้ว · โอนแล้ว · ตามแล้วรอลูกค้าตอบ · ลูกค้าถามต่อ (ไปรอแอดมินตอบ) · ไม่ต้องตาม (ไม่นับแชทที่หลุดเพราะเกิน 90 วัน ซึ่งแสดงแยกสีเทา) · “เข้ารายการใหม่” = แชทที่แอดมินเพิ่งตอบครบ 1 วันแล้วยังไม่สรุปยอดในช่วงนี้ ·'}):
-  flowBox(((FU.payflow||{})[CH]||{})[PU_FLD],PU_FLD,PU_FLK,'flk','fld',
+  flowBox(((FU[PU_KEY+'flow']||{})[CH]||{})[PU_FLD],PU_FLD,PU_FLK,'flk','fld',
   [['paid','โอนแล้ว','ok'],['fu','ตามแล้ว → รอลูกค้าตอบ','ok'],['x','ไม่ต้องตาม',''],['aged','หลุดเพราะส่งสรุปยอดเกิน 90 วัน',''],['moved','แอดมินกดเอง (ตามแล้ว / ไม่ต้องตาม)','ok']],
   [['reply','ลูกค้าตอบกลับ (ย้ายกลุ่ม)','warn'],['fudue','ตามแล้วแต่ครบกำหนดอีก','warn'],['still','ยังไม่มีใครตาม','risk']],
   `ย้อนหลัง 7 วัน แอดมินทักตามในแชท <b>${nf(PF.fu_7d||0)}</b> แชท · ตั้งแต่ ม.ค. โอนแล้ว ${nf(S.paid||0)} แชท ในนั้น <b>${nf(S.paid_fu||0)}</b> แชทโอนหลังแอดมินทักตาม · ตัวเลขนี้นับจากข้อความในแชทอย่างเดียว การกด “ตามแล้ว” ไม่อยู่ในตารางนี้`,
   {nowSet:payNow,scope:'ทั้งหมดที่ต้องตาม',passive:['aged'],clearLab:'เคลียร์ได้',clearVerb:'เคลียร์',newLab:'ส่งสรุปยอดใหม่',how:'“ค้างตอนนี้” = การ์ด 1–6 + 7–29 + 30–89 วัน ด้านบน (ถามค้าง + สรุปยอดแล้ว + คุยต่อแล้วเงียบ + เงียบเลย) · “เคลียร์ได้” = โอนแล้ว · ตามแล้วรอลูกค้าตอบ · ไม่ต้องตาม (ไม่นับแชทที่หลุดเพราะส่งสรุปยอดเกิน 90 วัน ซึ่งแสดงแยกสีเทา) · “ส่งสรุปยอดใหม่” = แชทที่เพิ่งเข้ารายการในช่วงนี้ ·'}));
  const kw=`<details class="fhelp" style="margin:8px 0 16px"><summary>กฎที่ใช้จับ “สรุปยอด” และ “โอนแล้ว”</summary><dl>
   <dt>สรุปยอด (ข้อความฝั่งเรา แอดมินหรือข้อความอัตโนมัติ)</dt><dd>ภายใน 30 นาทีต้องมี<b>ครบทั้ง 3 ส่วน</b> (ส่วนใหญ่อยู่ในข้อความเดียว)<div class="fukw"><code>สรุปรายละเอียด / รหัสคอร์ส</code><code>ยอดเงิน เช่น 5,500 บาท · 4500.- · ราคา 5500</code><code>166-3-63464-6 / โอนชำระค่าเรียนได้ที่</code></div>ข้อความที่แค่บอกราคา หรือ “แอดมินสรุปยอดชำระให้ซักครู่นะคะ” ไม่นับ · เปลี่ยนเกณฑ์ 30 ก.ย. 2026 (เดิมนับทุกข้อความที่มีราคา ทำให้ตัวเลขเกินจริงราว 8 เท่า)</dd>
+  <dt>แยก 2 หมวด</dt><dd>ในรอบการขายเดียวกัน ฝั่งเราเคยส่งตัวอย่าง → หมวด <b>แนบตัวอย่าง + สรุปจ่ายแล้ว แต่ลูกค้ายังไม่โอน</b> · ไม่เคยส่ง → หมวด <b>ส่งสรุปจ่ายแล้วแต่ยังไม่โอน</b> (ส่วนใหญ่เป็นนักเรียนเก่าที่สมัครต่อ)</dd>
   <dt>โอนแล้ว = หลุดจากรายการ</dt><dd><div class="fukw"><code>สถานะ: ตรวจสอบสลิปสำเร็จ</code><code>ชื่อผู้รับ: บจก. ไบโอปาล์ม</code>${LN?'<code>แท็ก LINE “สมัครแล้ว”</code>':''}</div>ต้องมา<b>หลัง</b>ใบสรุปยอดรอบนั้น · ถ้าส่งสรุปยอดใหม่หลังเคยโอน (ซื้อคอร์สต่อ) จะนับเป็นรอบใหม่ และติดป้าย “เคยโอนแล้ว”</dd>
   <dt>ตามแล้ว (ระบบจับเอง)</dt><dd>ข้อความที่<b>แอดมินกดส่งเอง</b> หลังลูกค้าเงียบ <b>12 ชม.ขึ้นไป</b> และหลังส่งสรุปยอดแล้ว 12 ชม.ขึ้นไป (ข้อความอัตโนมัติไม่นับ · ส่งหลายข้อความภายใน 30 นาทีนับ 1 ครั้ง) · ส่งการ์ดราคาซ้ำแบบนี้ก็นับเป็นการตาม <b>ไม่</b>นับเป็นส่งสรุปยอดใหม่ วันที่ “ส่งสรุปยอดมาแล้ว” จึงไม่รีเซ็ต · ลูกค้ายังไม่ตอบ = อยู่ “ตามแล้ว · รอลูกค้าตอบ” 7 วัน ครบแล้วยังเงียบ = กลับมาในรายการพร้อมป้าย “ครบกำหนดตามรอบถัดไป” · ลูกค้าตอบ = ย้ายไปถามค้าง/คุยต่อ · ตามทางโทรหรือ LINE ที่ระบบมองไม่เห็น กดปุ่ม <b>✓ ตามแล้ว</b> ได้ทันที (ตามในแชทแล้วไม่อยากรอรอบ 05:00 หรือตามทางโทร/LINE ก็ได้) มีผล 7 วันเหมือนกัน · แถว “ลูกค้าถามค้าง” มีปุ่ม <b>✓ ตอบแล้ว</b> ย้ายไป “คุยต่อหลังได้สรุปยอด” ทันที</dd>
   <dt>ไม่ต้องตาม</dt><dd><div class="fukw"><code>โอนแล้ว / แนบสลิป / ชำระแล้ว</code><code>ถามเรื่องไฟล์ ลิงก์เข้าเรียน ชีท</code><code>ไม่สนใจ / ไว้ก่อน / แพง / ยกเลิก</code><code>ชวนไปคุย LINE แล้ว</code></div>(ลูกค้าพิมพ์หลังได้สรุปยอด) · หรือแอดมินย้ายเอง</dd></dl></details>`;
- const kwSP=`<details class="fhelp" style="margin:8px 0 16px"><summary>กฎที่ใช้จับ “ยังไม่ส่งตัวอย่าง”</summary><dl>
+ const kwSP=`<details class="fhelp" style="margin:8px 0 16px"><summary>กฎที่ใช้จับ “แอดมินตอบแล้ว แต่ยังไม่แนบตัวอย่าง”</summary><dl>
   <dt>เข้ารายการเมื่อ</dt><dd>ลูกค้า<b>พิมพ์เอง</b>ถามเรื่องคอร์ส <b>และ</b>แอดมิน (คน) ตอบข้อความล่าสุดของลูกค้าแล้ว <b>และ</b>ฝั่งเรา<b>ยังไม่เคยส่งตัวอย่าง</b>ในห้องนี้ <b>และ</b>ยังไม่ได้ส่งสรุปยอด · ลูกค้าทักล่าสุดตั้งแต่ 1 ส.ค. 2026 · ไม่นับนักเรียนเดิม (เคยโอนแล้ว · LINE แท็ก “สมัครแล้ว” · ถามเรื่องลิงก์เข้าเรียน) · ครบ 1 วันหลังแอดมินตอบจึงเข้ารายการ</dd>
   <dt>นับว่า “ส่งตัวอย่างแล้ว”</dt><dd>ข้อความฝั่งเรา (แอดมินหรือบอท) มีลิงก์ตัวอย่าง<div class="fukw"><code>YouTube 3 คลิป · Module 1 / สรุปเนื้อหา / ตะลุยโจทย์</code><code>Drive คลิปตัวอย่าง ม.ปลาย · ทดลองเรียน Module 1 / 2</code><code>shorturl ตัวอย่าง ม.ปลาย / ปรับพื้นฐาน</code><code>คำว่า “ตัวอย่าง” หรือ “ทดลองเรียน” + ลิงก์ใดก็ได้ (รวม Google Form ทดลองเรียน)</code></div>ลิงก์เดียวกันที่คัดลอกจากมือถือหรือคอมหน้าตาต่างกัน ระบบนับเป็นไฟล์เดียวกัน</dd>
-  <dt>หลุดจากรายการเมื่อ</dt><dd>ส่งตัวอย่างแล้ว · ส่งสรุปยอดแล้ว · ลูกค้าถามต่อ (รอแอดมินตอบ) · ย้ายไปไม่ต้องตาม</dd>
+  <dt>หลุดจากรายการเมื่อ</dt><dd>ส่งตัวอย่างแล้ว (→ หมวด “แนบตัวอย่างแล้ว แต่ยังไม่ได้สรุปจ่าย”) · ส่งสรุปยอดแล้ว (→ หมวดสรุปจ่ายแล้ว) · ลูกค้าถามต่อ (รอแอดมินตอบ) · ย้ายไปไม่ต้องตาม</dd>
   <dt>ตามแล้ว</dt><dd>ข้อความที่แอดมินส่งเอง หลังลูกค้าเงียบ 12 ชม.ขึ้นไป · อยู่ “ตามแล้ว · รอลูกค้าตอบ” 7 วัน ครบแล้วยังเงียบ = กลับมาในรายการ · ส่งตัวอย่างทางอื่นแล้ว กดปุ่ม <b>✓ ตามแล้ว</b> หรือย้ายไปไม่ต้องตาม</dd></dl></details>`;
- const kwNP=`<details class="fhelp" style="margin:8px 0 16px"><summary>กฎที่ใช้จับ “คุยแล้วยังไม่สรุปยอด”</summary><dl>
-  <dt>เข้ารายการเมื่อ</dt><dd>ลูกค้า<b>พิมพ์เอง</b>ถามเรื่องคอร์ส <b>และ</b>แอดมิน (คน ไม่ใช่ข้อความอัตโนมัติ) ตอบข้อความล่าสุดของลูกค้าแล้ว <b>และ</b>ฝั่งเรายังไม่เคยส่งสรุปยอดในรอบนี้ (นับจากหลังสลิปผ่านครั้งล่าสุด) · นับวันจากข้อความแรกที่แอดมินตอบ · ครบ 1 วันจึงเข้ารายการ<div class="fukw"><code>คอร์ส</code><code>ราคา / ค่าเรียน / เท่าไหร่ / กี่บาท</code><code>สมัคร / ลงเรียน</code><code>ตาราง / โปร</code><code>สอวน / IJSO / A-Level / สอบเข้า</code><code>ออนไลน์ / onsite / เรียนสด / เทป</code></div></dd>
+ const kwNP=`<details class="fhelp" style="margin:8px 0 16px"><summary>กฎที่ใช้จับ “แอดมินตอบแล้ว + แนบตัวอย่างแล้ว แต่ยังไม่ได้สรุปจ่าย”</summary><dl>
+  <dt>เข้ารายการเมื่อ</dt><dd>ลูกค้า<b>พิมพ์เอง</b>ถามเรื่องคอร์ส <b>และ</b>แอดมิน (คน ไม่ใช่ข้อความอัตโนมัติ) ตอบข้อความล่าสุดของลูกค้าแล้ว <b>และ</b>ฝั่งเรา<b>ส่งตัวอย่างแล้ว</b> <b>แต่</b>ยังไม่เคยส่งสรุปยอดในรอบนี้ (นับจากหลังสลิปผ่านครั้งล่าสุด) · นับวันจากข้อความแรกที่แอดมินตอบ · ครบ 1 วันจึงเข้ารายการ<div class="fukw"><code>คอร์ส</code><code>ราคา / ค่าเรียน / เท่าไหร่ / กี่บาท</code><code>สมัคร / ลงเรียน</code><code>ตาราง / โปร</code><code>สอวน / IJSO / A-Level / สอบเข้า</code><code>ออนไลน์ / onsite / เรียนสด / เทป</code></div></dd>
   <dt>บอกชั้น/คอร์สแล้ว (ตามก่อน)</dt><dd>ข้อความลูกค้ามีชั้นเรียน <b>และ</b>คำถามเรื่องคอร์ส<div class="fukw"><code>ม.1–6 / ม.ต้น / ม.ปลาย</code><code>ป.1–6 / ประถม</code><code>ซิ่ว / ปี 1–4 / dek</code></div></dd>
-  <dt>หลุดจากรายการเมื่อ</dt><dd>ฝั่งเราส่งสรุปยอด → ไปอยู่หมวด <b>ส่งสรุปยอดแล้วยังไม่โอน</b> · ลูกค้าถามต่อ → รอแอดมินตอบ (แชทจะกลับมาเมื่อแอดมินตอบแล้ว) · LINE แท็ก “สมัครแล้ว”</dd>
+  <dt>หลุดจากรายการเมื่อ</dt><dd>ฝั่งเราส่งสรุปยอด → ไปอยู่หมวด <b>แอดมินตอบแล้ว + แนบตัวอย่างแล้ว + สรุปจ่ายแล้ว แต่ลูกค้ายังไม่โอน</b> · ลูกค้าถามต่อ → รอแอดมินตอบ (แชทจะกลับมาเมื่อแอดมินตอบแล้ว) · LINE แท็ก “สมัครแล้ว”</dd>
   <dt>ตามแล้ว</dt><dd>ข้อความที่แอดมินส่งเอง หลังลูกค้าเงียบ 12 ชม.ขึ้นไป (ส่งหลายข้อความใน 30 นาทีนับ 1 ครั้ง) · อยู่ “ตามแล้ว · รอลูกค้าตอบ” 7 วัน ครบแล้วยังเงียบ = กลับมาในรายการพร้อมป้าย “ครบกำหนดตามรอบถัดไป” · ตามทางโทรหรือ LINE กดปุ่ม <b>✓ ตามแล้ว</b> ได้ทันที</dd>
   <dt>ไม่ต้องตาม</dt><dd><div class="fukw"><code>โอนแล้ว / แนบสลิป</code><code>ถามเรื่องไฟล์ ลิงก์เข้าเรียน ชีท</code><code>ไม่สนใจ / ไว้ก่อน / แพง</code><code>ชวนไปคุย LINE แล้ว</code></div>หรือแอดมินย้ายเอง</dd></dl></details>`;
  const note=`<p class="note fusm">ตัวเลขในการ์ด = กลุ่ม <b>${PU_GN[PU_G]}</b> · ${QW}ไม่ถึง 1 วัน ${nf(c0)} แชท (ยังคุยกันอยู่ ยังไม่เข้ารายการ) · ${QW}เก่ากว่า 90 วัน ${nf(c90)} แชท (นับไว้เฉย ๆ ไม่ใส่ในรายการ)${LN?' · LINE ดึงเดือนละครั้ง “มาแล้ว” นับถึง '+endT:''}</p>`;
@@ -2876,7 +2918,7 @@ function renderPay(){
   ['all'].concat(PU_ORD,['F','X']).map(g=>`<button type="button" class="fug g-${g}" data-pug="${g}" aria-pressed="${PU_G===g}" title="${esc(PU_GD[g]||(NPM?'บอกชั้น/คอร์สแล้ว + ถามทั่วไป (ไม่รวมตามแล้ว และไม่ต้องตาม)':'ถามค้าง + สรุปยอดแล้ว + คุยต่อแล้วเงียบ + เงียบเลย (ไม่รวมตามแล้ว และไม่ต้องตาม)'))}">${PU_GN[g]} <b>${nf(R.filter(o=>bOK(o)&&puInG(o,g)).length)}</b></button>`).join('')+`</div>`;
  const bl=PU_B==='all'?'ทุกช่วงเวลา ('+QW+'ภายใน 90 วัน)':(PU_B==='1'?QW+' 1–6 วันก่อน':(PU_B==='7'?QW+' 7–29 วันก่อน':QW+' 30–89 วันก่อน'));
  const show=`<div class="fushow" id="pulist">กำลังดู <b>${PU_GN[PU_G]}</b> · ${bl}${PU_T?(NPM?' · หัวข้อ ':' · ราคา ')+esc(PU_T):''} · <b>${nf(L.length)}</b> แชท${PU_G!=='all'&&PU_GD[PU_G]?'<span class="nsm" style="flex-basis:100%;color:var(--ink-2)">'+PU_GD[PU_G]+'</span>':''}${PU_B==='all'?' <button class="chip" data-pub="1" aria-pressed="false">กลับไปดู 1–6 วัน</button>':''}</div>`;
- const list=`<div class="fuhd"><b>${NPM?(SPM?'รายชื่อแชทที่ยังไม่ได้รับตัวอย่าง':'รายชื่อแชทที่คุยแล้วยังไม่สรุปยอด'):'รายชื่อแชทที่ต้องตามโอน'}</b> <span class="nsm">${NPM?'บอกชั้น/คอร์สแล้วขึ้นก่อน → ถามทั่วไป · ในกลุ่มเรียงจากแอดมินตอบล่าสุด':'ถามค้างขึ้นก่อน → สรุปยอดแล้ว → คุยต่อแล้วเงียบ → เงียบเลย · ในกลุ่มเรียงจากส่งสรุปยอดล่าสุด'}</span></div>
+ const list=`<div class="fuhd"><b>${NPM?(SPM?'รายชื่อแชทที่ยังไม่ได้รับตัวอย่าง':'รายชื่อแชทที่แนบตัวอย่างแล้ว แต่ยังไม่ได้สรุปจ่าย'):(PU_KEY==='pz'?'รายชื่อแชทที่ส่งสรุปจ่ายแล้ว (ไม่ได้แนบตัวอย่าง) ยังไม่โอน':'รายชื่อแชทที่แนบตัวอย่าง + สรุปจ่ายแล้ว ยังไม่โอน')}</b> <span class="nsm">${NPM?'บอกชั้น/คอร์สแล้วขึ้นก่อน → ถามทั่วไป · ในกลุ่มเรียงจากแอดมินตอบล่าสุด':'ถามค้างขึ้นก่อน → สรุปยอดแล้ว → คุยต่อแล้วเงียบ → เงียบเลย · ในกลุ่มเรียงจากส่งสรุปยอดล่าสุด'}</span></div>
   ${grp}${show}
   <div class="tw"><div class="ptop"><input type="search" id="puq" placeholder="${NPM?'ค้นชื่อลูกค้า หรือข้อความ':'ค้นชื่อลูกค้า ข้อความ หรือราคา'}" value="${esc(PU_Q)}">${ownRow}</div>
   <table class="fulist"><thead><tr><th>ลูกค้า</th>${NPM?'<th class="n">แอดมินตอบล่าสุด</th><th>ลูกค้าถามอะไร</th><th>แอดมินตอบว่าอะไร</th>':'<th class="n">ส่งสรุปยอดมาแล้ว</th><th>ราคาที่ส่ง</th><th>ลูกค้าพิมพ์อะไรหลังได้สรุปยอด</th>'}<th></th></tr></thead><tbody>${lrows||'<tr><td colspan="5">ไม่มีแชทตามตัวกรองนี้ 🎉</td></tr>'}</tbody></table>
@@ -3278,7 +3320,7 @@ function renderAdmQuality(){
  const tv=qv(T);if(tv!=null)lines.push(`<b>อ่านง่าย ๆ:</b> ทุก 100 แชทที่แอดมินตอบ ลูกค้าจ่ายเงินแล้วประมาณ <b>${Math.round(tv*10)/10}</b> แชท${rows.length>1?' (รวมทุกช่องทาง)':''}`);
  if(ranked.length>1)lines.push(`ช่องทางที่ลูกค้าจ่ายเงินมากที่สุด (ต่อแชทที่ตอบ) <b>${chName(ranked[0][0])} ${Math.round(ranked[0][1]*10)/10}%</b> · ต่ำสุด <b>${chName(ranked[ranked.length-1][0])} ${Math.round(ranked[ranked.length-1][1]*10)/10}%</b>${ranked[0][1]>ranked[ranked.length-1][1]*1.5?' — ต่างกันมากเป็นเรื่องปกติ เพราะลูกค้าแต่ละช่องทางอยู่คนละขั้น (LINE มีนักเรียนเดิมที่สมัครต่อ)':''}`);
  for(const r of rows){if(!r.pr||r.pp==null||!r.q.ans||r.q.ans<30)continue;const a=r.pr*100/r.q.ans,b=r.pp*100/r.pr;
-  lines.push(`${chName(r.c)}: ตอบแล้วไปถึงสรุปจ่าย <b>${Math.round(a)}%</b> → ได้ใบสรุปแล้วจ่ายเงินตามมา <b>${Math.round(b)}%</b>${b<50?' · หลุดมากหลังสรุปจ่าย (ได้ยอดแล้วไม่โอน — ดู Follow up “สรุปยอดแล้วยังไม่โอน”)':' · ได้สรุปจ่ายแล้วส่วนใหญ่โอน จุดที่ต้องเร่งคือพาแชทไปถึงสรุปจ่าย (ส่งตัวอย่าง → ดู Follow up “ยังไม่ส่งตัวอย่าง”)'}`);}
+  lines.push(`${chName(r.c)}: ตอบแล้วไปถึงสรุปจ่าย <b>${Math.round(a)}%</b> → ได้ใบสรุปแล้วจ่ายเงินตามมา <b>${Math.round(b)}%</b>${b<50?' · หลุดมากหลังสรุปจ่าย (ได้ยอดแล้วไม่โอน — ดู Follow up “แนบตัวอย่าง + สรุปจ่ายแล้ว แต่ลูกค้ายังไม่โอน” และ “ส่งสรุปจ่ายแล้วแต่ยังไม่โอน”)':' · ได้สรุปจ่ายแล้วส่วนใหญ่โอน จุดที่ต้องเร่งคือพาแชทไปถึงสรุปจ่าย (ส่งตัวอย่าง → ดู Follow up “แอดมินตอบแล้ว แต่ยังไม่แนบตัวอย่าง”)'}`);}
  if(spAll||rows.length===1){const o=spAll||rows[0].sp;if(o){const f=o.b[0],sl=o.b[3];if(f[0]>=30&&sl[0]>=30){const a=f[1]*100/f[0],b=sl[1]*100/sl[0];
   lines.push(`ตอบภายใน 15 นาที จ่ายเงิน <b>${Math.round(a*10)/10}%</b> เทียบกับตอบช้ากว่า 60 นาที <b>${Math.round(b*10)/10}%</b>${a>b*1.15?' — <b>ตอบเร็วแล้วลูกค้าจ่ายเงินมากกว่าชัดเจน</b>':(b>a*1.15?' — ในช่วงนี้ตอบช้ากลับจ่ายเงินมากกว่า (มักเป็นแชทนักเรียนเดิมที่ตั้งใจซื้ออยู่แล้ว)':' — ความเร็วตอบยังไม่ทำให้การจ่ายเงินต่างกันมาก')}`);}}}
  /* LINE per admin */
@@ -3308,15 +3350,31 @@ function renderAdmQuality(){
  ${t3}`;}
 
 /* ---------- orchestration ---------- */
-function renderOverview(){renderAdmCards();renderAdmMoM();renderAdmPend();renderV4Speed();renderAdmQuality();renderV4Adm();renderV4Notes();}
+function renderOverview(){renderAdmCards();renderAdmMoM();renderAdmPend();renderV4Speed();renderAdmQuality();renderV4Adm();renderV4Notes();ovNav();}
+/* แถบ "ไปที่" (30 ก.ย. 2026): เลขตรงกับเลขบนหัวกล่องแต่ละหมวด · ไฮไลต์หมวดที่กำลังดูอยู่ */
+const OVSEC=[['s-v4k','Metric'],['s-v4m','เทียบเดือนต่อเดือน'],['s-v4f','แชทที่ยังไม่ตอบ'],['s-v4s','ความเร็วตอบ'],['s-v4q','คุณภาพการตอบ'],['s-v4a','ภาระงาน LINE'],['s-v4n','แท็ก/โน้ต LINE']];
+let OVSPY=false;
+function ovNav(){const nav=document.getElementById('ovnav');if(!nav)return;
+ const vis=VIEW==='ov'?OVSEC.filter(([id])=>{const e=document.getElementById(id);return e&&!e.hidden;}):[];
+ nav.hidden=!vis.length;if(!vis.length)return;
+ nav.innerHTML='<span class="lab">ไปที่</span>'+vis.map(([id,l],i)=>`<button type="button" data-ovgo="${id}" style="--c:${getComputedStyle(document.getElementById(id)).getPropertyValue('--sec').trim()||'var(--teal)'}"><i>${i+1}</i>${l}</button>`).join('');
+ nav.querySelectorAll('[data-ovgo]').forEach(b=>b.addEventListener('click',()=>{const e=document.getElementById(b.dataset.ovgo);if(e)e.scrollIntoView({behavior:'smooth',block:'start'});}));
+ ovSpy();
+ if(!OVSPY){OVSPY=true;window.addEventListener('scroll',ovSpy,{passive:true});}}
+function ovSpy(){const nav=document.getElementById('ovnav');if(!nav||nav.hidden)return;
+ const rail=document.querySelector('.rail'),top=(rail?rail.getBoundingClientRect().bottom:0)+24;let cur='';
+ for(const [id] of OVSEC){const e=document.getElementById(id);if(!e||e.hidden)continue;if(e.getBoundingClientRect().top<=top)cur=id;}
+ if(!cur){const f=nav.querySelector('[data-ovgo]');cur=f?f.dataset.ovgo:'';}
+ nav.querySelectorAll('[data-ovgo]').forEach(b=>b.setAttribute('aria-current',String(b.dataset.ovgo===cur)));}
 function applyView(){
  const fuOK=CH==='fb'||CH==='ig'||CH==='line', vf=$('#vfu'); if(vf)vf.hidden=!fuOK;
  if(VIEW==='fu'&&!fuOK){VIEW='ov';$('#vseg').querySelectorAll('button').forEach(x=>x.setAttribute('aria-pressed',String(x.dataset.v===VIEW)));}
  const fu=VIEW==='fu'; $('#s-fu').hidden=!fu; const mc=$('#mctl'); if(mc)mc.hidden=fu;
- if(fu){['s-v4k','s-v4m','s-v4f','s-v4n','s-v4s','s-v4q','s-v4a','s-raw'].forEach(id=>{const e=document.getElementById(id);if(e)e.hidden=true;});
+ if(fu){['s-v4k','s-v4m','s-v4f','s-v4n','s-v4s','s-v4q','s-v4a','s-raw'].forEach(id=>{const e=document.getElementById(id);if(e)e.hidden=true;});{const n=document.getElementById('ovnav');if(n)n.hidden=true;}
   FU_W='';FU_T='';FU_K='all';FU_O='';FU_PAGE=0;TNF_G='xx';TNF_T='';TNF_O='';TNF_Q='';TNF_PAGE=0;FU_G=CH==='line'?'both':'never';if(FU_B==='all')FU_B='7';PU_G='all';PU_T='';PU_W='';PU_PAGE=0;PU_Q='';if(FU_JUMP){FU_B=FU_JUMP.b;FU_G=FU_JUMP.g;FU_JUMP=null;}renderFU();return;}
  const ov=VIEW==='ov';
  ['s-v4k','s-v4m','s-v4f','s-v4n','s-v4s','s-v4q','s-v4a'].forEach(id=>{const e=document.getElementById(id);if(e)e.hidden=!ov;});
+ if(!ov){const n=document.getElementById('ovnav');if(n)n.hidden=true;}
  $('#s-raw').hidden=ov;
  if(ov)renderOverview();else if(CH==='line')lnRenderRaw();else renderRaw();
 }
