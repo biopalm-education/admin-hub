@@ -1,6 +1,12 @@
 # -*- coding: utf-8 -*-
 """Payment follow-up list (admin-hub "Follow up · ตามโอนเงิน", Sep 23 2026).
 
+30 ก.ย. 2026 (preview, key "v8"): "quote" is now the PAYMENT SUMMARY CARD only (stage_rules.summary_marks: สรุปรายละเอียด/รหัสคอร์ส
++ amount + account/"โอนชำระค่าเรียนได้ที่" within 30 min). The old PRICE/BILL rule below counted every price
+mention (~8x too many). Groups after the card: A = customer silent · B = customer talked after the card.
+Adds the "sp" list (ยังไม่ส่งตัวอย่าง, ส.ค.+) — see judge_sp(). Until the preview page is deployed, the top-level keys keep
+the old price rule (the live page reads them) and the new rule is written to followup.json["v8"] (the preview page reads it).
+
 A chat is listed when OUR side (admin, saved reply or automation - never the customer) sent a price
 and no verified slip came back AFTER that quote:
   quote  = PRICE (amount + บาท/฿/.- , "ค่าเรียน <n>", "ราคา <n>") or BILL ("ยอดชำระ", "สรุปรายละเอียด",
@@ -28,6 +34,7 @@ Whole thread, all months stitched by thread id (same as build_fu.py).
 Writes key "pay" into src/followup.json (run right after build_fu.py; build_fu.py calls it itself).
 """
 import json, glob, re, datetime, collections, gc
+from stage_rules import summary_marks, sample_type
 T0 = datetime.datetime(2026, 1, 1)
 def base(mo): return int((datetime.datetime(int(mo[:4]), int(mo[5:7]), 1) - T0).total_seconds() // 60)
 def stamp(mi): return (T0 + datetime.timedelta(minutes=mi)).strftime('%Y-%m-%d %H:%M')
@@ -71,7 +78,14 @@ FU_GAP = 12 * 60        # minutes of customer silence before an admin message co
 FU_DUE = 7 * 1440       # a follow-up the customer ignored for this long -> due for the next round
 FU_MERGE = 30           # admin messages this close together are one follow-up
 
-def rounds(ms, i0, i1):
+NEW = True   # True: summary-card rule (30 ก.ย. 2026) · False: the old price/bill rule — main() runs both, see there
+def qset(ms):
+    """indices of our quotes in ms [(minute, role, text)]: payment-summary cards (stage_rules), or with NEW off the
+       old rule (any PRICE/BILL message from our side)"""
+    if not NEW: return {i for i, x in enumerate(ms) if x[1] != 0 and (PRICE.search(x[2]) or BILL.search(x[2]))}
+    return set(summary_marks([(t, r != 0, x) for t, r, x in ms]))
+
+def rounds(ms, i0, i1, QS=None):
     """walk ms[i0:i1] (the open round) -> anchor index, follow-up times"""
     anchor = None; fus = []; lastC = -10**9; cust_since_our = True
     for i in range(i0, i1):
@@ -79,7 +93,7 @@ def rounds(ms, i0, i1):
         if r == 0:
             if x not in NOISE: lastC = t; cust_since_our = True
             continue
-        isq = bool(PRICE.search(x) or BILL.search(x))
+        isq = (i in QS) if QS is not None else bool(PRICE.search(x) or BILL.search(x))
         isfu = (r == 1 and anchor is not None and not cust_since_our and t - lastC >= FU_GAP and t - ms[anchor][0] >= FU_GAP)
         if isfu:
             if fus and t - fus[-1] < FU_MERGE: fus[-1] = t
@@ -96,7 +110,8 @@ def judge(ms, end, extra=None, cut=None):
         ms = [x for x in ms if x[0] <= cut]; end = cut   # LINE 'สมัครแล้ว' tag has no date -> tagged rooms stay out of the flow too
     cus = [x for x in ms if x[1] == 0]
     if not cus: return None, 'nocus'
-    q = [i for i, x in enumerate(ms) if x[1] != 0 and (PRICE.search(x[2]) or BILL.search(x[2]))]
+    QS = qset(ms)
+    q = [i for i, x in enumerate(ms) if x[1] != 0 and i in QS]
     if not q: return None, 'noquote'
     sl = [i for i, x in enumerate(ms) if SLIP.search(x[2])]
     lastSlip = sl[-1] if sl else -1
@@ -104,11 +119,11 @@ def judge(ms, end, extra=None, cut=None):
     if not q:
         # paid: was the round before the slip followed up?
         prev = sl[-2] if len(sl) > 1 else -1
-        pq = [i for i, x in enumerate(ms) if prev < i < lastSlip and x[1] != 0 and (PRICE.search(x[2]) or BILL.search(x[2]))]
-        fu = rounds(ms, pq[0], lastSlip)[1] if pq else []
+        pq = [i for i, x in enumerate(ms) if prev < i < lastSlip and x[1] != 0 and i in QS]
+        fu = rounds(ms, pq[0], lastSlip, QS)[1] if pq else []
         return {'paidat': ms[lastSlip][0], 'fu': fu}, ('paid_fu' if fu else 'paid')
     if extra and extra.get('reg'): return {'paidat': None, 'fu': []}, 'paid'
-    anchor, fus = rounds(ms, q[0], len(ms))
+    anchor, fus = rounds(ms, q[0], len(ms), QS)
     if anchor is None: anchor = q[-1]
     first, last = ms[q[0]], ms[anchor]
     after = ms[anchor + 1:]
@@ -139,9 +154,9 @@ def judge(ms, end, extra=None, cut=None):
     elif ball == 'c': g = 'R'
     elif fu_open and end - fus[-1] < FU_DUE: g = 'F'
     else:
-        g = 'A' if bill else ('B' if creal else 'C')
+        g = ('B' if creal else 'A') if NEW else ('A' if bill else ('B' if creal else 'C'))   # NEW: every quote is a summary card
         if fu_open: due = 1
-    bg = g if g not in ('F',) else ('A' if bill else ('B' if creal else 'C'))
+    bg = g if g not in ('F',) else (('B' if creal else 'A') if NEW else ('A' if bill else ('B' if creal else 'C')))
     joined = ' '.join(csaid)
     row = dict(wait=round((end - last[0]) / 1440.0, 1), q0=stamp(first[0]), q1=stamp(last[0]), last=stamp(ms[-1][0]),
                lastc=stamp(cus[-1][0]), g=g, bill=1 if bill else 0, amt=amt, qt=last[2].replace('\n', ' ')[:160], nq=len(q),
@@ -220,9 +235,13 @@ def judge_np(ms, end, extra=None, cut=None):
     if extra and extra.get('reg'): return None, 'reg'
     sl = [i for i, x in enumerate(ms) if SLIP.search(x[2])]
     i0 = sl[-1] + 1 if sl else 0
-    if any(x[1] != 0 and (PRICE.search(x[2]) or BILL.search(x[2])) for x in ms[i0:]): return None, 'quoted'
+    QS = qset(ms)
+    if any(i in QS for i in range(i0, len(ms))): return None, 'quoted'
     rnd = ms[i0:]
-    creal = [x for x in rnd if x[1] == 0 and real(x[2]) and not (POLITE.search(x[2]) and len(x[2]) < 30 and not QUEST.search(x[2]))]
+    # 30 ก.ย. 2026: a short line ending in ค่ะ/ครับ is only 'polite' when it says nothing about a course or grade —
+    # "สนใจคอร์ส ม.2 ค่ะ" / "ม.1 ค่ะ" are real answers and used to be dropped here
+    creal = [x for x in rnd if x[1] == 0 and real(x[2]) and not (POLITE.search(x[2]) and len(x[2]) < 30 and not QUEST.search(x[2])
+                                                            and not (NEW and (ASKC.search(x[2]) or GRADE.search(x[2]) or COURSE.search(x[2]))))]
     if not creal: return None, 'nocus'
     joined = ' '.join(x[2] for x in creal)
     if not ASKC.search(joined) and not COURSE.search(joined): return None, 'noint'
@@ -308,10 +327,82 @@ def finish_np(th, end, ch, out):
         NPFLOW[ch][str(days)] = {'from': stamp(cut), 'to': stamp(end), 'new': [[t, th[t].get('n') or ''] for t in endset if t not in start],
                                  'out': dict(res)}
 
+# ---- (30 ก.ย. 2026) fourth list "sp": ยังไม่ส่งตัวอย่าง — same chats as np (customer typed about a course, an admin
+#      answered, no payment summary yet) but ALSO: our side never sent a sample (stage_rules.sample_type: clip, trial form,
+#      other sample link) anywhere in the thread, the customer never paid before (existing students do not need samples),
+#      and the customer's latest real message is from ส.ค. 2026 on (SP_FROM). Groups A/B/F/X as np.
+SP_FROM = base('2026-08')
+def judge_sp(ms, end, extra=None, cut=None):
+    r, g = judge_np(ms, end, extra, cut)
+    if not r: return r, g
+    ms2 = [x for x in ms if x[0] <= cut] if cut is not None else ms
+    if any(x[1] != 0 and sample_type(x[2]) for x in ms2): return None, 'sampled'
+    if any(SLIP.search(x[2]) for x in ms2): return None, 'paidbefore'
+    if r['lastc_m'] < SP_FROM: return None, 'before'
+    return r, g
+
+SPOLD = collections.defaultdict(collections.Counter); SPFLOW = collections.defaultdict(dict); SPSTAT = collections.defaultdict(collections.Counter)
+def finish_sp(th, end, ch, out):
+    now = {}
+    for tid, e in th.items():
+        r, why = judge_sp(e['m'], end, e)
+        SPSTAT[ch][why] += 1
+        if not r: continue
+        now[tid] = (r['g'], r['wait'], r['fus'], r['lastc_m'])
+        if r['wait'] >= 90: SPOLD[ch][r['g']] += 1; continue
+        d0 = datetime.datetime.strptime(r['q1'], '%Y-%m-%d %H:%M'); wk = (d0 - datetime.timedelta(days=d0.weekday())).strftime('%Y-%m-%d')
+        out.append([tid, e.get('n') or '', r['g'], r['wait'], r['q0'], r['q1'], r['last'], r['lastc'], 0, '', r['qt'], r['nq'],
+                    r['said'], r['after'], 'a', r['tags'], r['flags'], e.get('src') or '', e.get('ow') or '', wk,
+                    r['nfu'], r['fu1'], r['due'], r['bg']])
+        if r['fus'] and end - r['fus'][-1] < 7 * 1440: SPSTAT[ch]['fu_7d'] += 1
+    out.sort(key=lambda r: r[5], reverse=True)
+    endset = {tid for tid, n in now.items() if n[0] in NP_TODO and 1 <= n[1] < 90}
+    for days in (1, 7):
+        cut = end - days * 1440
+        start = {}
+        for tid, e in th.items():
+            r, why = judge_sp(e['m'], end, e, cut)
+            if r and why in NP_TODO and 1 <= r['wait'] < 90: start[tid] = r
+        res = collections.defaultdict(list)
+        for tid, r0 in start.items():
+            n = now.get(tid)
+            if tid in endset:
+                k = 'fudue' if (n[2] and n[2][-1] > cut) else 'still'
+            else:
+                why = judge_sp(th[tid]['m'], end, th[tid])[1]
+                if why == 'sampled': k = 'sampled'
+                elif why in ('quoted', 'paidbefore'): k = 'quoted'
+                elif why == 'waiting': k = 'waiting'
+                elif not n: k = 'aged'
+                elif n[0] == 'X': k = 'x'
+                elif n[0] == 'F': k = 'fu'
+                else: k = 'aged'
+            res[k].append([tid, th[tid].get('n') or ''])
+        SPFLOW[ch][str(days)] = {'from': stamp(cut), 'to': stamp(end), 'new': [[t, th[t].get('n') or ''] for t in endset if t not in start],
+                                 'out': dict(res)}
+
+def fresh():
+    """the per-run tallies finish*/judge* write into (module globals), one set per rule"""
+    return dict(OLD=collections.defaultdict(collections.Counter), FLOW=collections.defaultdict(dict), FUSTAT=collections.defaultdict(collections.Counter),
+                NPOLD=collections.defaultdict(collections.Counter), NPFLOW=collections.defaultdict(dict), NPSTAT=collections.defaultdict(collections.Counter),
+                SPOLD=collections.defaultdict(collections.Counter), SPFLOW=collections.defaultdict(dict), SPSTAT=collections.defaultdict(collections.Counter),
+                stat=collections.defaultdict(collections.Counter), PAY={'fb': [], 'ig': [], 'line': []}, NP={'fb': [], 'ig': [], 'line': []},
+                SPL={'fb': [], 'ig': [], 'line': []})
+RUN = {False: fresh(), True: fresh()}
+
+def both(th, end, ch):
+    """old rule -> the keys the live page reads today; new rule (+ sp) -> F['v8'] for the preview page. Deploying the preview
+       makes the page read v8; after that the old pass can go."""
+    global NEW
+    for rule in (False, True):
+        NEW = rule; R = RUN[rule]; globals().update({k: R[k] for k in ('OLD', 'FLOW', 'FUSTAT', 'NPOLD', 'NPFLOW', 'NPSTAT', 'SPOLD', 'SPFLOW', 'SPSTAT')})
+        finish(th, end, ch, R['PAY'][ch], R['stat']); finish_np(th, end, ch, R['NP'][ch])
+        if rule: finish_sp(th, end, ch, R['SPL'][ch])
+    NEW = True
+
 def main():
     F = json.load(open('src/followup.json', encoding='utf-8'))
     agg = json.load(open('src/agg.json', encoding='utf-8')); END = agg.get('v4end') or 0; del agg
-    stat = collections.defaultdict(collections.Counter); PAY = {}; NP = {'fb': [], 'ig': [], 'line': []}
     th = {}
     for p in sorted(glob.glob('src/fb_*.json')):
         mo = p[-12:-5]; f = json.load(open(p, encoding='utf-8')); t = tx_of(f['dict']); b = base(mo)
@@ -322,7 +413,7 @@ def main():
                 if SYS.search(s): continue
                 e['m'].append((b + m[0], m[1] if m[1] in (0, 1) else 2, s))
         del f; gc.collect()
-    PAY['fb'] = []; finish(th, END, 'fb', PAY['fb'], stat); NP['fb'] = []; finish_np(th, END, 'fb', NP['fb']); del th; gc.collect()
+    both(th, END, 'fb'); del th; gc.collect()
     ig = json.load(open('src/ig_all.json', encoding='utf-8')); t = tx_of(ig['dict']); th = {}
     for mo in sorted(ig['months']):
         b = base(mo)
@@ -333,8 +424,7 @@ def main():
                 if SYS.search(s): continue
                 e['m'].append((b + m[0], m[1] if m[1] in (0, 1) else 2, s))
     del ig; gc.collect()
-    PAY['ig'] = []; finish(th, END, 'ig', PAY['ig'], stat); NP['ig'] = []; finish_np(th, END, 'ig', NP['ig']); del th; gc.collect()
-    PAY['line'] = []
+    both(th, END, 'ig'); del th; gc.collect()
     lf = sorted(glob.glob('src/line_*.json'))
     if lf and F.get('lend'):
         LE = int((datetime.datetime.strptime(F['lend'], '%Y-%m-%d %H:%M') - T0).total_seconds() // 60)
@@ -349,23 +439,33 @@ def main():
                     except Exception: continue
                     w = m[1]; e['m'].append((ts, 0 if w == 'C' else (2 if w == 'B' else 1), str(t(m[2])).strip()))
             del f; gc.collect()
-        finish(th, LE, 'line', PAY['line'], stat); finish_np(th, LE, 'line', NP['line']); del th; gc.collect()
-    F['pay'] = PAY; F['paycols'] = COLS; F['paystat'] = {k: dict(v) for k, v in stat.items()}; F['pay90'] = {k: dict(v) for k, v in OLD.items()}
-    F['payflow'] = {k: v for k, v in FLOW.items()}; F['payfu'] = {k: dict(v) for k, v in FUSTAT.items()}
-    F['np'] = NP; F['npflow'] = {k: v for k, v in NPFLOW.items()}; F['npstat'] = {k: dict(v) for k, v in NPSTAT.items()}; F['np90'] = {k: dict(v) for k, v in NPOLD.items()}
-    # weekly history of the headline pile (A+B+C, 1-6 / 7-29 / 30-89 days) per channel
+        both(th, LE, 'line'); del th; gc.collect()
     day = (F.get('end') or '')[:10]
     def heads(L): z = [r for r in L if r[2] in TODO]; return [sum(1 for r in z if 1 <= r[3] < 7), sum(1 for r in z if 7 <= r[3] < 30), sum(1 for r in z if 30 <= r[3] < 90)]
-    ph = [h for h in (F.get('payhist') or []) if h[0] != day] + [[day] + heads(PAY['fb']) + heads(PAY['ig']) + heads(PAY['line'])]
-    F['payhist'] = sorted(ph)[-120:]
+    def put(D, R, sp):
+        PAY, NP, SPL = R['PAY'], R['NP'], R['SPL']
+        D['pay'] = PAY; D['paycols'] = COLS; D['paystat'] = {k: dict(v) for k, v in R['stat'].items()}; D['pay90'] = {k: dict(v) for k, v in R['OLD'].items()}
+        D['payflow'] = {k: v for k, v in R['FLOW'].items()}; D['payfu'] = {k: dict(v) for k, v in R['FUSTAT'].items()}
+        D['np'] = NP; D['npflow'] = {k: v for k, v in R['NPFLOW'].items()}; D['npstat'] = {k: dict(v) for k, v in R['NPSTAT'].items()}; D['np90'] = {k: dict(v) for k, v in R['NPOLD'].items()}
+        if sp: D['sp'] = SPL; D['spflow'] = {k: v for k, v in R['SPFLOW'].items()}; D['spstat'] = {k: dict(v) for k, v in R['SPSTAT'].items()}; D['sp90'] = {k: dict(v) for k, v in R['SPOLD'].items()}
+        # weekly history of the headline pile (A+B+C, 1-6 / 7-29 / 30-89 days) per channel
+        ph = [h for h in (D.get('payhist') or []) if h[0] != day] + [[day] + heads(PAY['fb']) + heads(PAY['ig']) + heads(PAY['line'])]
+        D['payhist'] = sorted(ph)[-120:]
+    put(F, RUN[False], False)                     # live page: unchanged rule
+    F['v8'] = F.get('v8') or {}; put(F['v8'], RUN[True], True)   # preview page: summary-card rule + sp
     json.dump(F, open('src/followup.json.tmp', 'w', encoding='utf-8'), separators=(',', ':'), ensure_ascii=False)
     import os; os.replace('src/followup.json.tmp', 'src/followup.json')   # never leave a half-written file behind
-    for ch, L in PAY.items():
-        c = collections.Counter((r[2], '<1' if r[3] < 1 else '1-6' if r[3] < 7 else '7-29' if r[3] < 30 else '30-89' if r[3] < 90 else '90+') for r in L)
-        print('pay', ch, len(L), sorted(c.items()), dict(stat[ch]))
-    for ch, L in NP.items():
+    for rule in (False, True):
+        R = RUN[rule]; tag = 'new' if rule else 'old'
+        for ch, L in R['PAY'].items():
+            c = collections.Counter((r[2], '<1' if r[3] < 1 else '1-6' if r[3] < 7 else '7-29' if r[3] < 30 else '30-89' if r[3] < 90 else '90+') for r in L)
+            print(tag, 'pay', ch, len(L), sorted(c.items()), dict(R['stat'][ch]))
+        for ch, L in R['NP'].items():
+            c = collections.Counter((r[2], '<1' if r[3] < 1 else '1-6' if r[3] < 7 else '7-29' if r[3] < 30 else '30-89') for r in L)
+            print(tag, 'np', ch, len(L), sorted(c.items()), dict(R['NPSTAT'][ch]))
+    for ch, L in RUN[True]['SPL'].items():
         c = collections.Counter((r[2], '<1' if r[3] < 1 else '1-6' if r[3] < 7 else '7-29' if r[3] < 30 else '30-89') for r in L)
-        print('np', ch, len(L), sorted(c.items()), dict(NPSTAT[ch]))
+        print('new sp', ch, len(L), sorted(c.items()), dict(RUN[True]['SPSTAT'][ch]))
 
 if __name__ == '__main__':
     main()

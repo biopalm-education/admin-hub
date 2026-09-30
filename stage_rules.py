@@ -1,0 +1,83 @@
+# -*- coding: utf-8 -*-
+"""Shared chat rules for admin-hub (30 ก.ย. 2026) — one place for "แนบตัวอย่าง" and "สรุปจ่าย".
+
+แนบตัวอย่าง (sample_type): a message from OUR side that carries
+  - a link to a known sample (the 3 YouTube clips, the Drive folders ม.ปลาย / Module 1 / Module 2,
+    the ม.ปลาย and ปรับพื้นฐาน short links)                                           -> 'clip'
+  - or the words "ตัวอย่าง" / "ทดลองเรียน" together with any link:
+        Google Form (ฟอร์มทดลองเรียนปรับพื้นฐาน, from 8 ก.ย.)                          -> 'trial'
+        Drive / YouTube                                                                -> 'clip'
+        anything else (review links, the YouTube channel)                              -> 'other'
+  Links are normalised to the file / clip id first, so a link copied from a phone and the same link copied
+  from a computer (youtu.be vs youtube.com/watch, ?usp=sharing vs ?usp=drive_link, /mobile/) are one link.
+  Checked against the real chats Mar–Sep 2026: the template "แอดมินขออนุญาตแนบคลิปทดลองเรียน…" started
+  20–26 Mar 2026 on Facebook and LINE.
+
+สรุปจ่าย (summary_marks): the payment summary card — within 30 minutes our side sent ALL of
+  (1) "สรุปรายละเอียด" or "รหัสคอร์ส"   (2) an amount (5,500 บาท / 4500.- / ราคา 5500)
+  (3) the BioPalm account 166-3-63464-6 or "โอนชำระค่าเรียนได้ที่"
+  Usually one message; admins sometimes send the account in a second message, hence the window.
+  "แอดมินสรุปยอดชำระให้ซักครู่นะคะ" (a promise) does not count. Slip-check replies are ignored.
+  Replaces the old "any price mention" rule, which counted ~8x too many chats (FB ก.ย. 1,647 -> 215).
+"""
+import re
+from urllib.parse import urlsplit
+
+URL = re.compile(r'https?://[^\s<>"\'`)\]]+', re.I)
+SK = re.compile(r'ตัวอย่าง|ทดลองเรียน')
+CLIP = {'yt:1lcHo7k-R5g', 'yt:4h6Wn0z46cg', 'yt:iFWz23NK-fY',
+        'drive:folder:1YXE_bX9Vm0vObqVhWP3323SOBpavsTiq',      # คลิปตัวอย่างการสอน ม.ปลาย
+        'drive:folder:1eNJO12ynlxKNHFKJKcmIb1Vv60eR790E',      # ทดลองเรียน Module 2
+        'drive:folder:15rJ0C9RntwQlHKUIoGbk4ceGy-4gPW0U',      # ทดลองเรียน Module 1
+        'shorturl.at/295VE', 'shorturl.at/s0Q1Z'}
+ACC = re.compile(r'166\s*-?\s*3\s*-?\s*63464\s*-?\s*6|โอนชำระ(?:ค่าเรียน)?\s*ได้ที่')
+SUMS = re.compile(r'สรุปรายละเอียด|รหัสคอร์ส')
+AMT = re.compile(r'(?:\d{1,3},\d{3}|\d{4,5})(?:\.\d+)?\s*(?:บาท|฿|\.-)|ราคา\s*[:：]?\s*\d')
+SLIPTXT = re.compile(r'ตรวจสอบสลิปสำเร็จ|ชื่อผู้รับ')
+WIN = 30                                     # minutes
+
+_RX = [(re.compile(r'drive\.google\.com/drive/(?:u/\d+/)?(?:mobile/)?folders/([\w-]+)', re.I), 'drive:folder:'),
+       (re.compile(r'drive\.google\.com/file/d/([\w-]+)', re.I), 'drive:file:'),
+       (re.compile(r'drive\.google\.com/open\?id=([\w-]+)', re.I), 'drive:id:'),
+       (re.compile(r'(?:youtube\.com/(?:watch\?(?:.*&)?v=|shorts/|live/|embed/)|youtu\.be/)([\w-]{6,})', re.I), 'yt:'),
+       (re.compile(r'youtube\.com/playlist\?list=([\w-]+)', re.I), 'ytlist:')]
+_DOCS = re.compile(r'docs\.google\.com/(document|presentation|spreadsheets|forms)/d/(?:e/)?([\w-]+)', re.I)
+
+
+def norm(u):
+    u = re.sub(r'[.,;!]+$', '', u)
+    m = _DOCS.search(u)
+    if m: return 'docs:%s:%s' % (m.group(1), m.group(2))
+    for rx, p in _RX:
+        m = rx.search(u)
+        if m: return p + m.group(1)
+    try:
+        s = urlsplit(u)
+        return re.sub(r'^(www|m)\.', '', s.netloc) + s.path.rstrip('/')
+    except Exception:
+        return u[:60]
+
+
+def sample_type(text):
+    t = str(text or '')
+    urls = [norm(u) for u in URL.findall(t)]
+    if not urls: return None
+    if any(u in CLIP for u in urls): return 'clip'
+    if not SK.search(t): return None
+    if any(u.startswith('docs:forms') or u.startswith('forms.gle') for u in urls): return 'trial'
+    if any(u.startswith('drive:') or u.startswith('yt:') for u in urls): return 'clip'
+    return 'other'
+
+
+def summary_marks(msgs):
+    """msgs: [(minute, ours: bool, text)] in time order -> indices of the message that completes a summary card"""
+    out = []; win = []
+    for i, (t, ours, x) in enumerate(msgs):
+        if not ours: continue
+        x = str(x or '')
+        if SLIPTXT.search(x): continue
+        win = [w for w in win if t - w[0] <= WIN]
+        win.append((t, bool(ACC.search(x)), bool(SUMS.search(x)), bool(AMT.search(x))))
+        if any(w[1] for w in win) and any(w[2] for w in win) and any(w[3] for w in win):
+            out.append(i); win = []
+    return out
