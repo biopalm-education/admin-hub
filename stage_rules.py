@@ -43,7 +43,8 @@ CLIP = {'yt:1lcHo7k-R5g', 'yt:4h6Wn0z46cg', 'yt:iFWz23NK-fY',
         'shorturl.at/295VE', 'shorturl.at/s0Q1Z'}
 TRIAL = {'docs:forms:1FAIpQLSc-ivH8bnCFeiHHcyH3p9lHVvQ7CS4ch3PT-CkFayECuRr6Vw',   # ฟอร์มทดลองเรียน (seen with "ทดลองเรียน"
          'docs:forms:1FAIpQLScr4Y4nFtnxrGLAPUTbkIUYoVAQsLxgHkuyFInqw04aYFrZcw',   #  in ส.ค.–ก.ย.; also sent as a bare link)
-         'docs:forms:1FAIpQLSdm6eUXVMbR1OUV_YYqcAlmAHTM35bAE48aIqACKuqYlKjMbw'}
+         'docs:forms:1FAIpQLSdm6eUXVMbR1OUV_YYqcAlmAHTM35bAE48aIqACKuqYlKjMbw',
+         'docs:forms:1FAIpQLSf3Fvmkdt1Xz8XYMQm6OL8zMMJL1wcs1gwHq2e_Zo1cWn6A6A'}   # "แบบทดสอบ Module 1-4" (sent bare, ก.ย.)
 ACC = re.compile(r'166\s*-?\s*3\s*-?\s*63464\s*-?\s*6|โอนชำระ(?:ค่าเรียน)?\s*ได้ที่')
 SUMS = re.compile(r'สรุปรายละเอียด|รหัสคอร์ส')
 AMT = re.compile(r'(?:\d{1,3},\d{3}|\d{4,5})(?:\.\d+)?\s*(?:บาท|฿|\.-)|ราคา\s*[:：]?\s*\d')
