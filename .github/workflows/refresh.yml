@@ -15,6 +15,12 @@ name: refresh-dashboard
 #   FB: "Biopalm FB Chat Log — <เดือน> <ปี>" แยกไฟล์ละเดือน (ไม่มี = สร้างในโฟลเดอร์เดียวกับเดือนก่อน)
 #   IG: "Biopalm IG Chat Log — ..." แท็บ สรุปรายแชท ทุกเดือน + ข้อความดิบ (<เดือน> <ปี>)
 #   ปิดได้ด้วย repository variable SHEETS_BACKUP=0 · เดือนก่อน ก.ย. 2026 ไม่แตะ
+#
+# ขั้น chat-hub (30 ก.ย. 2026): ข้อมูลดิบ FB + IG ที่ดึงรอบนี้ถูกคำนวณอีกชุดด้วยสูตรของ chat-hub
+#   (ค้างไว้ที่ admin-hub@60fa224) แล้ว deploy ขึ้น chat-hub — ดึง Meta ครั้งเดียว ชีตชุดเดียว
+#   ต่อผ่าน tools/auto/chathub_stage.py · แก้สูตร admin-hub ได้เต็มที่ แต่ห้ามเปลี่ยนรูปแบบผลของ fb_pull / ig_pull
+#   ใช้ ADMIN_GH_TOKEN (หรือ CHATHUB_GH_TOKEN) ที่เขียน chat-hub ได้ · ปิดได้ด้วย repository variable CHATHUB=0
+#   ขั้นนี้พลาด → admin-hub ยังอัปเดตตามปกติ แต่รอบนี้ขึ้น failed ให้ GitHub ส่งอีเมลเตือน
 
 on:
   schedule:
@@ -33,6 +39,7 @@ on:
         options:
           - refresh
           - selftest
+          - chathub
       debug:
         description: 'พิมพ์คำตอบดิบจาก MCP (ใช้ตอนหาสาเหตุ)'
         required: false
@@ -1116,4 +1123,7 @@ jobs:
           MODE: ${{ inputs.mode || 'refresh' }}
           SHEETS_BACKUP: ${{ vars.SHEETS_BACKUP }}
           IG_SHEET_ID: ${{ secrets.IG_SHEET_ID }}
-        run: python tools/auto/ci_run.py
+          CHATHUB: ${{ vars.CHATHUB }}
+          CHATHUB_GH_TOKEN: ${{ secrets.CHATHUB_GH_TOKEN || secrets.ADMIN_GH_TOKEN }}
+          CHATHUB_SECRET: ${{ secrets.CHATHUB_SECRET }}
+        run: python tools/auto/chathub_stage.py   # = ci_run.py + ขั้น chat-hub
