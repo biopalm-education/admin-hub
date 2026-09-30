@@ -824,6 +824,17 @@ jobs:
               sid = _find_id(d)
               if not sid:
                   raise BackupError('สร้างสเปรดชีต FB ใหม่แล้วแต่ไม่ได้ ID กลับมา')
+              if folder:                            # ตัวสร้างไม่ย้ายเข้าโฟลเดอร์ให้จริง (30 ก.ย. ไปอยู่หน้าแรกของ Drive) → ย้ายเอง
+                  try:
+                      ps = call('GOOGLEDRIVE_GET_FILE_METADATA', {'fileId': sid, 'fields': 'id,parents'}, tries=2).get('parents') or []
+                      if folder not in ps:
+                          mv = {'file_id': sid, 'add_parents': folder, 'supports_all_drives': True}
+                          if ps:
+                              mv['remove_parents'] = ','.join(ps)
+                          call('GOOGLEDRIVE_MOVE_FILE', mv, tries=2)
+                  except BackupError as e:
+                      log('   ย้ายไฟล์เข้าโฟลเดอร์เดียวกับเดือนก่อนไม่สำเร็จ (ข้อมูลครบ แค่อยู่หน้าแรกของ Drive):', e)
+                      folder = None
               log('   สร้างสเปรดชีตใหม่ "%s"%s' % (name, '' if folder else ' (ไม่พบโฟลเดอร์เดิม — อยู่หน้าแรกของ Drive)'))
               # แท็บแรกที่ Google สร้างให้ → เปลี่ยนชื่อเป็น สรุปรายแชท
               first = None
