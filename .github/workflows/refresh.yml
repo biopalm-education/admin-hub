@@ -118,6 +118,8 @@ jobs:
 
               def _post(self, payload, timeout=180):
                   r = requests.post(self.url, json=payload, headers=self._headers(), timeout=timeout)
+                  # MCP ตอบเป็น UTF-8 เสมอ แต่ SSE ไม่ระบุ charset → requests เดาเป็น ISO-8859-1 ภาษาไทยจึงเพี้ยน (30 ก.ย.)
+                  r.encoding = 'utf-8'
                   for k in ('Mcp-Session-Id', 'mcp-session-id'):
                       if r.headers.get(k):
                           self.sid = r.headers[k]
@@ -379,6 +381,12 @@ jobs:
           HERE = os.path.dirname(os.path.abspath(__file__))
           sys.path.insert(0, HERE)
           TH = dt.timezone(dt.timedelta(hours=7))
+          MOJI = (chr(0xe0) + chr(0xb8), chr(0xe0) + chr(0xb9))   # ภาษาไทย UTF-8 ที่ถูกอ่านเป็น Latin-1 จะขึ้นต้นแบบนี้
+
+
+          def _garbled(MS):
+              return sum(1 for msgs in MS.values() for m in msgs
+                         if any(x in str(m.get('message') or '') for x in MOJI))
 
 
           def _need(name):
@@ -494,6 +502,9 @@ jobs:
                   for attempt in (1, 2):
                       S.FAILS.clear()
                       cand, MS = _ig_pull(mo)
+                      bad = _garbled(MS)
+                      if bad:                       # อ่านภาษาไทยเพี้ยน = จัดหมวดผิดทั้งเดือน → ห้าม push
+                          raise RuntimeError('IG %s ข้อความภาษาไทยถอดรหัสเพี้ยน %d ข้อความ — ยกเลิก ไม่ push' % (mo, bad))
                       miss = len(cand) - len(MS)
                       print('IG %s ดึงครบ %d/%d ห้อง' % (mo, len(MS), len(cand)), flush=True)
                       for slug, (n, e) in sorted(S.FAILS.items()):
@@ -567,6 +578,7 @@ jobs:
           MAX_BYTES = 450000                   # ขนาด JSON ต่อครั้ง (ภาษาไทยถูก escape เป็น \\uXXXX)
           TH = dt.timezone(dt.timedelta(hours=7))
           PAUSE = float(os.environ.get('SHEETS_PAUSE') or 1)   # ทดสอบในเครื่องใช้ 0
+          MOJI = (chr(0xe0) + chr(0xb8), chr(0xe0) + chr(0xb9))   # ภาษาไทยที่ถอดรหัสเพี้ยน
 
           FB_SUM_HEAD = ['เดือน', 'Thread ID', 'ชื่อลูกค้า (FB)', 'กลุ่ม', 'มาจากโฆษณา', 'ป้าย Meta', 'วันที่', 'ชม.',
                          'ข้อความรวม', 'ลูกค้า', 'แอดมินพิมพ์เอง', 'สำเร็จรูป', 'สลับถาม-ตอบ', 'แอดมินพิมพ์เองครั้งแรก',
@@ -1005,6 +1017,8 @@ jobs:
                                                   'ranges': ['%s!A1:%s%d' % (q(IG_SUM), col(W), max(info['rows'], 2))],
                                                   'valueRenderOption': 'UNFORMATTED_VALUE'})
               vr = (d.get('valueRanges') or [{}])[0].get('values') or []
+              if any(x in str(v) for r in vr for v in r for x in MOJI):
+                  raise BackupError('อ่านแท็บ %s ได้ภาษาไทยเพี้ยน — ไม่เขียนทับ' % IG_SUM)
               body = [list(r) for r in vr[1:]]
               while body and not any(str(v).strip() for v in body[-1]):
                   body.pop()
