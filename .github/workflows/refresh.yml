@@ -128,22 +128,47 @@ jobs:
 
               @staticmethod
               def _decode(r):
+                  # อ่าน SSE ตามสเปก: บรรทัด data: ที่ติดกันในเหตุการณ์เดียวต้องต่อกันด้วย \n
+                  # (ตัวอ่านเดิมอ่านทีละบรรทัด คำตอบก้อนใหญ่ที่ถูกแบ่งหลายบรรทัดจึงหายเป็น None)
+                  # และเลือกข้อความที่มี result/error ไม่ใช่ notification ที่มาทีหลัง
                   body = r.text or ''
-                  if 'text/event-stream' in (r.headers.get('content-type') or ''):
-                      out = None
-                      for line in body.splitlines():
-                          line = line.strip()
-                          if line.startswith('data:'):
-                              chunk = line[5:].strip()
-                              if chunk and chunk != '[DONE]':
-                                  try:
-                                      out = json.loads(chunk)
-                                  except Exception:
-                                      pass
-                      return out
-                  if not body.strip():
-                      return None
-                  return json.loads(body)
+                  ctype = r.headers.get('content-type') or ''
+                  if 'text/event-stream' not in ctype:
+                      if not body.strip():
+                          raise RuntimeError('คำตอบว่าง (content-type=%s)' % ctype[:40])
+                      return json.loads(body)
+                  msgs, data, stat = [], [], {'events': 0, 'data_lines': 0, 'bad': 0, 'names': []}
+
+                  def flush():
+                      if not data:
+                          return
+                      stat['events'] += 1
+                      chunk = '\n'.join(data)
+                      del data[:]
+                      if not chunk.strip() or chunk.strip() == '[DONE]':
+                          return
+                      try:
+                          msgs.append(json.loads(chunk))
+                      except Exception:
+                          stat['bad'] += 1
+
+                  for line in body.split('\n'):
+                      line = line.rstrip('\r')
+                      if line == '':
+                          flush()
+                      elif line.startswith('data:'):
+                          v = line[5:]
+                          data.append(v[1:] if v.startswith(' ') else v)
+                          stat['data_lines'] += 1
+                      elif line.startswith('event:') and len(stat['names']) < 5:
+                          stat['names'].append(line[6:].strip()[:20])
+                  flush()
+                  for m in reversed(msgs):
+                      if isinstance(m, dict) and ('result' in m or 'error' in m):
+                          return m
+                  # ไม่พบคำตอบ: บอกแค่โครง (ไม่มีเนื้อหาแชท) เพื่อหาสาเหตุต่อ
+                  raise RuntimeError('SSE ไม่มีคำตอบ JSON-RPC: bytes=%d events=%d data_lines=%d parse_fail=%d msgs=%d event_names=%s' % (
+                      len(body), stat['events'], stat['data_lines'], stat['bad'], len(msgs), stat['names']))
 
               def _rpc(self, method, params=None, timeout=180):
                   self.rid += 1
