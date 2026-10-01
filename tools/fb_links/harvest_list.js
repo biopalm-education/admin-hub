@@ -29,15 +29,20 @@ window.absorb = function () { const q = listProps();
   for (const t of q.threadList) if (t && t.threadFBID) TL[t.threadFBID] = [t.title, t.timestamp, t.threadType, t.threadID];
   return q; };
 window.BGSTART = function (stopIso, delay) {
+  // หยุดเมื่อเก็บห้องที่เก่ากว่าเวลาหยุดได้ครบ 25 ห้อง (1 ต.ค. 2026) — เดิมหยุดทันทีที่เจอห้องเก่า "ห้องเดียว"
+  // แต่รายการตอนเปิดหน้ามีห้องเก่าที่ซิงก์มาไม่ตามลำดับปนอยู่ (เจอ 27 ส.ค. / 9 เม.ย. ท้ายรายการแรก) ทำให้ได้แค่ 9 ห้องแล้วหยุด
   window.BG = { on: true, calls: 0, err: null, delay: delay || 2500, stopAt: Date.parse(stopIso) };
-  (async () => { try { while (BG.on) { const q = absorb(); let mn = Infinity;
-      for (const v of Object.values(TL)) if (v[1] < mn) mn = v[1];
-      BG.oldest = mn; BG.n = Object.keys(TL).length; BG.can = q.canLoadMoreRows;
-      if (mn < BG.stopAt) { BG.on = false; BG.done = true; break; }
+  (async () => { try { while (BG.on) { const q = absorb();
+      const ts = Object.values(TL).map(v => v[1]).sort((a, b) => b - a);
+      const older = ts.filter(t => t < BG.stopAt).length;
+      const fresh = ts.filter(t => t >= BG.stopAt);
+      BG.oldest = fresh.length ? fresh[fresh.length - 1] : ts[ts.length - 1];
+      BG.n = ts.length; BG.older = older; BG.can = q.canLoadMoreRows;
+      if (older >= 25) { BG.on = false; BG.done = true; break; }
       if (!q.isLoadingMoreRows) { q.onRequestMoreRows(); BG.calls++; }
       await new Promise(r => setTimeout(r, BG.delay)); } } catch (e) { BG.err = String(e); BG.on = false; } })();
   return 'started'; };
-window.BGSTAT = () => ({ on: BG.on, done: BG.done, err: BG.err, n: BG.n, calls: BG.calls,
+window.BGSTAT = () => ({ on: BG.on, done: BG.done, err: BG.err, n: BG.n, older: BG.older, calls: BG.calls,
   oldest: new Date(BG.oldest + 7 * 3600e3).toISOString().slice(0, 16) + ' (ไทย)' });
 window.BGEXPORT = function (name) {
   const rows = Object.entries(TL).map(([id, v]) => [id, v[0], v[1], v[2], v[3]]);
