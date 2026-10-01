@@ -756,13 +756,17 @@ const sub=(s,nm)=>String(s).split('\u0001').join(nm||'ลูกค้า');
 const FBPAGE='691470034208676',FBBIZ='310165158296126';
 const INBOX='https://business.facebook.com/latest/inbox/all/?business_id='+FBBIZ+'&asset_id='+FBPAGE+'&mailbox_id='+FBPAGE;
 const INBOXFB='https://business.facebook.com/latest/inbox/messenger?asset_id='+FBPAGE+'&business_id='+FBBIZ+'&mailbox_id='+FBPAGE;
-function igLink(u){var n=IGT[u];return n?INBOX+'&selected_item_id='+n+'&thread_type=IG_MESSAGE':null;}
+function igNo(cid){var s=String(cid||'');if(s.indexOf('aWdf')!==0)return null;
+ s=s.replace(/Z([ABCD])/g,function(_,c){return {A:'Z',B:'+',C:'/',D:'='}[c];});while(s.length%4)s+='=';
+ try{var m=/^ig_dm:(\d{6,})$/.exec(atob(s));return m?m[1]:null;}catch(e){return null;}}
+function igLink(u,cid){var n=(IGT&&IGT[u])||igNo(cid);return n?INBOX+'&selected_item_id='+n+'&thread_type=IG_MESSAGE':null;}
+const NOLINK_TIP='ห้องนี้ยังไม่มีลิงก์ตรง (ห้องใหม่หลังรอบเก็บรหัสห้องล่าสุด) — ปุ่มนี้เปิดหน้า Inbox ซึ่ง Meta จะแสดงแชทล่าสุด ไม่ใช่ห้องนี้ · คัดลอกชื่อลูกค้าไว้ให้แล้ว';
 function fbLink(r){var u=FBU[String(r[19])];return u?INBOXFB+'&selected_item_id='+u+'&thread_type=FB_MESSAGE':null;}
-function inboxBtn(r){var dl=(CH==='ig')?igLink(r[0]):fbLink(r);
+function inboxBtn(r){var dl=(CH==='ig')?igLink(r[0],r[19]):fbLink(r);
  if(dl)return '<a class="inbtn" href="'+dl+'" target="_blank" rel="noopener">เปิดแชทนี้ใน Inbox ↗</a>';
  var nm=r[0]||'';
- if(nm)return '<a class="inbtn" href="'+INBOX+'" target="_blank" rel="noopener" data-copy="'+esc(nm).replace(/"/g,'&quot;')+'">เปิด Inbox + คัดลอกชื่อ ↗</a>';
- return '<a class="inbtn" href="'+INBOX+'" target="_blank" rel="noopener">เปิด Inbox ↗</a>';}
+ if(nm)return '<a class="inbtn nolink" title="'+NOLINK_TIP+'" href="'+INBOX+'" target="_blank" rel="noopener" data-copy="'+esc(nm).replace(/"/g,'&quot;')+'">ยังไม่มีลิงก์ตรง · เปิด Inbox ↗</a>';
+ return '<a class="inbtn nolink" title="'+NOLINK_TIP+'" href="'+INBOX+'" target="_blank" rel="noopener">ยังไม่มีลิงก์ตรง · เปิด Inbox ↗</a>';}
 function copyText(v){try{if(navigator.clipboard&&window.isSecureContext){navigator.clipboard.writeText(v);return true;}}catch(e){}
  try{const t=document.createElement('textarea');t.value=v;t.setAttribute('readonly','');t.style.cssText='position:fixed;top:0;left:0;opacity:0';
   document.body.appendChild(t);t.select();t.setSelectionRange(0,v.length);const ok=document.execCommand('copy');t.remove();return ok;}catch(e){return false;}}
@@ -781,7 +785,7 @@ function exportChats(){
  const out=[head];
  for(const o of rows){const r=o.r;
   out.push([MLABEL[o.m]||o.m,r[0],r[1],r[3],r[4],DOWN[r[5]],r[6],r[7],r[8],r[9],
-   (r[10]<0?'':r[10]),(r[11]==null?'':r[11]),r[12]?'Y':'',WHO[r[13]]||r[13],r[14]||'',r[15]?'Y':'',r[16]?'Y':'',r[17]?'Y':'',r[20]?'Y':'',r[21]?'Y':'',r[34]?r[34]+' '+TIERN[r[34]]:'',WONK[r[35]]||'',(CH==='ig'?igLink(r[0]):fbLink(r))||'']);}
+   (r[10]<0?'':r[10]),(r[11]==null?'':r[11]),r[12]?'Y':'',WHO[r[13]]||r[13],r[14]||'',r[15]?'Y':'',r[16]?'Y':'',r[17]?'Y':'',r[20]?'Y':'',r[21]?'Y':'',r[34]?r[34]+' '+TIERN[r[34]]:'',WONK[r[35]]||'',(CH==='ig'?igLink(r[0],r[19]):fbLink(r))||'']);}
  downloadCSV('chat-'+(CH==='fb'?'facebook':'instagram')+'-'+(M==='all'?'ทุกเดือน':M)+'-'+(FNAME[FILTER]||FILTER)+'.csv',out);}
 function exportLine(){
  const rows=lnFiltered();
@@ -2484,12 +2488,12 @@ function fuBase(g){return fuRows().filter(o=>o.type!=='give'&&fuInG(o,g||FU_G));
 function fuFilt(skipWeek){const q=FU_Q.trim().toLowerCase();
  return fuBase().filter(o=>fuInB(o,FU_B)&&(FU_K==='all'||o.kind===FU_K)&&(!FU_T||o.tags.includes(FU_T))&&(!FU_O||o.owner===FU_O)&&(skipWeek||!FU_W||o.week===FU_W)
   &&(!q||String(o.name).toLowerCase().includes(q)||String(o.said).toLowerCase().includes(q)));}
-function fuLink(o){if(CH==='ig')return igLink(o.name); if(CH==='line')return FU&&FU.lbot?'https://chat.line.biz/'+FU.lbot+'/chat/'+o.tid:null; const u=FBU[String(o.tid)];
+function fuLink(o){if(CH==='ig')return igLink(o.name,o.tid); if(CH==='line')return FU&&FU.lbot?'https://chat.line.biz/'+FU.lbot+'/chat/'+o.tid:null; const u=FBU[String(o.tid)];
  return u?INBOXFB+'&selected_item_id='+u+'&thread_type=FB_MESSAGE':null;}
 function fuBtn(o){const dl=fuLink(o);
  if(dl)return '<a class="inbtn" href="'+dl+'" target="_blank" rel="noopener">'+(CH==='line'?'เปิดแชทนี้ใน LINE OA ↗':'เปิดแชทนี้ใน Inbox ↗')+'</a>';
  const nm=o.name||'';
- return '<a class="inbtn" href="'+(CH==='ig'?INBOX:INBOXFB)+'" target="_blank" rel="noopener"'+(nm?' data-copy="'+esc(nm).replace(/"/g,'&quot;')+'"':'')+'>เปิด Inbox'+(nm?' + คัดลอกชื่อ':'')+' ↗</a>';}
+ return '<a class="inbtn nolink" title="'+NOLINK_TIP+'" href="'+(CH==='ig'?INBOX:INBOXFB)+'" target="_blank" rel="noopener"'+(nm?' data-copy="'+esc(nm).replace(/"/g,'&quot;')+'"':'')+'>ยังไม่มีลิงก์ตรง · เปิด Inbox ↗</a>';}
 function fuExport(){const rows=fuFilt(false);
  const head=['ช่องทาง','ชื่อลูกค้า','ค้างมาแล้ว (วัน)','กลุ่ม','สัปดาห์ที่ลูกค้าทักล่าสุด','ลูกค้าเริ่มทักรอบนี้','ลูกค้าทักล่าสุด','จำนวนข้อความลูกค้า',
   'ลูกค้าพิมพ์/กดอะไร','หัวข้อที่สนใจ','ประเภท','Auto reply ล่าสุดที่ลูกค้าได้','เคยคุยกับแอดมินมาก่อน','มาจาก','ลิงก์ตรงห้องแชท (ถ้ามี)','แอดมินย้ายเอง','ผู้ติดตาม','วันที่ติดตาม','ผลการติดตาม'];
@@ -3398,8 +3402,8 @@ $('#vseg').querySelectorAll('button').forEach(b=>b.addEventListener('click',()=>
   ws.querySelectorAll('button').forEach(x=>x.setAttribute('aria-pressed',String(+x.dataset.w===WIN)));
   PAGE=0;SEL=0;refresh();}));})();
 $('#msel').addEventListener('change',e=>{M=e.target.value;PAGE=0;SEL=0;refresh();});
-document.addEventListener('click',function(e){var a=e.target&&e.target.closest?e.target.closest('a[data-copy]'):null;if(!a)return;var v=a.getAttribute('data-copy');if(!v)return;if(copyText(v)){toast('คัดลอก “'+v+'” แล้ว — วางในช่องค้นหาของ Inbox ได้เลย');}else{toast('คัดลอกอัตโนมัติไม่สำเร็จ — คัดลอกชื่อจากหัวแชทเอง');}},true);
-(function(){var st=document.createElement('style');st.textContent='.inbtn{font-size:12.5px;font-weight:500;text-decoration:none;border:1px solid var(--line-2);border-radius:999px;padding:3px 10px;margin-left:8px;color:var(--fb);background:var(--card);white-space:nowrap;display:inline-block;vertical-align:middle}.inbtn:hover{background:var(--fb-soft)}.inbtn.ghost{color:var(--ig)}.inbtn.ghost:hover{background:var(--ig-soft)}';document.head.appendChild(st);})();
+document.addEventListener('click',function(e){var a=e.target&&e.target.closest?e.target.closest('a[data-copy]'):null;if(!a)return;var v=a.getAttribute('data-copy');if(!v)return;if(copyText(v)){toast('ห้องนี้ยังไม่มีลิงก์ตรง — Inbox จะเปิดแชทล่าสุด ไม่ใช่ห้องนี้ · คัดลอก “'+v+'” ไว้แล้ว');}else{toast('คัดลอกอัตโนมัติไม่สำเร็จ — คัดลอกชื่อจากหัวแชทเอง');}},true);
+(function(){var st=document.createElement('style');st.textContent='.inbtn{font-size:12.5px;font-weight:500;text-decoration:none;border:1px solid var(--line-2);border-radius:999px;padding:3px 10px;margin-left:8px;color:var(--fb);background:var(--card);white-space:nowrap;display:inline-block;vertical-align:middle}.inbtn:hover{background:var(--fb-soft)}.inbtn.ghost{color:var(--ig)}.inbtn.ghost:hover{background:var(--ig-soft)}.inbtn.nolink{color:#b45309;border-color:#f3c88b;background:#fff7ed}.inbtn.nolink:hover{background:#ffedd5}';document.head.appendChild(st);})();
 (function(){const e=$('#ftbuilt'); if(!e)return;
  const b=(typeof MAN!=='undefined'&&MAN)?MAN.built:null; if(!b){e.textContent='';return;}
  let t=b; try{const d=new Date(b);

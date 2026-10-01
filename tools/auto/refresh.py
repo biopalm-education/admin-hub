@@ -64,6 +64,51 @@ def fmt(x):
 def log(*a):
     print(dt.datetime.now(TH).strftime('%H:%M:%S'),*a,flush=True)
 
+# ---------- fb_threads จาก Drive (1 ต.ค. 2026) ----------
+FBT_DIR='/tmp/fb_threads_in'
+def _walk(o):
+    if isinstance(o,dict):
+        yield o
+        for v in o.values(): yield from _walk(v)
+    elif isinstance(o,list):
+        for v in o: yield from _walk(v)
+
+def fetch_fb_threads(days=21,cap=4):
+    """ดาวน์โหลดไฟล์ fb_threads*.json ที่แก้ไขใน `days` วันล่าสุด (ใหม่สุดก่อน ไม่เกิน `cap` ไฟล์) ลง FBT_DIR
+    ผู้ใช้อัปไฟล์ชื่อซ้ำทับได้ หรืออัปเป็นไฟล์ใหม่ก็ได้ — auto_links.py รวมทุกไฟล์ ใช้แถวที่เวลาใหม่สุดต่อห้อง
+    log ไม่พิมพ์ชื่อไฟล์/รหัสไฟล์ (repo public)"""
+    subprocess.run(['bash','-lc',f'rm -rf {FBT_DIR} && mkdir -p {FBT_DIR}'],check=True)
+    q="name contains 'fb_threads' and trashed = false"
+    res,err=run_composio_tool('GOOGLEDRIVE_FIND_FILE',{'q':q,'orderBy':'modifiedTime desc','pageSize':50,
+                                                     'fields':'files(id,name,size,modifiedTime)'})
+    if err: res,err=run_composio_tool('GOOGLEDRIVE_FIND_FILE',{'q':q})
+    if err: raise RuntimeError('ค้น Drive ไม่ได้: '+str(err)[:120])
+    since=dt.datetime.now(dt.timezone.utc)-dt.timedelta(days=days)
+    seen,files={},[]
+    for d in _walk(res):
+        nm,fid,mt=d.get('name'),d.get('id'),d.get('modifiedTime') or d.get('modified_time')
+        if not (isinstance(nm,str) and nm.startswith('fb_threads') and nm.endswith('.json') and fid and mt): continue
+        try: t=dt.datetime.fromisoformat(str(mt).replace('Z','+00:00'))
+        except Exception: continue
+        if t<since or fid in seen: continue
+        seen[fid]=1; files.append((t,fid))
+    files.sort(reverse=True)
+    n=0
+    for i,(t,fid) in enumerate(files[:cap]):
+        r2,e2=run_composio_tool('GOOGLEDRIVE_DOWNLOAD_FILE',{'fileId':fid})
+        if e2: log('ดาวน์โหลด fb_threads ไฟล์ที่',i+1,'ไม่ได้'); continue
+        url=None
+        for d in _walk(r2):
+            for k in ('s3url','s3_url','s3Url','download_url'):
+                if isinstance(d.get(k),str) and d[k].startswith('http'): url=d[k]; break
+            if url: break
+        if not url: log('fb_threads ไฟล์ที่',i+1,'ไม่มีลิงก์ดาวน์โหลด'); continue
+        body=requests.get(url,timeout=120).content
+        try: json.loads(body.decode('utf-8'))['rows']
+        except Exception: log('fb_threads ไฟล์ที่',i+1,'ไม่ใช่ JSON ที่มี rows'); continue
+        open(f'{FBT_DIR}/{i:02d}.json','wb').write(body); n+=1
+    return n
+
 # ---------- repo ----------
 def prepare_repo():
     tok=open('/tmp/gh_token.txt').read().strip(); sec=open('/tmp/admin_secret.txt').read().strip()
@@ -510,6 +555,16 @@ def run_refresh(months, push=True):
     # reply-speed tables that build_v5 drops. Skipping these reverted the live 14-day view every morning.
     # build_fu rebuilds the FB/IG "ตามแชท Auto reply" list and appends today's counts to its history.
     # tools/fb_links/cov.py recounts agg.fblinkcov (rooms with a direct Inbox link per month) for the FB note.
+    # ลิงก์ตรงห้องแชท (1 ต.ค. 2026): IG ถอดจากรหัสห้องเองทุกห้อง · FB จับคู่จากไฟล์ fb_threads ที่ผู้ใช้อัปขึ้น Drive
+    # พลาดแล้วไม่หยุดรอบอัปเดต — ห้องที่ยังไม่มีลิงก์จะได้ในรอบถัดไป
+    try:
+        n=fetch_fb_threads()
+        log('fb_threads จาก Drive',n,'ไฟล์')
+    except Exception as e:
+        log('fb_threads จาก Drive ไม่สำเร็จ',type(e).__name__,str(e)[:160])
+    for step in ('tools/fb_links/ig_links.py','tools/fb_links/auto_links.py'):
+        r=subprocess.run(['bash','-lc',f'cd {REPO} && python3 {step} 2>&1|tail -4'],capture_output=True,text=True)
+        log(step,r.stdout.strip()[-400:])
     for step in ('build_v5.py','post_v5_speed.py','build_fu.py','tools/fb_links/cov.py'):
         r=subprocess.run(['bash','-lc',f'cd {REPO} && python3 {step} 2>&1|tail -3'],capture_output=True,text=True)
         log(step,r.stdout.strip()[-300:])
