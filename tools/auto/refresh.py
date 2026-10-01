@@ -562,9 +562,16 @@ def run_refresh(months, push=True):
         log('fb_threads จาก Drive',n,'ไฟล์')
     except Exception as e:
         log('fb_threads จาก Drive ไม่สำเร็จ',type(e).__name__,str(e)[:160])
+    linknote=[]
     for step in ('tools/fb_links/ig_links.py','tools/fb_links/auto_links.py'):
         r=subprocess.run(['bash','-lc',f'cd {REPO} && python3 {step} 2>&1|tail -4'],capture_output=True,text=True)
         log(step,r.stdout.strip()[-400:])
+        m=re.search(r'igt (\d+) → (\d+)',r.stdout)
+        if m and int(m.group(2))>int(m.group(1)): linknote.append('ลิงก์ IG +%d'%(int(m.group(2))-int(m.group(1))))
+        m=re.search(r'ลิงก์ใหม่ (\d+)',r.stdout)
+        if m and int(m.group(1)): linknote.append('ลิงก์ FB +%s'%m.group(1))
+        m=re.search(r'ย้ายไปห้องที่ถูก (\d+)',r.stdout)
+        if m and int(m.group(1)): linknote.append('แก้ลิงก์ FB %s'%m.group(1))
     for step in ('build_v5.py','post_v5_speed.py','build_fu.py','tools/fb_links/cov.py'):
         r=subprocess.run(['bash','-lc',f'cd {REPO} && python3 {step} 2>&1|tail -3'],capture_output=True,text=True)
         log(step,r.stdout.strip()[-300:])
@@ -578,7 +585,7 @@ def run_refresh(months, push=True):
     r=subprocess.run(['bash','-lc',f'cd {REPO} && python3 build_stage.py 2>&1|tail -12'],capture_output=True,text=True)
     log('build_stage.py',r.stdout.strip()[-1800:])
     if not push: return done
-    msg='อัปเดตอัตโนมัติ %s (%s)'%(dt.datetime.now(TH).strftime('%d/%m %H:%M'),', '.join(done))
+    msg='อัปเดตอัตโนมัติ %s (%s)'%(dt.datetime.now(TH).strftime('%d/%m %H:%M'),', '.join(done))+(' · '+' · '.join(linknote) if linknote else '')
     r=subprocess.run(['bash','-lc',f'cd {REPO} && sh deploy.sh "{msg}" 2>&1|tail -3'],capture_output=True,text=True)
     log('deploy',r.stdout.strip()[-300:])
     if 'pushed' not in r.stdout and 'ไม่มีอะไรเปลี่ยน' not in r.stdout:
