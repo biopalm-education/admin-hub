@@ -109,6 +109,42 @@ def fetch_fb_threads(days=21,cap=4):
         open(f'{FBT_DIR}/{i:02d}.json','wb').write(body); n+=1
     return n
 
+# ---------- ไฟล์ดิบ LINE จาก Drive → รายการ "ติดแท็ก / ใส่โน้ต ให้ครบ" (6 ต.ค. 2026) ----------
+LNR_DIR='/tmp/line_raw_in'
+def fetch_line_raw(days=21,cap=4):
+    """ดาวน์โหลดไฟล์ line_*_raw.json.gz ที่แก้ไขใน `days` วันล่าสุด (ใหม่สุดก่อน ไม่เกิน `cap` ไฟล์) ลง LNR_DIR
+    ไฟล์มีชื่อลูกค้า/ข้อความ — เก็บใน /tmp นอก repo เท่านั้น · log ไม่พิมพ์ชื่อไฟล์/รหัสไฟล์ (repo public)"""
+    subprocess.run(['bash','-lc',f'rm -rf {LNR_DIR} && mkdir -p {LNR_DIR}'],check=True)
+    q="name contains '_raw.json' and trashed = false"
+    res,err=run_composio_tool('GOOGLEDRIVE_FIND_FILE',{'q':q,'orderBy':'modifiedTime desc','pageSize':50,
+                                                     'fields':'files(id,name,size,modifiedTime)'})
+    if err: res,err=run_composio_tool('GOOGLEDRIVE_FIND_FILE',{'q':q})
+    if err: raise RuntimeError('ค้น Drive ไม่ได้: '+str(err)[:120])
+    since=dt.datetime.now(dt.timezone.utc)-dt.timedelta(days=days)
+    seen,files={},[]
+    for d in _walk(res):
+        nm,fid,mt=d.get('name'),d.get('id'),d.get('modifiedTime') or d.get('modified_time')
+        if not (isinstance(nm,str) and nm.startswith('line_') and nm.endswith('_raw.json.gz') and fid and mt): continue
+        try: t=dt.datetime.fromisoformat(str(mt).replace('Z','+00:00'))
+        except Exception: continue
+        if t<since or fid in seen: continue
+        seen[fid]=1; files.append((t,fid))
+    files.sort(reverse=True)
+    n=0
+    for i,(t,fid) in enumerate(files[:cap]):
+        r2,e2=run_composio_tool('GOOGLEDRIVE_DOWNLOAD_FILE',{'fileId':fid})
+        if e2: log('ดาวน์โหลดไฟล์ดิบ LINE ไฟล์ที่',i+1,'ไม่ได้'); continue
+        url=None
+        for d in _walk(r2):
+            for k in ('s3url','s3_url','s3Url','download_url'):
+                if isinstance(d.get(k),str) and d[k].startswith('http'): url=d[k]; break
+            if url: break
+        if not url: log('ไฟล์ดิบ LINE ไฟล์ที่',i+1,'ไม่มีลิงก์ดาวน์โหลด'); continue
+        body=requests.get(url,timeout=300).content
+        if body[:2]!=b'\x1f\x8b': log('ไฟล์ดิบ LINE ไฟล์ที่',i+1,'ไม่ใช่ gzip'); continue
+        open(f'{LNR_DIR}/{i:02d}.json.gz','wb').write(body); n+=1
+    return n
+
 # ---------- repo ----------
 def prepare_repo():
     tok=open('/tmp/gh_token.txt').read().strip(); sec=open('/tmp/admin_secret.txt').read().strip()
@@ -584,6 +620,19 @@ def run_refresh(months, push=True):
     # + จำนวนแชทที่สรุปจ่ายต่อเดือน — พลาดแล้วไม่หยุดรอบอัปเดตเช่นกัน
     r=subprocess.run(['bash','-lc',f'cd {REPO} && python3 build_stage.py 2>&1|tail -12'],capture_output=True,text=True)
     log('build_stage.py',r.stdout.strip()[-1800:])
+    # tn_auto.py (6 ต.ค. 2026): รายการ LINE "ติดแท็ก / ใส่โน้ต ให้ครบ" (agg.tnfu) อัปเดตจากไฟล์ดิบ LINE ที่อัปขึ้น Drive
+    # ใช้เฉพาะไฟล์ที่ดึงหลังรอบเดิม · พลาดแล้วไม่หยุดรอบอัปเดต — รายการคงของเดิมไว้
+    try:
+        n=fetch_line_raw()
+        log('ไฟล์ดิบ LINE จาก Drive',n,'ไฟล์')
+        if n:
+            r=subprocess.run(['bash','-lc',f'cd {REPO} && python3 tools/line/tn_auto.py src {LNR_DIR}/*.json.gz 2>&1|tail -1'],capture_output=True,text=True)
+            log('tn_auto.py',r.stdout.strip()[-300:])
+            if r.stdout.startswith('tnfu: อัปเดต'): linknote.append('แท็ก/โน้ต LINE อัปเดต')
+    except Exception as e:
+        log('ไฟล์ดิบ LINE จาก Drive ไม่สำเร็จ',type(e).__name__,str(e)[:160])
+    finally:
+        subprocess.run(['bash','-lc',f'rm -rf {LNR_DIR}'])
     if not push: return done
     msg='อัปเดตอัตโนมัติ %s (%s)'%(dt.datetime.now(TH).strftime('%d/%m %H:%M'),', '.join(done))+(' · '+' · '.join(linknote) if linknote else '')
     r=subprocess.run(['bash','-lc',f'cd {REPO} && sh deploy.sh "{msg}" 2>&1|tail -3'],capture_output=True,text=True)
