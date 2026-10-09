@@ -603,6 +603,40 @@ tr.tnrlate td{background:var(--risk-soft,#FBEAE9)}
 .fucur.sp{border-left-color:#A35F00}.fucur.pz{border-left-color:#8a6d3b}
 @media(max-width:640px){.ovs{padding:0 12px 16px;border-radius:12px;margin-bottom:22px}.ovs>.shead{margin:0 -12px 14px;padding:11px 12px}
  .ovs>.shead .lab{display:none}.ovs{scroll-margin-top:170px}}
+/* Follow up · weekly before / after (preview 9 ต.ค. 2026) */
+.wk{border:1px solid var(--line);border-radius:12px;background:var(--card);box-shadow:var(--shadow);padding:14px 16px;margin:0 0 18px}
+.wk .wkhd{display:flex;flex-wrap:wrap;gap:4px 12px;align-items:baseline;margin-bottom:10px}
+.wk .wkhd b{font-size:15px}
+.wkweeks{display:flex;flex-wrap:wrap;gap:6px;margin:0 0 12px}
+.wkweeks .chip.part{border-style:dashed}
+.wkt{width:100%;border-collapse:collapse;font-size:13.5px}
+.wkt th,.wkt td{padding:7px 8px;border-bottom:1px solid var(--line);text-align:right;white-space:nowrap}
+.wkt th:first-child,.wkt td:first-child{text-align:left;white-space:normal;min-width:170px}
+.wkt thead th{font-weight:600;color:var(--ink-2);font-size:12px;vertical-align:bottom;white-space:normal;min-width:64px}
+.wkt tbody tr.go{cursor:pointer}.wkt tbody tr.go:hover td{background:var(--sunk)}
+.wkt tbody tr.go:focus-visible{outline:2px solid var(--teal);outline-offset:-2px}
+.wkt tr.on td{background:var(--teal-soft)}
+.wkt td.n{font-family:"IBM Plex Mono",ui-monospace,monospace;font-variant-numeric:tabular-nums}
+.wkt .ok,.wk .ok{color:var(--teal-ink);font-weight:600}.wkt .bad,.wk .bad{color:var(--risk);font-weight:600}
+.wkt .warnc,.wk .warnc{color:var(--warn);font-weight:600}.wkt .act{color:#3d63b8;font-weight:600}.wkt .mut,.wk .mut{color:var(--ink-3)}
+.wkbar{display:flex;height:10px;border-radius:5px;overflow:hidden;background:var(--sunk);margin:12px 0 6px}
+.wkbar i{display:block;height:100%}
+.wkbar .done{background:var(--teal)}.wkbar .act{background:#6b8fd6}.wkbar .cus{background:var(--warn-bar)}
+.wkbar .none{background:var(--risk)}.wkbar .skip{background:var(--line-2)}.wkbar .aged{background:var(--line)}
+.wkchips{display:flex;flex-wrap:wrap;gap:6px;margin:10px 0}
+.wkchips .chip b{font-family:"IBM Plex Mono",ui-monospace,monospace}
+.wkb-done b{color:var(--teal-ink)}.wkb-act b{color:#3d63b8}.wkb-cus b{color:var(--warn)}.wkb-none b{color:var(--risk)}
+.wkkpi{display:flex;flex-wrap:wrap;gap:10px 28px;align-items:flex-end}
+.wkkpi .k1 .lab{display:block}
+.wkkpi .k1 b{font-family:"IBM Plex Mono",ui-monospace,monospace;font-size:26px;line-height:1.15}
+.wkwho{margin:10px 0 0;display:flex;flex-wrap:wrap;gap:6px;align-items:center}
+.wknote{margin:8px 0 4px}
+.wkrep{white-space:pre-wrap;font-family:"IBM Plex Sans Thai",system-ui,sans-serif;font-size:13px;background:var(--sunk);border-radius:9px;padding:10px 12px;margin:8px 0;max-height:420px;overflow:auto}
+.wk .tw{margin-top:8px}
+.wkmini{display:none;font-size:12px;margin-top:2px;font-family:"IBM Plex Mono",ui-monospace,monospace}
+@media (max-width:640px){.wk{padding:12px}.wkt{font-size:12.5px}.wkt th,.wkt td{padding:6px 5px}.wkkpi .k1 b{font-size:22px}
+ .wkt .cx{display:none}.wkmini{display:block}.wkt th:first-child,.wkt td:first-child{min-width:0}}
+
 </style>
 </head>
 <body>
@@ -756,13 +790,17 @@ const sub=(s,nm)=>String(s).split('\u0001').join(nm||'ลูกค้า');
 const FBPAGE='691470034208676',FBBIZ='310165158296126';
 const INBOX='https://business.facebook.com/latest/inbox/all/?business_id='+FBBIZ+'&asset_id='+FBPAGE+'&mailbox_id='+FBPAGE;
 const INBOXFB='https://business.facebook.com/latest/inbox/messenger?asset_id='+FBPAGE+'&business_id='+FBBIZ+'&mailbox_id='+FBPAGE;
-function igLink(u){var n=IGT[u];return n?INBOX+'&selected_item_id='+n+'&thread_type=IG_MESSAGE':null;}
+function igNo(cid){var s=String(cid||'');if(s.indexOf('aWdf')!==0)return null;
+ s=s.replace(/Z([ABCD])/g,function(_,c){return {A:'Z',B:'+',C:'/',D:'='}[c];});while(s.length%4)s+='=';
+ try{var m=/^ig_dm:(\d{6,})$/.exec(atob(s));return m?m[1]:null;}catch(e){return null;}}
+function igLink(u,cid){var n=(IGT&&IGT[u])||igNo(cid);return n?INBOX+'&selected_item_id='+n+'&thread_type=IG_MESSAGE':null;}
+const NOLINK_TIP='ห้องนี้ยังไม่มีลิงก์ตรง (ห้องใหม่หลังรอบเก็บรหัสห้องล่าสุด) — ปุ่มนี้เปิดหน้า Inbox ซึ่ง Meta จะแสดงแชทล่าสุด ไม่ใช่ห้องนี้ · คัดลอกชื่อลูกค้าไว้ให้แล้ว';
 function fbLink(r){var u=FBU[String(r[19])];return u?INBOXFB+'&selected_item_id='+u+'&thread_type=FB_MESSAGE':null;}
-function inboxBtn(r){var dl=(CH==='ig')?igLink(r[0]):fbLink(r);
+function inboxBtn(r){var dl=(CH==='ig')?igLink(r[0],r[19]):fbLink(r);
  if(dl)return '<a class="inbtn" href="'+dl+'" target="_blank" rel="noopener">เปิดแชทนี้ใน Inbox ↗</a>';
  var nm=r[0]||'';
- if(nm)return '<a class="inbtn" href="'+INBOX+'" target="_blank" rel="noopener" data-copy="'+esc(nm).replace(/"/g,'&quot;')+'">เปิด Inbox + คัดลอกชื่อ ↗</a>';
- return '<a class="inbtn" href="'+INBOX+'" target="_blank" rel="noopener">เปิด Inbox ↗</a>';}
+ if(nm)return '<a class="inbtn nolink" title="'+NOLINK_TIP+'" href="'+INBOX+'" target="_blank" rel="noopener" data-copy="'+esc(nm).replace(/"/g,'&quot;')+'">ยังไม่มีลิงก์ตรง · เปิด Inbox ↗</a>';
+ return '<a class="inbtn nolink" title="'+NOLINK_TIP+'" href="'+INBOX+'" target="_blank" rel="noopener">ยังไม่มีลิงก์ตรง · เปิด Inbox ↗</a>';}
 function copyText(v){try{if(navigator.clipboard&&window.isSecureContext){navigator.clipboard.writeText(v);return true;}}catch(e){}
  try{const t=document.createElement('textarea');t.value=v;t.setAttribute('readonly','');t.style.cssText='position:fixed;top:0;left:0;opacity:0';
   document.body.appendChild(t);t.select();t.setSelectionRange(0,v.length);const ok=document.execCommand('copy');t.remove();return ok;}catch(e){return false;}}
@@ -781,7 +819,7 @@ function exportChats(){
  const out=[head];
  for(const o of rows){const r=o.r;
   out.push([MLABEL[o.m]||o.m,r[0],r[1],r[3],r[4],DOWN[r[5]],r[6],r[7],r[8],r[9],
-   (r[10]<0?'':r[10]),(r[11]==null?'':r[11]),r[12]?'Y':'',WHO[r[13]]||r[13],r[14]||'',r[15]?'Y':'',r[16]?'Y':'',r[17]?'Y':'',r[20]?'Y':'',r[21]?'Y':'',r[34]?r[34]+' '+TIERN[r[34]]:'',WONK[r[35]]||'',(CH==='ig'?igLink(r[0]):fbLink(r))||'']);}
+   (r[10]<0?'':r[10]),(r[11]==null?'':r[11]),r[12]?'Y':'',WHO[r[13]]||r[13],r[14]||'',r[15]?'Y':'',r[16]?'Y':'',r[17]?'Y':'',r[20]?'Y':'',r[21]?'Y':'',r[34]?r[34]+' '+TIERN[r[34]]:'',WONK[r[35]]||'',(CH==='ig'?igLink(r[0],r[19]):fbLink(r))||'']);}
  downloadCSV('chat-'+(CH==='fb'?'facebook':'instagram')+'-'+(M==='all'?'ทุกเดือน':M)+'-'+(FNAME[FILTER]||FILTER)+'.csv',out);}
 function exportLine(){
  const rows=lnFiltered();
@@ -2397,7 +2435,7 @@ let FU=null, FU_B='7', FU_K='all', FU_T='', FU_W='', FU_Q='', FU_PAGE=0;
 let FU_G='never', FU_MODE='ar';
 let FU_ASK=false;   /* Sep 23 2026: opening Follow up asks which list first (popup) */
 try{const m=localStorage.getItem('bp_fu_mode');if(m==='pay'||m==='ar'||m==='np'||m==='sp'||m==='pz'||m==='tn')FU_MODE=m;}catch(e){}
-const FU_GN={never:'ไม่เคยมีแอดมินคุย',prior:'เคยคุยแล้ว · ถามรอบใหม่ยังไม่มีคนตอบ',both:'รวมสองกลุ่ม',skip:'ไม่ต้องตาม',done:'กดตอบแล้ว · รอรอบ 05:00 ยืนยัน'};
+const FU_GN={never:'ไม่เคยมีแอดมินคุย',prior:'เคยคุยแล้ว · ถามรอบใหม่ยังไม่มีคนตอบ',both:'รวมสองกลุ่ม',skip:'ไม่ต้องตาม',done:'กดตอบแล้ว · รอรอบอัปเดตเช้า ยืนยัน'};
 const FU_KN={all:'ทั้งหมด',A:'ถามจริง · ตามก่อน',B:'กดปุ่มสนใจคอร์ส',C:'ไม่ต้องตาม'};
 let FU_KORD=['A','B'];
 const FU_KS={A:'ถามจริง',B:'กดปุ่มสนใจ',C:'ไม่ต้องตาม'};
@@ -2438,7 +2476,7 @@ function ovMove(o,st,why,opt){return new Promise(res=>{
  const ttl=opt.title||(ansDone?'บันทึกว่าตอบแล้ว':fuDone?'บันทึกว่าตามแล้ว':(st==='skip'?'ย้ายไป “ไม่ต้องตาม”':(st==='follow'?'ย้ายกลับมาในรายการที่ต้องตาม':'ยกเลิกการย้าย (คืนค่าอัตโนมัติ)')));
  const bg=document.createElement('div');bg.className='ovdlg-bg';
  bg.innerHTML=`<div class="ovdlg" role="dialog" aria-modal="true"><h4>${ttl}</h4>
-  <p class="nsm">แชท: <b>${esc(o&&o.name||'')}</b>${opt.desc?'<br>'+esc(opt.desc)+(st==='skip'&&why&&!/^ทำแล้ว/.test(why)?'<br>เหตุผล: <b>'+esc(why)+'</b>':''):ansDone?'<br>แชทจะออกจากรายการที่ต้องตอบทันที (ไม่ต้องรอรอบ 05:00) · ถ้าลูกค้าทักมาใหม่ แชทจะกลับเข้ารายการเอง':fuDone?'<br>แชทจะไปอยู่ “ตามแล้ว · รอลูกค้าตอบ” 7 วัน ถ้าลูกค้ายังเงียบจะกลับมาในรายการที่ต้องตาม':(st==='skip'?'<br>เหตุผล: <b>'+esc(why)+'</b>':'')}</p>
+  <p class="nsm">แชท: <b>${esc(o&&o.name||'')}</b>${opt.desc?'<br>'+esc(opt.desc)+(st==='skip'&&why&&!/^ทำแล้ว/.test(why)?'<br>เหตุผล: <b>'+esc(why)+'</b>':''):ansDone?'<br>แชทจะออกจากรายการที่ต้องตอบทันที (ไม่ต้องรอรอบอัปเดตเช้า) · ถ้าลูกค้าทักมาใหม่ แชทจะกลับเข้ารายการเอง':fuDone?'<br>แชทจะไปอยู่ “ตามแล้ว · รอลูกค้าตอบ” 7 วัน ถ้าลูกค้ายังเงียบจะกลับมาในรายการที่ต้องตาม':(st==='skip'?'<br>เหตุผล: <b>'+esc(why)+'</b>':'')}</p>
   ${other?'<label class="ovlab">อธิบายเหตุผล <span class="nsm">(จำเป็น อย่างน้อย 5 ตัวอักษร)</span></label><textarea rows="3" class="ovin"></textarea><div class="ovcnt nsm"></div>':''}
   <label class="ovlab">แอดมินที่ปรับ <span class="nsm">(จำเป็น)</span></label>
   <div class="ovadm">${OV_ADMINS.map(([n,r])=>`<button type="button" class="ovad" data-n="${esc(n)}">${esc(n)}${r?' <span>'+r+'</span>':''}</button>`).join('')}</div>
@@ -2484,12 +2522,12 @@ function fuBase(g){return fuRows().filter(o=>o.type!=='give'&&fuInG(o,g||FU_G));
 function fuFilt(skipWeek){const q=FU_Q.trim().toLowerCase();
  return fuBase().filter(o=>fuInB(o,FU_B)&&(FU_K==='all'||o.kind===FU_K)&&(!FU_T||o.tags.includes(FU_T))&&(!FU_O||o.owner===FU_O)&&(skipWeek||!FU_W||o.week===FU_W)
   &&(!q||String(o.name).toLowerCase().includes(q)||String(o.said).toLowerCase().includes(q)));}
-function fuLink(o){if(CH==='ig')return igLink(o.name); if(CH==='line')return FU&&FU.lbot?'https://chat.line.biz/'+FU.lbot+'/chat/'+o.tid:null; const u=FBU[String(o.tid)];
+function fuLink(o){if(CH==='ig')return igLink(o.name,o.tid); if(CH==='line')return FU&&FU.lbot?'https://chat.line.biz/'+FU.lbot+'/chat/'+o.tid:null; const u=FBU[String(o.tid)];
  return u?INBOXFB+'&selected_item_id='+u+'&thread_type=FB_MESSAGE':null;}
 function fuBtn(o){const dl=fuLink(o);
  if(dl)return '<a class="inbtn" href="'+dl+'" target="_blank" rel="noopener">'+(CH==='line'?'เปิดแชทนี้ใน LINE OA ↗':'เปิดแชทนี้ใน Inbox ↗')+'</a>';
  const nm=o.name||'';
- return '<a class="inbtn" href="'+(CH==='ig'?INBOX:INBOXFB)+'" target="_blank" rel="noopener"'+(nm?' data-copy="'+esc(nm).replace(/"/g,'&quot;')+'"':'')+'>เปิด Inbox'+(nm?' + คัดลอกชื่อ':'')+' ↗</a>';}
+ return '<a class="inbtn nolink" title="'+NOLINK_TIP+'" href="'+(CH==='ig'?INBOX:INBOXFB)+'" target="_blank" rel="noopener"'+(nm?' data-copy="'+esc(nm).replace(/"/g,'&quot;')+'"':'')+'>ยังไม่มีลิงก์ตรง · เปิด Inbox ↗</a>';}
 function fuExport(){const rows=fuFilt(false);
  const head=['ช่องทาง','ชื่อลูกค้า','ค้างมาแล้ว (วัน)','กลุ่ม','สัปดาห์ที่ลูกค้าทักล่าสุด','ลูกค้าเริ่มทักรอบนี้','ลูกค้าทักล่าสุด','จำนวนข้อความลูกค้า',
   'ลูกค้าพิมพ์/กดอะไร','หัวข้อที่สนใจ','ประเภท','Auto reply ล่าสุดที่ลูกค้าได้','เคยคุยกับแอดมินมาก่อน','มาจาก','ลิงก์ตรงห้องแชท (ถ้ามี)','แอดมินย้ายเอง','ผู้ติดตาม','วันที่ติดตาม','ผลการติดตาม'];
@@ -2501,11 +2539,11 @@ function fuExport(){const rows=fuFilt(false);
  downloadCSV('followup-'+(CH==='ig'?'instagram':(CH==='line'?'line':'facebook'))+(FU_O?'-'+FU_O:'')+'-'+FU_GN[FU_G].replace(/[^฀-๿a-zA-Z0-9]+/g,'')+'-'+(FU_B==='30'?'ค้าง30วันขึ้นไป':(FU_B==='all'?'ทุกช่วง':'ค้าง7-29วัน'))+(FU_W?'-สัปดาห์'+FU_W:'')+(FU_K!=='all'?'-'+FU_KN[FU_K]:'')+'-'+end+'.csv',out);}
 let FU_L=[];
 function fuOvCtl(o,i){
- if(o.kind==='D')return `<div class="fuov">✓ กดตอบแล้ว${o.ov&&o.ov.by?' โดย '+esc(o.ov.by):''}<br><span class="nsm">รอบ 05:00 จะเช็กจากแชทจริงอีกครั้ง</span><button class="fuovb" data-ovi="${i}" data-ovst="clear">ยกเลิก</button></div>`;
+ if(o.kind==='D')return `<div class="fuov">✓ กดตอบแล้ว${o.ov&&o.ov.by?' โดย '+esc(o.ov.by):''}<br><span class="nsm">รอบอัปเดตเช้า จะเช็กจากแชทจริงอีกครั้ง</span><button class="fuovb" data-ovi="${i}" data-ovst="clear">ยกเลิก</button></div>`;
  if(o.ov&&o.ov.st==='skip')return `<div class="fuov on">ย้ายเป็นไม่ต้องตาม${o.ov.by?' โดย '+esc(o.ov.by):''}${o.ov.why?'<br><span class="nsm">'+esc(o.ov.why)+'</span>':''}<button class="fuovb" data-ovi="${i}" data-ovst="clear">ยกเลิก</button></div>`;
  if(o.ov&&o.ov.st==='follow')return `<div class="fuov">ย้ายกลับมาตาม${o.ov.by?' โดย '+esc(o.ov.by):''}<button class="fuovb" data-ovi="${i}" data-ovst="clear">ยกเลิก</button></div>`;
  if(o.kind==='C')return `<div class="fuov"><button class="fuovb" data-ovi="${i}" data-ovst="follow">ย้ายกลับมาตาม</button></div>`;
- return `<div class="fuov"><button class="fuovb fudone" data-ovi="${i}" data-ovst="skip" data-why="ตอบแล้ว (กดเอง)" title="ตอบลูกค้าแล้ว — แชทออกจากรายการทันที ไม่ต้องรอรอบ 05:00">✓ ตอบแล้ว</button><select class="fuovs" data-ovi="${i}" aria-label="ย้ายไปไม่ต้องตาม"><option value="">ย้ายไป “ไม่ต้องตาม”…</option>${OV_WHY.map(w=>`<option>${esc(w)}</option>`).join('')}</select></div>`;}
+ return `<div class="fuov"><button class="fuovb fudone" data-ovi="${i}" data-ovst="skip" data-why="ตอบแล้ว (กดเอง)" title="ตอบลูกค้าแล้ว — แชทออกจากรายการทันที ไม่ต้องรอรอบอัปเดตเช้า">✓ ตอบแล้ว</button><select class="fuovs" data-ovi="${i}" aria-label="ย้ายไปไม่ต้องตาม"><option value="">ย้ายไป “ไม่ต้องตาม”…</option>${OV_WHY.map(w=>`<option>${esc(w)}</option>`).join('')}</select></div>`;}
 function fuStatus(){const S=((FU||{}).status||{})[CH];if(!S)return '';
  const tot=Object.values(S).reduce((a,b)=>a+b,0);
  const it=(k,lab,cls)=>`<span class="fust ${cls||''}"><b>${nf(S[k]||0)}</b> ${lab}</span>`;
@@ -2528,6 +2566,131 @@ function fuFlow(){
   '',
   {filter:flt,nowSet,scope:FU_GN[FU_G],clearLab:'เคลียร์ได้',clearVerb:'ตอบ',newLab:'ค้างใหม่',
    how:'“ค้างตอนนี้” = การ์ด 7–29 วัน + 30 วันขึ้นไป ด้านบน · “เคลียร์ได้” = แชทที่ค้างอยู่เมื่อ 7 วัน/เมื่อวานก่อน แล้วตอนนี้หลุดจากรายการ (แอดมินตอบ · จ่ายเงินแล้ว · ลูกค้าปิดท้ายเอง · กลายเป็นไม่ต้องตาม) · “ค้างใหม่” = แชทที่เพิ่งค้างครบ 7 วันในช่วงนี้ · ค้างตอนนี้ = ค้างเดิม − เคลียร์ได้ + ค้างใหม่ · แชทที่แอดมินกดย้ายไป “ไม่ต้องตาม” นับเป็นเคลียร์ได้แบบ “แอดมินย้ายเอง”'});}
+/* ---------- Follow up · weekly before / after (preview 9 ต.ค. 2026) — data: build_week.py -> FU.wk ----------
+   Every chat that was on a list during a Monday–Sunday week is one row: on the list at the start, entered during
+   the week, where it stood at the end, and whether a person on our side wrote while it was listed.
+   Buttons pressed after the data was built (OVROWS) are merged here so the current week moves at once. */
+let WK_WI=null, WK_SEL='', WK_SUB='';
+const WK_L=[['ar','🤖','บอทตอบ - ไม่มีแอดมินตอบ'],['sp','🎬','แอดมินตอบแล้ว แต่ยังไม่แนบตัวอย่าง'],['np','🗨️','แนบตัวอย่างแล้ว แต่ยังไม่ได้สรุปจ่าย'],
+ ['pay','💸','แนบตัวอย่าง + สรุปจ่ายแล้ว แต่ลูกค้ายังไม่โอน'],['pz','🧾','ส่งสรุปจ่ายแล้ว (ไม่แนบตัวอย่าง) ยังไม่โอน']];
+const WK_B=[['done','✅ เคลียร์แล้ว','ขยับไปขั้นถัดไปหรือจบแล้ว'],['act','✋ ตอบ/ตามแล้ว','แอดมินพิมพ์ในแชทหรือกดปุ่มแล้ว แต่ยังอยู่ขั้นนี้'],
+ ['cus','💬 ลูกค้าทักกลับ รอตอบ','ลูกค้าส่งข้อความใหม่ ยังไม่มีแอดมินตอบ'],['none','⏳ ยังไม่มีใครแตะ','ไม่มีแอดมินพิมพ์ในแชทเลยตลอดสัปดาห์'],
+ ['skip','ระบบคัดออก','ลูกค้าปฏิเสธ/ไม่ใช่ลูกค้า (ระบบคัดเอง)'],['aged','หมดอายุ','เกิน 90 วัน']];
+const WK_DONE={ar:'แอดมินตอบแล้ว · โอนแล้ว · ลูกค้าปิดท้ายเอง',sp:'ส่งตัวอย่าง · ส่งสรุปยอด · โอนแล้ว',np:'ส่งสรุปยอด · โอนแล้ว',pay:'ลูกค้าโอนแล้ว (สลิปผ่าน)',pz:'ลูกค้าโอนแล้ว (สลิปผ่าน)'};
+const WK_OUT={ans:'แอดมินตอบแล้ว',smp:'ส่งตัวอย่างแล้ว',sum:'ส่งสรุปยอดแล้ว',paid:'โอนแล้ว',close:'ลูกค้าปิดท้ายเอง',fu:'ทักตามแล้ว รอลูกค้าตอบ',
+ reans:'ตอบคำถามใหม่แล้ว (ยังไม่ขยับขั้น)',requote:'ส่งสรุปยอดรอบใหม่',move:'แนบตัวอย่างเพิ่ม → ย้ายหมวด',cus:'ลูกค้าทักกลับ ยังไม่มีคนตอบ',x:'ระบบคัดออก',aged:'เกิน 90 วัน'};
+const WK_SUBN={ar:{nA:'ไม่เคยมีแอดมินคุย · ถามจริง',nB:'ไม่เคยมีแอดมินคุย · กดปุ่มสนใจ',pA:'เคยคุยแล้ว · ถามรอบใหม่',pB:'เคยคุยแล้ว · กดปุ่มรอบใหม่'},
+ sp:{A:'บอกชั้น/คอร์สแล้ว',B:'ถามเรื่องคอร์สทั่วไป'},np:{A:'บอกชั้น/คอร์สแล้ว',B:'ถามเรื่องคอร์สทั่วไป'},
+ pay:{R:'ลูกค้าถามค้าง',A:'สรุปยอดแล้ว ลูกค้าเงียบ',B:'คุยต่อแล้วเงียบ',C:'ได้ราคาแล้วเงียบ'}};
+WK_SUBN.pz=WK_SUBN.pay;
+const WK_DONEK=['ans','smp','sum','paid','close'], WK_ACTK=['fu','reans','requote','move'];
+function wkOn(){return !!(FU&&FU.wk&&FU.wk.rows&&FU.wk.rows[CH]&&(FU.wk.weeks[CH]||[]).length);}
+function wkWeeks(){return (FU.wk.weeks||{})[CH]||[];}
+function wkIdx(){const n=wkWeeks().length;if(WK_WI==null||WK_WI>=n||WK_WI<0)WK_WI=n-1;return WK_WI;}
+function wkT(s){return new Date(s.slice(0,10)+'T'+(s.slice(11,16)||'00:00')+':00');}
+function wkLab(w){const a=wkT(w[0]),b=wkT(w[1]);if(w[2]||(b.getHours()===0&&b.getMinutes()===0))b.setDate(b.getDate()-1);
+ return (a.getMonth()===b.getMonth()?a.getDate():a.getDate()+' '+FU_TH_M[a.getMonth()])+'–'+b.getDate()+' '+FU_TH_M[b.getMonth()];}
+let WK_OVI=null, WK_OVN=-1;
+function wkOvIndex(){if(WK_OVI&&WK_OVN===OVROWS.length)return WK_OVI;const m={};
+ for(const x of OVROWS){const k=x[0]+'|'+x[1];(m[k]=m[k]||[]).push(x);}WK_OVI=m;WK_OVN=OVROWS.length;return m;}
+/* a button pressed after the build, while the chat was listed this week -> act (both "ตอบ/ตามแล้ว" and "ไม่ต้องตาม") */
+function wkLiveMan(tid,w){const L=wkOvIndex()[CH+'|'+tid];if(!L)return null;const built=wkT(FU.wk.built||'2000-01-01 00:00'),s=wkT(w[0]),e=w[2]?wkT(w[1]):new Date(8.64e15);
+ for(let i=L.length-1;i>=0;i--){const x=L[i],at=new Date(x[6]);if(isNaN(at)||at<=built||at<=s||at>e)continue;
+  if(x[3]==='skip')return {by:x[5]||'',why:x[4]||''};return null;}return null;}
+function wkRows(lst,wi){const R=(((FU.wk.rows[CH]||{})[lst])||[])[wi]||[], ids=FU.wk.ids[CH]||[], w=wkWeeks()[wi];
+ const out=[];for(const r of R){const id=ids[r[0]]||['','',''];const o={tid:id[0],name:id[1],owner:id[2],fl:r[1],out:r[2],sub:r[3],who:(r[4]||[]).slice(),man:r[5]||''};
+  if(!o.man&&w){const lm=wkLiveMan(o.tid,w);if(lm){o.man='act';o.live=1;if(lm.by&&!o.who.includes(lm.by))o.who.push(lm.by);}}
+  if(FU_O&&CH==='line'&&o.owner!==FU_O)continue;out.push(o);}
+ return out;}
+function wkBucket(o){if(WK_DONEK.includes(o.out))return 'done';if(WK_ACTK.includes(o.out)||o.man)return 'act';if((o.fl&4)&&!o.out)return 'act';
+ if(o.out==='aged')return 'aged';if(o.out==='x')return 'skip';return o.out==='cus'?'cus':'none';}
+function wkCount(rows){const c={S:0,N:0,done:0,act:0,cus:0,none:0,skip:0,aged:0,E:0};
+ for(const o of rows){c.S+=o.fl&1?1:0;c.N+=o.fl&8?1:0;c[wkBucket(o)]++;if((o.fl&2)&&!o.man)c.E++;}
+ c.need=c.S+c.N-c.skip-c.aged;c.pct=c.need?Math.round((c.done+c.act)/c.need*100):null;return c;}
+function wkDelta(c){const d=c.E-c.S;return d===0?'<span class="fud0">เท่าเดิม</span>':(d<0?'<span class="fudok">▼ '+nf(-d)+'</span>':'<span class="fudbad">▲ '+nf(d)+'</span>');}
+function wkPct(c){if(c.pct==null)return '<span class="mut">—</span>';const k=c.pct>=60?'ok':(c.pct>=30?'warnc':'bad');return '<b class="'+k+'">'+c.pct+'%</b>';}
+function wkCells(c){return `<td class="n">${nf(c.S)}</td><td class="n mut cx">${c.N?'+'+nf(c.N):'·'}</td><td class="n ok cx">${nf(c.done)}</td><td class="n act cx">${nf(c.act)}</td><td class="n warnc cx">${nf(c.cus)}</td><td class="n bad cx">${nf(c.none)}</td><td class="n mut cx">${nf(c.skip+c.aged)}</td><td class="n"><b>${nf(c.E)}</b> ${wkDelta(c)}</td><td class="n">${wkPct(c)}</td>`;}
+/* phone: the middle columns fold into one line under the row name */
+function wkMini(c){return `<div class="wkmini">${c.N?'+'+nf(c.N)+' ใหม่ · ':''}<span class="ok">✅${nf(c.done)}</span> <span class="act">✋${nf(c.act)}</span> <span class="warnc">💬${nf(c.cus)}</span> <span class="bad">⏳${nf(c.none)}</span></div>`;}
+function wkRow(lab,c,attr,on){return `<tr${attr?' class="go'+(on?' on':'')+'" '+attr+' tabindex="0"':''}><td>${lab}${wkMini(c)}</td>${wkCells(c)}</tr>`;}
+const WK_TH=`<th>ค้างต้นสัปดาห์</th><th class="cx">เข้าใหม่</th><th class="cx">✅ เคลียร์แล้ว</th><th class="cx">✋ ตอบ/ตามแล้ว</th><th class="cx">💬 ลูกค้าทักกลับ</th><th class="cx">⏳ ยังไม่มีใครแตะ</th><th class="cx">ระบบคัดออก · หมดอายุ</th><th>ค้างปลายสัปดาห์</th><th>แอดมินจัดการ</th>`;
+/* a week that is not over in the data: "this week" while it really is this week, otherwise the data simply stops there (LINE) */
+function wkCur(x){return !x[2]&&(Date.now()-wkT(x[0]).getTime())<7*864e5;}
+function wkPre(x){return x[2]?'':(wkCur(x)?'สัปดาห์นี้ · ':'ข้อมูลถึงกลางสัปดาห์ · ');}
+function wkWeekChips(){const W=wkWeeks(),wi=wkIdx();
+ return `<div class="wkweeks" role="group" aria-label="เลือกสัปดาห์">`+W.map((x,i)=>`<button type="button" class="chip${x[2]?'':' part'}" data-wkw="${i}" aria-pressed="${i===wi}">${wkPre(x)}${wkLab(x)}</button>`).reverse().join('')+`</div>`;}
+function wkEndNote(){const e=(FU.wk.end||{})[CH]||'';const w=wkWeeks()[wkIdx()];
+ return (e?'ข้อมูลถึง '+fuDay(e)+' '+e.slice(11,16)+' น.':'')+(w&&wkCur(w)?' · สัปดาห์นี้ยังไม่จบ ตัวเลขขยับได้ทุกเช้า':(w&&!w[2]?' · สัปดาห์นี้มีข้อมูลไม่ครบ 7 วัน':''))+(CH==='line'?' · LINE ยังไม่อัปเดตรายวัน — สัปดาห์หลังวันที่ดึงล่าสุดจะยังไม่มีข้อมูล':'');}
+function wkTop(){
+ if(!wkOn())return '';
+ const wi=wkIdx(), w=wkWeeks()[wi]; if(!w)return '';
+ const chn=CH==='ig'?'Instagram':(CH==='line'?'LINE OA':'Facebook');
+ const rows=WK_L.map(L=>wkRow(L[1]+' '+L[2],wkCount(wkRows(L[0],wi)),'data-wkl="'+L[0]+'"',FU_MODE===L[0])).join('');
+ const rep=FU.wk.report&&FU.wk.report.msgs?FU.wk.report.msgs.join('\n\n'):'';
+ return `<section class="wk wktop" aria-label="สรุป Follow up รายสัปดาห์">
+  <div class="wkhd"><b>สรุปรายสัปดาห์ · ${chn}</b><span class="nsm">ต้นสัปดาห์ค้างเท่าไร → แอดมินจัดการไปเท่าไร → ปลายสัปดาห์เหลือเท่าไร · กดแถวเพื่อเปิดหมวดนั้น</span></div>
+  ${wkWeekChips()}
+  <div class="tw"><table class="wkt"><thead><tr><th>หมวด · สัปดาห์ ${wkLab(w)}</th>${WK_TH}</tr></thead><tbody>${rows}</tbody></table></div>
+  <p class="nsm wknote">${wkEndNote()} · <b>แอดมินจัดการ</b> = (เคลียร์แล้ว + ตอบ/ตามแล้ว) ÷ (ค้างต้นสัปดาห์ + เข้าใหม่ − ระบบคัดออก − หมดอายุ)</p>
+  <details class="fhelp"><summary>นับอย่างไร</summary><dl>
+   <dt>ค้างต้นสัปดาห์ · เข้าใหม่</dt><dd>อ่านแชทจริงย้อนหลังทีละวัน (เที่ยงคืน) ด้วยกฎเดียวกับรายการ Follow up แต่ละหมวด · ค้างต้นสัปดาห์ = อยู่ในรายการตอนเที่ยงคืนวันจันทร์ · เข้าใหม่ = เข้ารายการระหว่างสัปดาห์</dd>
+   <dt>✅ เคลียร์แล้ว</dt><dd>แชทขยับไปขั้นถัดไปหรือจบ · บอทตอบ: ${WK_DONE.ar} · ยังไม่แนบตัวอย่าง: ${WK_DONE.sp} · ยังไม่สรุปจ่าย: ${WK_DONE.np} · ยังไม่โอน: ${WK_DONE.pay}</dd>
+   <dt>✋ ตอบ/ตามแล้ว</dt><dd>แอดมิน (คนกดส่ง ไม่ใช่บอท) พิมพ์ในแชทระหว่างที่แชทอยู่ในรายการ เช่น ทักตาม ตอบคำถามใหม่ ส่งสรุปยอดรอบใหม่ — แต่แชทยังอยู่ขั้นเดิม · หรือกดปุ่ม ✓ ตอบแล้ว / ✓ ตามแล้ว / ย้ายไป “ไม่ต้องตาม” ในหน้านี้ (นับทันทีที่กด)</dd>
+   <dt>💬 ลูกค้าทักกลับ รอตอบ</dt><dd>ลูกค้าส่งข้อความใหม่แล้วยังไม่มีแอดมินตอบ — งานอยู่ที่แอดมิน <b>ไม่นับเป็นเคลียร์</b> (ของเดิมนับเป็นเคลียร์ได้)</dd>
+   <dt>⏳ ยังไม่มีใครแตะ</dt><dd>อยู่ในรายการตลอดถึงปลายสัปดาห์ และไม่มีแอดมินพิมพ์ในแชทเลย</dd>
+   <dt>ระบบคัดออก · หมดอายุ</dt><dd>ลูกค้าปฏิเสธ/ถามเรื่องนักเรียนเดิม/ชวนไปคุย LINE แล้ว (ระบบคัดเอง) · เกิน 90 วัน — ไม่นับในตัวหาร</dd>
+   <dt>ตัวเลขอัปเดตเมื่อไร</dt><dd>Facebook + Instagram ทุกเช้า (ขึ้นเว็บราว 09:00–10:00 น.) ระบบอ่านทุกแชทที่มีความเคลื่อนไหวใหม่ แล้วจัดหมวดใหม่ทั้งห้องอัตโนมัติ · ปุ่มที่กดในหน้านี้นับทันที · LINE OA ตามรอบที่ดึงข้อมูล LINE</dd></dl></details>
+  ${rep?`<details class="fhelp"><summary>ข้อความรายงานเข้า LINE กลุ่ม (ตัวอย่าง · สัปดาห์ล่าสุดที่จบแล้ว)</summary><pre class="wkrep" id="wkrep">${esc(rep)}</pre><button type="button" class="chip" id="wkcopy">คัดลอกข้อความ</button></details>`:''}
+ </section>`;}
+function wkBox(lst){
+ if(!wkOn())return '';
+ const wi=wkIdx(), W=wkWeeks(), w=W[wi]; if(!w)return '';
+ const rows=wkRows(lst,wi), c=wkCount(rows), tot=Math.max(1,c.S+c.N);
+ const bar=WK_B.map(b=>c[b[0]]?`<i class="${b[0]}" style="width:${Math.round(c[b[0]]/tot*1000)/10}%"></i>`:'').join('');
+ const chips=WK_B.filter(b=>c[b[0]]).map(b=>`<button type="button" class="chip wkb-${b[0]}" data-wkb="${b[0]}" aria-pressed="${WK_SEL===b[0]}" title="${esc(b[2])}"><b>${nf(c[b[0]])}</b> ${b[1]}</button>`).join('');
+ /* sub-groups (and LINE room owners) */
+ const SN=WK_SUBN[lst]||{}, subs={};for(const o of rows)(subs[o.sub]=subs[o.sub]||[]).push(o);
+ const subRows=Object.keys(SN).filter(k=>subs[k]).map(k=>wkRow(esc(SN[k]),wkCount(subs[k]),'data-wks="'+k+'"',WK_SUB===k)).join('');
+ let ownRows='';
+ if(CH==='line'&&!FU_O){const ow={};for(const o of rows)(ow[o.owner||'-']=ow[o.owner||'-']||[]).push(o);
+  ownRows=Object.keys(ow).sort((a,b)=>ow[b].length-ow[a].length).map(k=>wkRow('ผู้ดูแลห้อง '+esc(k),wkCount(ow[k]))).join('');}
+ /* who handled them: LINE names every sender, Facebook / Instagram only the name picked on a button */
+ const who={};for(const o of rows){const b=wkBucket(o);if(b!=='done'&&b!=='act')continue;for(const n of o.who)who[n]=(who[n]||0)+1;}
+ const whoS=Object.keys(who).sort((a,b)=>who[b]-who[a]);
+ const whoBox=`<div class="wkwho"><span class="nsm">ใครจัดการ ${CH==='line'?'(ชื่อแอดมินที่ LINE บอก + ปุ่มที่กด)':'(Meta ไม่บอกชื่อแอดมิน — นับจากชื่อที่เลือกตอนกดปุ่มในหน้านี้)'}:</span> ${whoS.length?whoS.map(n=>`<span class="badge">${esc(n)} ${nf(who[n])}</span>`).join(' '):'<span class="nsm">—</span>'}</div>`;
+ /* trend: every week of this list */
+ const trend=W.map((x,i)=>wkRow(wkPre(x)+wkLab(x),wkCount(wkRows(lst,i)),'data-wkw="'+i+'"',i===wi)).reverse().join('');
+ /* names for the chosen bucket / sub-group */
+ let names='';
+ if(WK_SEL||WK_SUB){const L=rows.filter(o=>(!WK_SEL||wkBucket(o)===WK_SEL)&&(!WK_SUB||o.sub===WK_SUB));
+  const lab=[WK_SEL?(WK_B.find(b=>b[0]===WK_SEL)||[])[1]:'',WK_SUB?SN[WK_SUB]:''].filter(Boolean).join(' · ');
+  names=`<div class="flnames"><div class="fuhd"><b>${esc(lab)}</b> <span class="nsm">${nf(L.length)} แชท${L.length>300?' · แสดง 300 แชทแรก':''}</span> <button type="button" class="chip" data-wkclr="1" aria-pressed="true">ล้างตัวกรอง ✕</button></div>`+
+   L.slice(0,300).map(o=>`<div class="flrow"><span>${CH==='ig'?'@':''}${esc(o.name||'(ไม่มีชื่อ)')} <span class="nsm">· ${esc(o.out?(WK_OUT[o.out]||o.out):(o.man?(o.live?'กดปุ่มแล้ว (วันนี้)':'กดปุ่มแล้ว'):((o.fl&4)?'แอดมินพิมพ์ในแชทแล้ว ยังค้างขั้นนี้':'ยังค้าง')))}${o.who.length?' · '+esc(o.who.join(', ')):''}${o.fl&8?' · เข้าใหม่':''}</span></span>${fuBtn({tid:o.tid,name:o.name})}</div>`).join('')+`</div>`;}
+ return `<div class="wk wkbox"><div class="wkhd"><b>หมวดนี้ · สัปดาห์ ${wkLab(w)}${w[2]?'':(wkCur(w)?' (ยังไม่จบ)':' (ข้อมูลไม่ครบสัปดาห์)')}</b><span class="nsm">${wkEndNote()}</span></div>
+  ${wkWeekChips()}
+  <div class="wkkpi"><div class="k1"><span class="lab">ค้างต้นสัปดาห์</span><b>${nf(c.S)}</b>${c.N?` <span class="nsm">+ เข้าใหม่ ${nf(c.N)}</span>`:''}</div>
+   <div class="k1"><span class="lab">ค้างปลายสัปดาห์</span><b>${nf(c.E)}</b> ${wkDelta(c)}</div>
+   <div class="k1"><span class="lab">แอดมินจัดการ</span><b>${c.pct==null?'—':c.pct+'%'}</b> <span class="nsm">${nf(c.done+c.act)} จาก ${nf(c.need)} แชท</span></div></div>
+  <div class="wkbar" role="img" aria-label="${WK_B.map(b=>b[1]+' '+c[b[0]]).join(' · ')}">${bar}</div>
+  <div class="wkchips">${chips||'<span class="nsm">ไม่มีแชทในหมวดนี้สัปดาห์นี้ 🎉</span>'}</div>
+  ${names}
+  ${subRows||ownRows?`<div class="tw"><table class="wkt"><thead><tr><th>แยกตามกลุ่ม</th>${WK_TH}</tr></thead><tbody>${subRows}${ownRows}</tbody></table></div>`:''}
+  ${whoBox}
+  <details class="fhelp" style="margin-top:10px"><summary>ย้อนหลังรายสัปดาห์ (หมวดนี้)</summary><div class="tw"><table class="wkt"><thead><tr><th>สัปดาห์</th>${WK_TH}</tr></thead><tbody>${trend}</tbody></table></div></details>
+ </div>`;}
+function wkRe(){if(FU_MODE==='ar')renderFU();else if(FU_MODE==='tn')renderTN();else renderPay();}
+function wkBind(el){if(!wkOn())return;
+ const key=(n,f)=>{n.addEventListener('click',f);n.addEventListener('keydown',e=>{if(e.key==='Enter'||e.key===' '){e.preventDefault();f();}});};
+ el.querySelectorAll('[data-wkw]').forEach(b=>key(b,()=>{WK_WI=+b.dataset.wkw;WK_SEL='';WK_SUB='';wkRe();}));
+ el.querySelectorAll('[data-wkb]').forEach(b=>key(b,()=>{WK_SEL=WK_SEL===b.dataset.wkb?'':b.dataset.wkb;wkRe();}));
+ el.querySelectorAll('[data-wks]').forEach(b=>key(b,()=>{WK_SUB=WK_SUB===b.dataset.wks?'':b.dataset.wks;wkRe();}));
+ el.querySelectorAll('[data-wkclr]').forEach(b=>key(b,()=>{WK_SEL='';WK_SUB='';wkRe();}));
+ el.querySelectorAll('[data-wkl]').forEach(b=>key(b,()=>{const m=b.dataset.wkl;WK_SEL='';WK_SUB='';
+  if(m!==FU_MODE){FU_MODE=m;try{localStorage.setItem('bp_fu_mode',m);}catch(e){}FU_PAGE=0;PU_PAGE=0;PU_G='all';PU_B='1';PU_T='';PU_W='';PU_Q='';PU_FLK='';}
+  wkRe();const t=document.querySelector('.wkbox');if(t&&t.scrollIntoView)t.scrollIntoView({behavior:'smooth',block:'start'});}));
+ const cp=el.querySelector('#wkcopy');if(cp)cp.addEventListener('click',()=>{const t=(el.querySelector('#wkrep')||{}).textContent||'';
+  try{navigator.clipboard.writeText(t).then(()=>toast('คัดลอกแล้ว'),()=>toast('คัดลอกไม่สำเร็จ'));}catch(e){toast('คัดลอกไม่สำเร็จ');}});}
+
 async function renderFU(){
  const el=$('#fu'), sc=$('#fuscope');
  if(!FU){el.innerHTML='<p class="note">กำลังโหลดรายการแชท…</p>';
@@ -2556,10 +2719,10 @@ async function renderFU(){
  const card=(b,cls,lab,v,sub,d)=>`<button class="fucard ${cls}" data-fub="${b}" aria-pressed="${FU_B===b}"><span class="lab">${lab}</span><span class="v">${nf(v)}</span><span class="s">${sub}</span>${d?'<span class="d">'+d+'</span>':''}</button>`;
  const noD=FU_G!==histG||FU_O;
  const gl=FU_G==='skip'?'ไม่ต้องตาม':'ไม่มีแอดมินตอบ';
- const cards=fuModeBar()+`<div class="fucards">`+
+ const cards=wkTop()+fuModeBar()+`<div class="fucards">`+
   card('7','warn',gl+' · 7–29 วัน',c7,'ลูกค้าทักล่าสุดเมื่อ 7–29 วันก่อน · ยังตามได้ทัน',noD?'':dd(c7,prevH&&prevH[hi]))+
   card('30','risk',gl+' · 30 วันขึ้นไป',c30,(FU_G==='skip'?'':'เป้าหมาย = 0 · ')+(LN?'ตอบแล้วแชทจะหายเมื่อดึงข้อมูล LINE เดือนถัดไป':'ตอบแล้วแชทจะหายจากรายการในรอบอัปเดตถัดไป'),noD?'':dd(c30,prevH&&prevH[hi+1]))+
-  `</div>${fuFlow()}${fuStatus()}<p class="note fusm">ตัวเลขในการ์ด = กลุ่ม <b>${FU_GN[FU_G]}</b> · ยังไม่ถึง 7 วัน ${nf(c0)} แชท (ยังไม่เข้ารายการ) · ${ngive?'ไม่นับแชท Giveaway '+nf(ngive)+' แชท (บอทส่งของแถมให้แล้ว ไม่ต้องตาม) · ':''}${LN?'LINE เกือบทุกห้องเคยคุยกับแอดมิน จึงเริ่มที่ “รวมสองกลุ่ม”':''}</p>`+
+  `</div>${wkOn()?wkBox('ar'):fuFlow()}${fuStatus()}<p class="note fusm">ตัวเลขในการ์ด = กลุ่ม <b>${FU_GN[FU_G]}</b> · ยังไม่ถึง 7 วัน ${nf(c0)} แชท (ยังไม่เข้ารายการ) · ${ngive?'ไม่นับแชท Giveaway '+nf(ngive)+' แชท (บอทส่งของแถมให้แล้ว ไม่ต้องตาม) · ':''}${LN?'LINE เกือบทุกห้องเคยคุยกับแอดมิน จึงเริ่มที่ “รวมสองกลุ่ม”':''}</p>`+
   (LN?`<p class="note fusm lnwarn">⚠️ LINE OA ดึงข้อมูลเดือนละครั้ง (ไม่มีรอบอัปเดตรายวัน) · ข้อมูลชุดนี้ถึง <b>${endT}</b> · “ค้างมาแล้ว” นับถึงวันนั้น ไม่ใช่วันนี้ · ห้องที่แอดมินตอบหลังวันนั้นแล้วจะยังอยู่ในรายการจนกว่าจะดึงเดือนถัดไป — กดเปิดแชทเช็กก่อนตามทุกครั้ง</p>`:'');
 
  /* weekly strip for the chosen bucket (ignores the week filter itself) */
@@ -2614,18 +2777,18 @@ async function renderFU(){
 
  const help=`<details class="fhelp"><summary>รายการนี้นับอย่างไร</summary><dl>
   <dt>อ่านทั้งห้อง ไม่ใช่รายเดือน</dt><dd>รายการนี้ต่อข้อความทุกเดือนของห้องเดียวกันแล้วดูว่า <b>ตอนนี้</b> ห้องอยู่สถานะไหน — ถ้าแอดมินตอบหลังข้อความล่าสุดของลูกค้าแล้ว (แม้จะคนละเดือน) ห้องนั้นไม่อยู่ในรายการ · ถ้าลูกค้าพิมพ์แค่ขอบคุณ/โอเค/สติกเกอร์หลังจากแอดมินคุยไปแล้ว ถือว่าจบบทสนทนา ไม่ต้องตาม · “เคยคุยกับแอดมิน” นับย้อนไปถึงก่อนปี 2026 ด้วย (Facebook)</dd>
-  <dt>ปุ่ม ✓ ตอบแล้ว</dt><dd>ตอบลูกค้าในแชทแล้วกดปุ่มนี้ แชทออกจากรายการและตัวเลขลดทันที (คนอื่นเห็นเมื่อ refresh) ไม่ต้องรอรอบ 05:00 · ดูแชทที่กดไว้ได้ที่กลุ่ม “กดตอบแล้ว · รอรอบ 05:00 ยืนยัน” (กดยกเลิกได้) · รอบ 05:00 จะอ่านแชทจริงแล้วย้ายเป็น “แอดมินตอบแล้ว” เอง · ถ้าลูกค้าทักมาใหม่ แชทจะกลับเข้ารายการเป็นรอบใหม่</dd>
+  <dt>ปุ่ม ✓ ตอบแล้ว</dt><dd>ตอบลูกค้าในแชทแล้วกดปุ่มนี้ แชทออกจากรายการและตัวเลขลดทันที (คนอื่นเห็นเมื่อ refresh) ไม่ต้องรอรอบอัปเดตเช้า · ดูแชทที่กดไว้ได้ที่กลุ่ม “กดตอบแล้ว · รอรอบอัปเดตเช้า ยืนยัน” (กดยกเลิกได้) · รอบอัปเดตเช้า จะอ่านแชทจริงแล้วย้ายเป็น “แอดมินตอบแล้ว” เอง · ถ้าลูกค้าทักมาใหม่ แชทจะกลับเข้ารายการเป็นรอบใหม่</dd>
   <dt>ย้ายแชทเอง</dt><dd>ถ้าเปิดดูแล้วไม่ควรตาม (ถามกวน มาปั่น ไม่ใช่ลูกค้า คุยต่อทางอื่นแล้ว) เลือกเหตุผลในช่อง “ย้ายไป ไม่ต้องตาม” ท้ายแถว (ทุกครั้งต้องเลือกชื่อแอดมินที่ปรับ และถ้าเลือก “อื่น ๆ” ต้องพิมพ์อธิบายเหตุผลอย่างน้อย 5 ตัวอักษร) แชทจะหายจากรายการและตัวเลขทันที · กดยกเลิกเพื่อคืนค่าได้ · ถ้าลูกค้าส่งข้อความใหม่ในภายหลัง แชทจะกลับเข้ารายการเองเพราะเป็นรอบใหม่ · แชทที่ระบบซ่อนไว้ผิด เลือกกลุ่ม “ไม่ต้องตาม” แล้วกด “ย้ายกลับมาตาม”</dd>
   <dt>กลุ่มแชท</dt><dd>เลือกได้ทีละกลุ่ม รายชื่อจะเปลี่ยนเป็นแชทของกลุ่มนั้นทันที · <b>ไม่เคยมีแอดมินคุย</b> ลูกค้าได้แต่ข้อความอัตโนมัติมาตลอด · <b>เคยคุยแล้ว · ถามรอบใหม่ยังไม่มีคนตอบ</b> เคยมีแอดมินคุย (รวมก่อนปี 2026 บน Facebook) แต่ข้อความล่าสุดของลูกค้ายังไม่มีคนตอบ · <b>ไม่ต้องตาม</b> ระบบคัดออก (รูป/สติกเกอร์/ทักทาย/ข้อความไม่ชัด/ลูกค้าปฏิเสธ) หรือแอดมินย้ายเอง · ตัวเลขในกล่อง “อ่านทั้งห้องแชท” ที่มีกรอบกดได้ จะเปิดรายชื่อกลุ่มนั้น<b>ทุกช่วงเวลา</b></dd>
   <dt>LINE OA</dt><dd>อ่านทั้งห้องต่อกันทุกเดือนที่ดึงมาแล้ว · LINE บอกชื่อแอดมินที่ส่งทุกข้อความ ข้อความจากบัญชีบอท/ข้อความตอบกลับอัตโนมัติ = อัตโนมัติ · ห้องเข้ารายการเมื่อข้อความล่าสุดของลูกค้ายังไม่มีแอดมินคนไหนตอบ (รวมห้องที่เคยคุยแล้ว เพราะ LINE เกือบทุกห้องเคยคุยกับแอดมิน) · “ผู้ดูแล” = แอดมินที่ LINE ตั้งเป็นผู้รับผิดชอบห้อง กดชื่อเพื่อดูเฉพาะห้องของคนนั้น · ปุ่ม “เปิดแชทนี้” เข้าห้องใน LINE OA Manager ได้ตรง · ข้อมูล LINE ดึงเดือนละครั้ง “ค้างมาแล้ว” จึงนับถึงข้อความล่าสุดในชุดที่ดึงมา (ไม่ใช่วันนี้)</dd>
   <dt>แชทแบบไหนเข้ารายการ</dt><dd>ลูกค้าทักมาแล้วได้รับแต่ <b>ข้อความอัตโนมัติ</b> (ข้อความต้อนรับ ปุ่มคำถามที่ตั้งไว้ ข้อความตอบตามคีย์เวิร์ด ข้อความติดตามที่ตั้งเวลาส่ง) และ <b>ไม่มีแอดมินตอบเลย</b> นับจากข้อความล่าสุดของลูกค้า</dd>
   <dt>แยกแอดมินกับข้อความอัตโนมัติอย่างไร</dt><dd><b>Facebook</b> — Meta ติดป้ายทุกข้อความว่าส่งมาจากไหน ข้อความที่ส่งจากแอปมือถือ (Business Suite) = มีคนกดส่ง นับเป็นแอดมินตอบ ทั้งที่พิมพ์เองและกดส่งข้อความที่บันทึกไว้ · ข้อความที่ระบบส่งเอง (ข้อความต้อนรับ ปุ่มคำถาม ตอบตามคีย์เวิร์ด ข้อความติดตามที่ตั้งเวลา บอทตรวจสลิป) = อัตโนมัติ · <b>Instagram</b> — API ไม่มีป้ายนี้ จึงเทียบจากข้อความเดียวกันบน Facebook (แอดมินใช้ข้อความชุดเดียวกัน) ข้อความที่ไม่เคยเจอบน Facebook ใช้จังหวะเวลา: ส่งหลังลูกค้าทัก 2 นาทีขึ้นไป = แอดมิน · <b>LINE OA</b> — ระบบ LINE บอกชื่อแอดมินที่ส่งทุกข้อความอยู่แล้ว</dd>
   <dt>“ค้างมาแล้ว” นับจากไหน</dt><dd>จากข้อความล่าสุดของลูกค้า ถึงเวลาที่ดึงข้อมูลชุดนี้ (${endT}) · 7–29 วัน = ยังตามได้ทัน · 30 วันขึ้นไป = กองค้างที่ควรเคลียร์ให้เป็น 0</dd>
-  <dt>ตอบแล้วแชทหายจากรายการเมื่อไร</dt><dd>รอบอัปเดตอัตโนมัติถัดไปหลังแอดมินตอบในแชทนั้น (รายวัน 05:00 ดึงเดือนปัจจุบัน · จันทร์ 04:00 ดึงเดือนก่อนหน้าซ้ำ) — ระบบต่อแชทข้ามเดือนด้วยรหัสห้องแชท แชทเก่าที่ตอบในเดือนนี้จึงหายจากกองด้วย</dd>
+  <dt>ตอบแล้วแชทหายจากรายการเมื่อไร</dt><dd>รอบอัปเดตอัตโนมัติถัดไปหลังแอดมินตอบในแชทนั้น (ทุกเช้า ขึ้นหน้าเว็บราว 09:00–10:00 น. ดึงเดือนปัจจุบัน · วันจันทร์และวันที่ 1 ดึงเดือนก่อนหน้าซ้ำด้วย) — ระบบต่อแชทข้ามเดือนด้วยรหัสห้องแชท แชทเก่าที่ตอบในเดือนนี้จึงหายจากกองด้วย</dd>
   <dt>ควรตามแค่ไหน</dt><dd>อ่านจากสิ่งที่ลูกค้าส่งมาในรอบที่ยังไม่มีคนตอบ · <b>ถามจริง · ตามก่อน</b> ลูกค้าพิมพ์ข้อความจริง (4 ตัวอักษรขึ้นไป ไม่ใช่แค่ทักทาย/ขอบคุณ) ที่พูดถึงคอร์ส ระดับชั้น ราคา ตาราง การสมัคร เรื่องของนักเรียนเดิม (ลิงก์ ชีท ใบเสร็จ) หรือเป็นประโยคคำถาม · <b>กดปุ่มสนใจคอร์ส</b> ไม่ได้พิมพ์ แต่กดปุ่มโฆษณาหรือปุ่มเมนูเรื่องคอร์ส (เช่น สนใจลงเรียน ม.ต้น, รายละเอียดคอร์ส) · <b>ไม่ต้องตาม</b> ซ่อนไว้ — ส่งแค่รูป/สติกเกอร์/ตอบกลับสตอรี่ ทักทายหรือขอบคุณอย่างเดียว ข้อความสั้นไม่ชัด (เช่น “ใคร” “ม.8”) หรือลูกค้าบอกไม่สนใจ · แชท <b>Giveaway</b> ไม่นับในรายการนี้</dd>
   <dt>ไฟล์ CSV</dt><dd>ดาวน์โหลดตามตัวกรองที่เลือกอยู่ มีลิงก์ตรงเข้าห้องแชทใน Meta Business Suite (Instagram เกือบครบทุกแชท · Facebook ทุกห้องที่เก็บรหัสบัญชีลูกค้าไว้แล้ว ห้องที่ยังไม่มีใช้ปุ่ม “เปิด Inbox + คัดลอกชื่อ” แล้ววางชื่อในช่องค้นหา) และคอลัมน์ว่าง “ผู้ติดตาม · วันที่ติดตาม · ผลการติดตาม” ไว้ให้ทีมกรอกต่อ</dd></dl></details>`;
 
- el.innerHTML=cards+`<div class="fugrid"><div>${wtable}</div><div>${want}</div></div>`+list+hist+help;
+ el.innerHTML=cards+`<div class="fugrid"><div>${wtable}</div><div>${want}</div></div>`+list+hist+help;wkBind(el);
  el.querySelectorAll('[data-fub]').forEach(b=>b.addEventListener('click',()=>{FU_B=b.dataset.fub;FU_W='';FU_PAGE=0;renderFU();}));
  el.querySelectorAll('[data-fuw]').forEach(r=>{const go=()=>{FU_W=FU_W===r.dataset.fuw?'':r.dataset.fuw;FU_PAGE=0;renderFU();};
   r.addEventListener('click',go);r.addEventListener('keydown',e=>{if(e.key==='Enter'||e.key===' '){e.preventDefault();go();}});});
@@ -2816,8 +2979,8 @@ function puOvCtl(o,i){
  if(o.ov&&o.ov.st==='follow')return `<div class="fuov">ย้ายกลับมาตาม${o.ov.by?' โดย '+esc(o.ov.by):''}<button class="fuovb" data-pui="${i}" data-ovst="clear">ยกเลิก</button></div>`;
  if(o.g==='X')return `<div class="fuov"><button class="fuovb" data-pui="${i}" data-ovst="follow">ย้ายกลับมาตาม</button></div>`;
  if(o.fuMan&&o.g==='F')return `<div class="fuov">✓ กดตามแล้ว${o.ov.by?' โดย '+esc(o.ov.by):''}<button class="fuovb" data-pui="${i}" data-ovst="clear">ยกเลิก</button></div>`;
- if(o.ansMan)return `<div class="fuov">✓ กดตอบแล้ว${o.ov.by?' โดย '+esc(o.ov.by):''}<br><span class="nsm">รอบ 05:00 จะเช็กจากแชทจริงอีกครั้ง</span><button class="fuovb" data-pui="${i}" data-ovst="clear">ยกเลิก</button></div>`;
- return `<div class="fuov">${o.g==='R'?`<button class="fuovb fudone" data-pui="${i}" data-ovst="skip" data-why="ตอบแล้ว (กดเอง)" title="ตอบคำถามลูกค้าแล้ว — ย้ายไป “คุยต่อหลังได้สรุปยอด” ทันที ไม่ต้องรอรอบ 05:00">✓ ตอบแล้ว</button>`:(o.g==='F'?'':`<button class="fuovb fudone" data-pui="${i}" data-ovst="skip" data-why="ตามแล้ว (กดเอง)" title="ทักตามลูกค้าแล้ว (ในแชท โทร หรือ LINE) — ย้ายไป “ตามแล้ว · รอลูกค้าตอบ” ทันที ไม่ต้องรอรอบ 05:00">✓ ตามแล้ว</button>`)}<select class="fuovs" data-pui="${i}" aria-label="ย้ายไปไม่ต้องตาม"><option value="">ย้ายไป “ไม่ต้องตาม”…</option>${PU_WHY.map(w=>`<option>${esc(w)}</option>`).join('')}</select></div>`;}
+ if(o.ansMan)return `<div class="fuov">✓ กดตอบแล้ว${o.ov.by?' โดย '+esc(o.ov.by):''}<br><span class="nsm">รอบอัปเดตเช้า จะเช็กจากแชทจริงอีกครั้ง</span><button class="fuovb" data-pui="${i}" data-ovst="clear">ยกเลิก</button></div>`;
+ return `<div class="fuov">${o.g==='R'?`<button class="fuovb fudone" data-pui="${i}" data-ovst="skip" data-why="ตอบแล้ว (กดเอง)" title="ตอบคำถามลูกค้าแล้ว — ย้ายไป “คุยต่อหลังได้สรุปยอด” ทันที ไม่ต้องรอรอบอัปเดตเช้า">✓ ตอบแล้ว</button>`:(o.g==='F'?'':`<button class="fuovb fudone" data-pui="${i}" data-ovst="skip" data-why="ตามแล้ว (กดเอง)" title="ทักตามลูกค้าแล้ว (ในแชท โทร หรือ LINE) — ย้ายไป “ตามแล้ว · รอลูกค้าตอบ” ทันที ไม่ต้องรอรอบอัปเดตเช้า">✓ ตามแล้ว</button>`)}<select class="fuovs" data-pui="${i}" aria-label="ย้ายไปไม่ต้องตาม"><option value="">ย้ายไป “ไม่ต้องตาม”…</option>${PU_WHY.map(w=>`<option>${esc(w)}</option>`).join('')}</select></div>`;}
 
 function renderPay(){
  const el=$('#fu'), sc=$('#fuscope'), LN=CH==='line', chn=CH==='ig'?'Instagram':(LN?'LINE OA':'Facebook');
@@ -2835,7 +2998,7 @@ function renderPay(){
  const dd=(now,prev)=>prev==null||PU_G!=='all'||FU_O||!prevH?'':(now-prev===0?'<span class="fud0">เท่าเดิม</span>':(now<prev?'<span class="fudok">▼ '+nf(prev-now)+'</span>':'<span class="fudbad">▲ '+nf(now-prev)+'</span>'))+' <span class="nsm">เทียบรอบ '+fuDay(prevH[0])+'</span>';
  const card=(b,cls,lab,v,sub,d)=>`<button class="fucard ${cls}" data-pub="${b}" aria-pressed="${PU_B===b}"><span class="lab">${lab}</span><span class="v">${nf(v)}</span><span class="s">${sub}</span>${d?'<span class="d">'+d+'</span>':''}</button>`;
  const gl=PU_G==='all'?(FUT[PU_KEY]||''):PU_GN[PU_G];
- const cards=fuModeBar()+`<div class="fucards c3">`+
+ const cards=wkTop()+fuModeBar()+`<div class="fucards c3">`+
   card('1','risk',gl+' · 1–6 วัน',c1,NPM?(SPM?'แอดมินตอบล่าสุดเมื่อ 1–6 วันก่อน · ส่งคลิปตัวอย่าง/ฟอร์มทดลองเรียนให้เลย ตอนลูกค้ายังสนใจ':'แอดมินตอบล่าสุดเมื่อ 1–6 วันก่อน · ส่งสรุปยอด/โปรให้เลย ตอนลูกค้ายังสนใจ'):'ส่งสรุปยอดล่าสุดเมื่อ 1–6 วันก่อน · ตามรอบแรก ช่วงที่ลูกค้ายังจำได้',dd(c1,prevH&&prevH[hi]))+
   card('7','warn',gl+' · 7–29 วัน',c7,NPM?(SPM?'ทักถามต่อ · ส่งตัวอย่างพร้อมแนะนำคอร์สที่ตรงชั้นของน้อง':'ทักถามต่อ · เสนอรอบเรียนที่ใกล้เริ่มพร้อมราคา'):'ตามรอบสอง · เสนอโปร/รอบเรียนที่ใกล้เริ่ม',dd(c7,prevH&&prevH[hi+1]))+
   card('30','',gl+' · 30–89 วัน',c30,'ลูกค้าเก่า · ปลุกด้วยข่าวคอร์สใหม่/เปิดรอบใหม่',dd(c30,prevH&&prevH[hi+2]))+`</div>`;
@@ -2866,7 +3029,7 @@ function renderPay(){
   <dt>สรุปยอด (ข้อความฝั่งเรา แอดมินหรือข้อความอัตโนมัติ)</dt><dd>ภายใน 30 นาทีต้องมี<b>ครบทั้ง 3 ส่วน</b> (ส่วนใหญ่อยู่ในข้อความเดียว)<div class="fukw"><code>สรุปรายละเอียด / รหัสคอร์ส</code><code>ยอดเงิน เช่น 5,500 บาท · 4500.- · ราคา 5500</code><code>166-3-63464-6 / โอนชำระค่าเรียนได้ที่</code></div>ข้อความที่แค่บอกราคา หรือ “แอดมินสรุปยอดชำระให้ซักครู่นะคะ” ไม่นับ · เปลี่ยนเกณฑ์ 30 ก.ย. 2026 (เดิมนับทุกข้อความที่มีราคา ทำให้ตัวเลขเกินจริงราว 8 เท่า)</dd>
   <dt>แยก 2 หมวด</dt><dd>ในรอบการขายเดียวกัน ฝั่งเราเคยส่งตัวอย่าง → หมวด <b>แนบตัวอย่าง + สรุปจ่ายแล้ว แต่ลูกค้ายังไม่โอน</b> · ไม่เคยส่ง → หมวด <b>ส่งสรุปจ่ายแล้วแต่ยังไม่โอน</b> (ส่วนใหญ่เป็นนักเรียนเก่าที่สมัครต่อ)</dd>
   <dt>โอนแล้ว = หลุดจากรายการ</dt><dd><div class="fukw"><code>สถานะ: ตรวจสอบสลิปสำเร็จ</code><code>ชื่อผู้รับ: บจก. ไบโอปาล์ม</code>${LN?'<code>แท็ก LINE “สมัครแล้ว”</code>':''}</div>ต้องมา<b>หลัง</b>ใบสรุปยอดรอบนั้น · ถ้าส่งสรุปยอดใหม่หลังเคยโอน (ซื้อคอร์สต่อ) จะนับเป็นรอบใหม่ และติดป้าย “เคยโอนแล้ว”</dd>
-  <dt>ตามแล้ว (ระบบจับเอง)</dt><dd>ข้อความที่<b>แอดมินกดส่งเอง</b> หลังลูกค้าเงียบ <b>12 ชม.ขึ้นไป</b> และหลังส่งสรุปยอดแล้ว 12 ชม.ขึ้นไป (ข้อความอัตโนมัติไม่นับ · ส่งหลายข้อความภายใน 30 นาทีนับ 1 ครั้ง) · ส่งการ์ดราคาซ้ำแบบนี้ก็นับเป็นการตาม <b>ไม่</b>นับเป็นส่งสรุปยอดใหม่ วันที่ “ส่งสรุปยอดมาแล้ว” จึงไม่รีเซ็ต · ลูกค้ายังไม่ตอบ = อยู่ “ตามแล้ว · รอลูกค้าตอบ” 7 วัน ครบแล้วยังเงียบ = กลับมาในรายการพร้อมป้าย “ครบกำหนดตามรอบถัดไป” · ลูกค้าตอบ = ย้ายไปถามค้าง/คุยต่อ · ตามทางโทรหรือ LINE ที่ระบบมองไม่เห็น กดปุ่ม <b>✓ ตามแล้ว</b> ได้ทันที (ตามในแชทแล้วไม่อยากรอรอบ 05:00 หรือตามทางโทร/LINE ก็ได้) มีผล 7 วันเหมือนกัน · แถว “ลูกค้าถามค้าง” มีปุ่ม <b>✓ ตอบแล้ว</b> ย้ายไป “คุยต่อหลังได้สรุปยอด” ทันที</dd>
+  <dt>ตามแล้ว (ระบบจับเอง)</dt><dd>ข้อความที่<b>แอดมินกดส่งเอง</b> หลังลูกค้าเงียบ <b>12 ชม.ขึ้นไป</b> และหลังส่งสรุปยอดแล้ว 12 ชม.ขึ้นไป (ข้อความอัตโนมัติไม่นับ · ส่งหลายข้อความภายใน 30 นาทีนับ 1 ครั้ง) · ส่งการ์ดราคาซ้ำแบบนี้ก็นับเป็นการตาม <b>ไม่</b>นับเป็นส่งสรุปยอดใหม่ วันที่ “ส่งสรุปยอดมาแล้ว” จึงไม่รีเซ็ต · ลูกค้ายังไม่ตอบ = อยู่ “ตามแล้ว · รอลูกค้าตอบ” 7 วัน ครบแล้วยังเงียบ = กลับมาในรายการพร้อมป้าย “ครบกำหนดตามรอบถัดไป” · ลูกค้าตอบ = ย้ายไปถามค้าง/คุยต่อ · ตามทางโทรหรือ LINE ที่ระบบมองไม่เห็น กดปุ่ม <b>✓ ตามแล้ว</b> ได้ทันที (ตามในแชทแล้วไม่อยากรอรอบอัปเดตเช้า หรือตามทางโทร/LINE ก็ได้) มีผล 7 วันเหมือนกัน · แถว “ลูกค้าถามค้าง” มีปุ่ม <b>✓ ตอบแล้ว</b> ย้ายไป “คุยต่อหลังได้สรุปยอด” ทันที</dd>
   <dt>ไม่ต้องตาม</dt><dd><div class="fukw"><code>โอนแล้ว / แนบสลิป / ชำระแล้ว</code><code>ถามเรื่องไฟล์ ลิงก์เข้าเรียน ชีท</code><code>ไม่สนใจ / ไว้ก่อน / แพง / ยกเลิก</code><code>ชวนไปคุย LINE แล้ว</code></div>(ลูกค้าพิมพ์หลังได้สรุปยอด) · หรือแอดมินย้ายเอง</dd></dl></details>`;
  const kwSP=`<details class="fhelp" style="margin:8px 0 16px"><summary>กฎที่ใช้จับ “แอดมินตอบแล้ว แต่ยังไม่แนบตัวอย่าง”</summary><dl>
   <dt>เข้ารายการเมื่อ</dt><dd>ลูกค้า<b>พิมพ์เอง</b>ถามเรื่องคอร์ส <b>และ</b>แอดมิน (คน) ตอบข้อความล่าสุดของลูกค้าแล้ว <b>และ</b>ฝั่งเรา<b>ยังไม่เคยส่งตัวอย่าง</b>ในห้องนี้ <b>และ</b>ยังไม่ได้ส่งสรุปยอด · ลูกค้าทักล่าสุดตั้งแต่ 19 ส.ค. 2026 · ไม่นับนักเรียนเดิม (เคยโอนแล้ว · LINE แท็ก “สมัครแล้ว” · ถามเรื่องลิงก์เข้าเรียน) · ครบ 1 วันหลังแอดมินตอบจึงเข้ารายการ</dd>
@@ -2927,7 +3090,7 @@ function renderPay(){
    <button class="dlbtn fudl" id="pudl" type="button">⤓ ดาวน์โหลดรายการนี้ (CSV) · ${nf(L.length)} แชท</button><span class="fupager">${pager}</span></div></div>`;
  const hist=H.length>1?`<div class="fuhd"><b>ค้างโอนรายรอบอัปเดต</b> <span class="nsm">ทุกกลุ่มยกเว้นไม่ต้องตาม</span></div><div class="tw"><table><thead><tr><th>ข้อมูลถึง</th><th class="n">1–6 วัน</th><th class="n">7–29 วัน</th><th class="n">30–89 วัน</th></tr></thead><tbody>${H.slice(-8).reverse().map(h=>`<tr><td>${fuDay(h[0])}</td><td class="n">${nf(h[hi]||0)}</td><td class="n">${nf(h[hi+1]||0)}</td><td class="n">${nf(h[hi+2]||0)}</td></tr>`).join('')}</tbody></table></div>`:
   `<p class="note fusm">ตัวเลขเทียบรายรอบจะเริ่มขึ้นหลังรอบอัปเดตถัดไป</p>`;
- el.innerHTML=cards+flow+(NPM?statNP:stat)+note+(SPM?kwSP:(NPM?kwNP:kw))+`<div class="fugrid"><div>${wtable}</div><div>${amt}</div></div>`+list+(NPM?'':hist);
+ el.innerHTML=cards+(wkOn()?wkBox(PU_KEY):flow)+(NPM?statNP:stat)+note+(SPM?kwSP:(NPM?kwNP:kw))+`<div class="fugrid"><div>${wtable}</div><div>${amt}</div></div>`+list+(NPM?'':hist);wkBind(el);
  fuModeBind(el);
  el.querySelectorAll('[data-pub]').forEach(b=>b.addEventListener('click',()=>{PU_B=b.dataset.pub;PU_W='';PU_PAGE=0;renderPay();}));
  el.querySelectorAll('[data-pug]').forEach(b=>b.addEventListener('click',()=>{PU_G=b.dataset.pug;PU_W='';PU_T='';PU_PAGE=0;renderPay();}));
@@ -3267,7 +3430,7 @@ function renderAdmPend(){
  el.innerHTML=`<p class="note" style="margin-bottom:8px">ห้องแชทที่ข้อความล่าสุดของลูกค้ายังไม่มีแอดมินตอบ แยกตามจำนวนวันที่รอมาแล้ว${end?' (นับถึง '+end+')':''} · <b>กดตัวเลขเพื่อเปิดรายชื่อในหน้า Follow up</b></p>
  <div class="tw"><table class="pdt"><thead><tr><th>ช่องทาง</th>${AGEB.map(a=>`<th class="n"><i style="display:inline-block;width:9px;height:9px;border-radius:2px;background:${a[2]};margin-right:5px"></i>${a[1]}</th>`).join('')}<th class="n">รวม</th><th class="n">ไม่เคยมีแอดมินคุย</th><th class="n">เคยคุยแล้ว ถามรอบใหม่</th></tr></thead>
  <tbody>${per.map(([c,x])=>row(c,x)).join('')}${per.length>1?row('',T,true):''}</tbody></table></div>
- <p class="note" style="margin-top:8px">เป้าหมาย: ช่อง <b style="color:var(--risk)">30 วันขึ้นไป</b> = 0 · ไม่นับ: รอบล่าสุดมีแค่สติกเกอร์/รูป/ทักทาย/ขอบคุณ ${nf(T.skip)} ห้อง (รวมที่ย้ายไป “ไม่ต้องตาม”) · แอดมินกด “ตอบแล้ว” รอยืนยันรอบ 05:00 ${nf(T.done)} ห้อง · Giveaway${CH==='all'||CH==='line'?' · LINE OA นับถึงวันสุดท้ายที่ดึงข้อมูล ห้องที่ตอบหลังจากนั้นจะหายเมื่อดึงเดือนถัดไป':''}</p>`;
+ <p class="note" style="margin-top:8px">เป้าหมาย: ช่อง <b style="color:var(--risk)">30 วันขึ้นไป</b> = 0 · ไม่นับ: รอบล่าสุดมีแค่สติกเกอร์/รูป/ทักทาย/ขอบคุณ ${nf(T.skip)} ห้อง (รวมที่ย้ายไป “ไม่ต้องตาม”) · แอดมินกด “ตอบแล้ว” รอยืนยันรอบอัปเดตเช้า ${nf(T.done)} ห้อง · Giveaway${CH==='all'||CH==='line'?' · LINE OA นับถึงวันสุดท้ายที่ดึงข้อมูล ห้องที่ตอบหลังจากนั้นจะหายเมื่อดึงเดือนถัดไป':''}</p>`;
  fujBind(el);}
 
 /* ---------- คุณภาพการตอบ (30 ก.ย. 2026) ----------
@@ -3398,8 +3561,8 @@ $('#vseg').querySelectorAll('button').forEach(b=>b.addEventListener('click',()=>
   ws.querySelectorAll('button').forEach(x=>x.setAttribute('aria-pressed',String(+x.dataset.w===WIN)));
   PAGE=0;SEL=0;refresh();}));})();
 $('#msel').addEventListener('change',e=>{M=e.target.value;PAGE=0;SEL=0;refresh();});
-document.addEventListener('click',function(e){var a=e.target&&e.target.closest?e.target.closest('a[data-copy]'):null;if(!a)return;var v=a.getAttribute('data-copy');if(!v)return;if(copyText(v)){toast('คัดลอก “'+v+'” แล้ว — วางในช่องค้นหาของ Inbox ได้เลย');}else{toast('คัดลอกอัตโนมัติไม่สำเร็จ — คัดลอกชื่อจากหัวแชทเอง');}},true);
-(function(){var st=document.createElement('style');st.textContent='.inbtn{font-size:12.5px;font-weight:500;text-decoration:none;border:1px solid var(--line-2);border-radius:999px;padding:3px 10px;margin-left:8px;color:var(--fb);background:var(--card);white-space:nowrap;display:inline-block;vertical-align:middle}.inbtn:hover{background:var(--fb-soft)}.inbtn.ghost{color:var(--ig)}.inbtn.ghost:hover{background:var(--ig-soft)}';document.head.appendChild(st);})();
+document.addEventListener('click',function(e){var a=e.target&&e.target.closest?e.target.closest('a[data-copy]'):null;if(!a)return;var v=a.getAttribute('data-copy');if(!v)return;if(copyText(v)){toast('ห้องนี้ยังไม่มีลิงก์ตรง — Inbox จะเปิดแชทล่าสุด ไม่ใช่ห้องนี้ · คัดลอก “'+v+'” ไว้แล้ว');}else{toast('คัดลอกอัตโนมัติไม่สำเร็จ — คัดลอกชื่อจากหัวแชทเอง');}},true);
+(function(){var st=document.createElement('style');st.textContent='.inbtn{font-size:12.5px;font-weight:500;text-decoration:none;border:1px solid var(--line-2);border-radius:999px;padding:3px 10px;margin-left:8px;color:var(--fb);background:var(--card);white-space:nowrap;display:inline-block;vertical-align:middle}.inbtn:hover{background:var(--fb-soft)}.inbtn.ghost{color:var(--ig)}.inbtn.ghost:hover{background:var(--ig-soft)}.inbtn.nolink{color:#b45309;border-color:#f3c88b;background:#fff7ed}.inbtn.nolink:hover{background:#ffedd5}';document.head.appendChild(st);})();
 (function(){const e=$('#ftbuilt'); if(!e)return;
  const b=(typeof MAN!=='undefined'&&MAN)?MAN.built:null; if(!b){e.textContent='';return;}
  let t=b; try{const d=new Date(b);

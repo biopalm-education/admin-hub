@@ -620,6 +620,10 @@ def run_refresh(months, push=True):
     # + จำนวนแชทที่สรุปจ่ายต่อเดือน — พลาดแล้วไม่หยุดรอบอัปเดตเช่นกัน
     r=subprocess.run(['bash','-lc',f'cd {REPO} && python3 build_stage.py 2>&1|tail -12'],capture_output=True,text=True)
     log('build_stage.py',r.stdout.strip()[-1800:])
+    # build_week.py (9 ต.ค. 2026): สรุป Follow up รายสัปดาห์ทุกหมวด (followup.json "wk") + ข้อความรายงาน LINE กลุ่ม
+    # อ่านแชทย้อนหลังทีละวันด้วยกฎเดียวกับรายการ · หน้าเว็บจริงยังไม่ใช้ (หน้า preview ใช้) · พลาดแล้วไม่หยุดรอบอัปเดต
+    r=subprocess.run(['bash','-lc',f'cd {REPO} && timeout 1200 python3 build_week.py 2>&1|tail -20'],capture_output=True,text=True)
+    log('build_week.py',r.stdout.strip()[-2000:])
     # tn_auto.py (6 ต.ค. 2026): รายการ LINE "ติดแท็ก / ใส่โน้ต ให้ครบ" (agg.tnfu) อัปเดตจากไฟล์ดิบ LINE ที่อัปขึ้น Drive
     # ใช้เฉพาะไฟล์ที่ดึงหลังรอบเดิม · พลาดแล้วไม่หยุดรอบอัปเดต — รายการคงของเดิมไว้
     try:
