@@ -88,6 +88,7 @@ jobs:
           MCP_URL = os.environ.get('COMPOSIO_MCP_URL') or 'https://connect.composio.dev/mcp'
           _KEY = (os.environ.get('COMPOSIO_API_KEY') or '').strip()
           DEBUG = bool(os.environ.get('MCP_DEBUG'))
+          DRIVE_ACCOUNT = (os.environ.get('COMPOSIO_DRIVE_ACCOUNT') or 'googledrive_strown-skyre').strip()
 
           _sess = None
           _lock = threading.Lock()
@@ -347,8 +348,11 @@ jobs:
                       if tool_slug in c.tools:
                           raw = c.call(tool_slug, args)
                       else:
+                          item = {'tool_slug': tool_slug, 'arguments': args}
+                          if tool_slug.startswith('GOOGLEDRIVE_'):
+                              item['account'] = DRIVE_ACCOUNT
                           raw = c.call('COMPOSIO_MULTI_EXECUTE_TOOL', {
-                              'tools': [{'tool_slug': tool_slug, 'arguments': args}],
+                              'tools': [item],
                               'sync_response_to_workbench': False,
                           })
                       if DEBUG:
