@@ -602,6 +602,7 @@ tr.tnrlate td{background:var(--risk-soft,#FBEAE9)}
 .ovtop{background:var(--sec-soft);border-radius:10px;padding:10px 14px;margin:0 0 10px;font-size:13.5px;display:grid;gap:4px}
 .hrbar{display:flex;flex-wrap:wrap;align-items:center;justify-content:space-between;gap:8px;margin:2px 0 10px}
 .hrbar .dlbtn{white-space:normal;text-align:left}
+.hrbtns{display:flex;flex-wrap:wrap;gap:6px}
 .fucur.sp{border-left-color:#A35F00}.fucur.pz{border-left-color:#8a6d3b}
 @media(max-width:640px){.ovs{padding:0 12px 16px;border-radius:12px;margin-bottom:22px}.ovs>.shead{margin:0 -12px 14px;padding:11px 12px}
  .ovs>.shead .lab{display:none}.ovs{scroll-margin-top:170px}}
@@ -2317,8 +2318,101 @@ function hrExport(cols,rank,hb,asof){
  rows.push(tr,[],
   ['วิธีอ่าน: แชท = ลูกค้าส่งข้อความแรกเข้ามาในชั่วโมงนั้น (เวลาไทย) รวมทุกวันในช่วงที่เลือก · ตอบภายใน + ตอบช้ากว่า 60 นาที + ไม่มีแอดมินตอบ = แชททั้งหมดของชั่วโมงนั้น'],
   ['สัดส่วนของทั้งวัน = แชทในชั่วโมงนั้น ÷ แชททั้ง 24 ชั่วโมงของช่องทางนั้น · ค่ากลางเวลารอ = เฉพาะแชทที่แอดมินตอบ ครึ่งหนึ่งได้คำตอบเร็วกว่านี้ · อันดับตอบช้า = 3 ชั่วโมงที่มีแชทตอบช้ากว่า 60 นาทีมากที่สุด']);
- const sc=/^\d{4}-\d{2}$/.test(M)?M:(M==='all'?'ทุกเดือน':(M==='R3'?'3เดือนล่าสุด':M));
- downloadCSV(('ชั่วโมงที่ลูกค้าทัก-'+CHN[CH]+'-'+sc).replace(/\s+/g,'-')+'.csv',rows);}
+ downloadCSV(hrFname('csv'),rows);}
+function hrFname(ext){const sc=/^\d{4}-\d{2}$/.test(M)?M:(M==='all'?'ทุกเดือน':(M==='R3'?'3เดือนล่าสุด':M));
+ return ('ชั่วโมงที่ลูกค้าทัก-'+CHN[CH]+'-'+sc).replace(/\s+/g,'-')+'.'+ext;}
+/* PDF ตารางรายชั่วโมง (20 ต.ค. 2026): วาดหน้าตาแบบเดียวกับตารางบนจอลง canvas ทีละหน้า (A4 แนวนอน 6 ชั่วโมง/หน้า)
+   แล้วรวมเป็น PDF เอง (ภาพ JPEG ต่อหน้า) — ไม่ต้องโหลดไลบรารีภายนอก ภาษาไทยออกมาเหมือนบนจอ */
+function hrPdfBlob(imgs,wPt,hPt){
+ const enc=new TextEncoder(),parts=[],offs=[];let len=0;
+ const put=v=>{const b=typeof v==='string'?enc.encode(v):v;parts.push(b);len+=b.length;};
+ const obj=(n,f)=>{offs[n]=len;put(n+' 0 obj\n');f();put('\nendobj\n');};
+ put('%PDF-1.4\n');put(new Uint8Array([37,226,227,207,211,10]));
+ obj(1,()=>put('<< /Type /Catalog /Pages 2 0 R >>'));
+ obj(2,()=>put('<< /Type /Pages /Count '+imgs.length+' /Kids ['+imgs.map((_,i)=>(3+3*i)+' 0 R').join(' ')+'] >>'));
+ imgs.forEach((im,i)=>{const P=3+3*i,cs='q '+wPt+' 0 0 '+hPt+' 0 0 cm /Im0 Do Q';
+  obj(P,()=>put('<< /Type /Page /Parent 2 0 R /MediaBox [0 0 '+wPt+' '+hPt+'] /Resources << /XObject << /Im0 '+(P+2)+' 0 R >> >> /Contents '+(P+1)+' 0 R >>'));
+  obj(P+1,()=>put('<< /Length '+cs.length+' >>\nstream\n'+cs+'\nendstream'));
+  obj(P+2,()=>{put('<< /Type /XObject /Subtype /Image /Width '+im.w+' /Height '+im.h+' /ColorSpace /DeviceRGB /BitsPerComponent 8 /Filter /DCTDecode /Length '+im.d.length+' >>\nstream\n');put(im.d);put('\nendstream');});});
+ const n=3+3*imgs.length,xr=len;let t='xref\n0 '+n+'\n0000000000 65535 f \n';
+ for(let k=1;k<n;k++)t+=String(offs[k]).padStart(10,'0')+' 00000 n \n';
+ put(t+'trailer\n<< /Size '+n+' /Root 1 0 R >>\nstartxref\n'+xr+'\n%%EOF\n');
+ return new Blob(parts,{type:'application/pdf'});}
+async function hrPDF(cols,rank,hb,asof,btn){
+ const lab=btn?btn.textContent:'';if(btn){btn.disabled=true;btn.textContent='กำลังสร้าง PDF…';}
+ try{
+ const F={sans:"'IBM Plex Sans Thai',system-ui,sans-serif",mono:"'IBM Plex Mono',ui-monospace,monospace",serif:"'Noto Serif Thai','IBM Plex Sans Thai',serif"};
+ try{await Promise.race([Promise.all(['600 17px '+F.mono,'400 11px '+F.mono,'600 15px '+F.sans,'400 12px '+F.sans,'700 20px '+F.serif].map(f=>document.fonts.load(f,'ชั่วโมง 0'))),new Promise(r=>setTimeout(r,4000))]);}catch(e){}
+ const C={ink:'#14252F',ink2:'#48606E',ink3:'#7B919E',line:'#E0EAF0',line2:'#C6D7E1',sunk:'#EDF3F7',head:'#EEF4F8',risk:'#C42B28',rk:['','#E6A6A5','#F0C8C7','#F8E6E5']};
+ const CC={fb:'#1F63AE',line:'#0B7E93',ig:'#C6362F'};
+ const W=1123,H=794,S=2,MG=30,PER=6,RH=92,TH=48,HW=150,GAP=20,imgs=[];
+ /* ช่องทางเดียว: วางตาราง 2 ชุดเคียงกันต่อหน้า (ช่องไม่กว้างเกินไป อ่านง่าย) */
+ const K=Math.max(1,Math.floor((W-2*MG+GAP)/(HW+cols.length*300+GAP))),NP=Math.ceil(24/(PER*K)),BW=(W-2*MG-(K-1)*GAP)/K;
+ const hh=hr=>String(hr).padStart(2,'0'),shOf=hr=>hr>=9&&hr<21?0:(hr>=21?1:2),tot=o=>o.hr.reduce((p,q)=>p+q,0);
+ const asofT=(asof||'').replace(/<[^>]+>/g,'');
+ let stamp='';try{stamp=new Date().toLocaleString('th-TH',{timeZone:'Asia/Bangkok',day:'numeric',month:'short',year:'numeric',hour:'2-digit',minute:'2-digit'});}catch(e){}
+ for(let pi=0;pi<NP;pi++){
+  const cv=document.createElement('canvas');cv.width=W*S;cv.height=H*S;const x=cv.getContext('2d');x.scale(S,S);
+  x.fillStyle='#fff';x.fillRect(0,0,W,H);x.textBaseline='alphabetic';
+  const fnt=(w,s,f)=>{x.font=w+' '+s+'px '+f;};
+  const tx=(t,X,Y,o)=>{o=o||{};let s=o.s||12;const f=o.f||F.sans,w=o.w||400;fnt(w,s,f);
+   if(o.max)while(x.measureText(t).width>o.max&&s>7){s-=.5;fnt(w,s,f);}
+   x.fillStyle=o.c||C.ink;x.textAlign=o.a||'left';x.fillText(t,X,Y);return x.measureText(t).width;};
+  const rr=(X,Y,w,h,r)=>{x.beginPath();x.moveTo(X+r,Y);x.arcTo(X+w,Y,X+w,Y+h,r);x.arcTo(X+w,Y+h,X,Y+h,r);x.arcTo(X,Y+h,X,Y,r);x.arcTo(X,Y,X+w,Y,r);x.closePath();};
+  const hl=(X1,Y1,X2,Y2,c,lw)=>{x.strokeStyle=c;x.lineWidth=lw||1;x.beginPath();x.moveTo(X1,Y1);x.lineTo(X2,Y2);x.stroke();};
+  let y=MG;
+  if(pi===0){
+   tx('BIOPALM · ADMIN PERFORMANCE · ความเร็วตอบแชท',MG,y+10,{f:F.mono,s:10,c:C.ink3});
+   tx('ชั่วโมงที่ลูกค้าทัก — แต่ละช่องทางทักมาเท่าไร ตอบนานแค่ไหน',MG,y+38,{f:F.serif,w:700,s:21,max:W-2*MG});
+   tx('ช่องทาง: '+CHN[CH]+'   ·   ช่วงเวลา: '+moLabel(),MG,y+62,{s:13,w:600,c:C.ink2,max:W-2*MG});
+   if(asofT)tx(asofT,MG,y+82,{s:11.5,c:C.ink3,max:W-2*MG});
+   y+=96;
+  }else{tx('ชั่วโมงที่ลูกค้าทัก (ต่อ) · '+CHN[CH]+' · '+moLabel(),MG,y+16,{f:F.serif,w:700,s:14,max:W-2*MG});y+=30;}
+  let T1=y;
+  for(let bi=0;bi<K;bi++){const h0=(pi*K+bi)*PER;if(h0>23)break;
+   const L=MG+bi*(BW+GAP),Rt=L+BW,cw=(BW-HW)/cols.length,rows=Math.min(PER,24-h0),T0=y,y1=y+TH,TB=y1+rows*RH;T1=Math.max(T1,TB);
+   x.fillStyle=C.head;x.fillRect(L,T0,BW,TH);
+   tx('ชั่วโมงที่ลูกค้าทัก',L+HW/2,T0+TH/2+5,{a:'center',w:600,s:12.5,c:C.ink2});
+   cols.forEach(([c,o],i)=>{const cx=L+HW+cw*i+cw/2,al=c==='all',nm=al?'รวมทุกช่องทาง':CHN[c].toUpperCase(),f=al?F.sans:F.mono;
+    fnt(600,12.5,f);const tw=x.measureText(nm).width,g=al?tw:tw+15,X0=cx-g/2;
+    if(!al){x.fillStyle=CC[c]||C.ink3;x.beginPath();x.arc(X0+4.5,T0+15,4.5,0,7);x.fill();}
+    tx(nm,X0+(al?0:15),T0+20,{w:600,s:12.5,f:f,max:cw-16});
+    tx(nf(tot(o))+' แชท',cx,T0+38,{a:'center',s:11,f:F.mono,c:C.ink3});});
+   for(let r=0;r<rows;r++){const hr=h0+r,ry=y1+r*RH;
+    cols.forEach(([c,o],i)=>{const X0=L+HW+cw*i,rk=rank[c][hr],b=hb(o,hr),n=b.reduce((p,q)=>p+q,0),R=X0+cw-12,by=ry+25;
+     if(rk){x.fillStyle=C.rk[rk];x.fillRect(X0,ry,cw,RH);}else if(c==='all'){x.fillStyle=C.sunk;x.fillRect(X0,ry,cw,RH);}
+     let X=R;
+     if(rk){fnt(600,10.5,F.sans);const bt='อันดับ '+rk,bw=x.measureText(bt).width+14;x.fillStyle=C.risk;rr(X-bw,by-13,bw,17,8.5);x.fill();
+      tx(bt,X-bw/2,by-0.5,{a:'center',w:600,s:10.5,c:'#fff'});X-=bw+6;}
+     X-=tx('แชท',X,by,{a:'right',f:F.mono,s:10.5,c:C.ink3})+5;
+     tx(nf(n),X,by,{a:'right',f:F.mono,w:600,s:17});
+     if(n){const fa=b[0]+b[1]+b[2]+b[3],sl=b[4]+b[5]+b[6]+b[7];
+      [['ตอบภายใน 60 นาที '+nf(fa)+' ('+pctS(fa,n)+')',C.ink3,400],['ตอบช้ากว่า 60 นาที '+nf(sl)+' ('+pctS(sl,n)+')',C.risk,600],
+       ['ไม่มีแอดมินตอบ '+nf(b[8])+' ('+pctS(b[8],n)+')',C.ink3,400],['ค่ากลางเวลารอ '+(n-b[8]?minTxt(hrMed(b)):'—'),C.ink3,400]]
+       .forEach((l,j)=>tx(l[0],R,by+18+j*14,{a:'right',f:F.mono,s:11,c:l[1],w:l[2],max:cw-22}));}});
+    tx(hh(hr)+'.00–'+hh(hr)+'.59',L+14,ry+RH/2-1,{w:600,s:15.5});
+    tx(SHN[shOf(hr)][0]+' · '+SHN[shOf(hr)][1],L+14,ry+RH/2+17,{f:F.mono,s:10.5,c:C.ink3,max:HW-20});
+    if(r)hl(L,ry,Rt,ry,hr===9||hr===21?C.line2:C.line,hr===9||hr===21?2:1);}
+   hl(L,y1,Rt,y1,C.line2,1);
+   for(let i=0;i<cols.length;i++){const X=L+HW+cw*i;hl(X,T0,X,TB,C.line,1);}
+   x.strokeStyle=C.line2;x.lineWidth=1;rr(L,T0,BW,TB-T0,8);x.stroke();}
+  if(pi===NP-1){let ly=T1+20;
+   tx('วิธีอ่านแต่ละช่อง',MG,ly,{w:600,s:12.5,c:C.ink2});
+   ['• ตัวเลขใหญ่ = จำนวนแชทที่ลูกค้าส่งข้อความแรกเข้ามาในชั่วโมงนั้น (เวลาไทย) รวมทุกวันในช่วงที่เลือก',
+    '• ตอบภายใน 60 นาที + ตอบช้ากว่า 60 นาที + ไม่มีแอดมินตอบ = จำนวนแชทของช่องนั้น · % คิดจากจำนวนแชทของช่องนั้น',
+    '• ค่ากลางเวลารอ = คิดเฉพาะแชทที่แอดมินตอบ ครึ่งหนึ่งได้คำตอบเร็วกว่านี้ อีกครึ่งช้ากว่านี้',
+    '• สีแดงเข้ม → อ่อน (อันดับ 1–3) = ชั่วโมงที่มีแชทตอบช้ากว่า 60 นาทีมากที่สุดของช่องทางนั้น · เส้นหนาที่ 09.00 และ 21.00 = เปลี่ยนช่วงเวลาทำงาน']
+    .forEach((t,j)=>tx(t,MG,ly+18+j*16,{s:11.5,c:C.ink2,max:W-2*MG}));}
+  tx('ส่งออกจาก Admin Performance'+(stamp?' · '+stamp:''),MG,H-14,{s:10,c:C.ink3});
+  tx('หน้า '+(pi+1)+' / '+NP,W-MG,H-14,{a:'right',s:10,c:C.ink3});
+  const bl=await new Promise(res=>cv.toBlob(res,'image/jpeg',0.88));
+  imgs.push({d:new Uint8Array(await bl.arrayBuffer()),w:cv.width,h:cv.height});}
+ const blob=hrPdfBlob(imgs,841.89,595.28),fn=hrFname('pdf'),u=URL.createObjectURL(blob),a=document.createElement('a');
+ a.href=u;a.download=fn;document.body.appendChild(a);a.click();
+ setTimeout(function(){URL.revokeObjectURL(u);a.remove();},1500);
+ toast('ดาวน์โหลด '+fn+' แล้ว — '+NP+' หน้า');
+ }catch(e){toast('สร้าง PDF ไม่สำเร็จ: '+(e&&e.message||e));}
+ finally{if(btn){btn.disabled=false;btn.textContent=lab;}}}
 function renderV4Speed(){
  const el=$('#v4s');$('#v4sscope').textContent=CHN[CH]+' · '+moLabel();
  const per=v4chs().map(c=>[c,spSum([c],scopeOf(keysOf(c)))]).filter(x=>x[1]);
@@ -2352,7 +2446,7 @@ function renderV4Speed(){
   return `<div><b>${c==='all'?'รวมทุกช่องทาง':CHN[c]}</b> — ${r.map(([hr,k])=>{const b=hb(o,+hr),n=b.reduce((p,q)=>p+q,0),s=b[4]+b[5]+b[6]+b[7];return `อันดับ ${k}: ${hh(+hr)}.00–${hh(+hr)}.59 น. มี ${nf(s)} แชทที่ตอบช้ากว่า 60 นาที จากทั้งหมด ${nf(n)} แชท (${pctS(s,n)})`;}).join(' · ')}</div>`;}).join('');
  el.innerHTML=`<details class="fhelp" style="margin:0 0 12px"><summary>ความเร็วตอบ · n · ค่ากลาง นับอย่างไร</summary><div class="warnbox" style="margin-top:8px;line-height:1.75"><b>ความเร็วตอบ</b> = เวลาจากข้อความแรกของลูกค้า ถึงข้อความแรกที่<b>แอดมินตอบเอง</b> — พิมพ์เองหรือกดส่งข้อความที่บันทึกไว้ก็นับ (Facebook ดูจากป้ายของ Meta ว่าคนเป็นผู้ส่ง · ไม่นับบอท ข้อความอัตโนมัติ ป้ายระบบ Meta) · <b>n</b> = จำนวนแชทที่ใช้คำนวณช่องนั้น ช่องที่ n &lt; 30 เป็นสีจาง · <b>ค่ากลาง</b> = คิดเฉพาะแชทที่แอดมินตอบ ครึ่งหนึ่งได้คำตอบเร็วกว่านี้ อีกครึ่งช้ากว่า · <b>ช่วงเวลาที่ทัก</b> = เวลาไทยของข้อความแรกลูกค้า · นับเฉพาะแชทสนใจคอร์ส</div></details>
  <h3 style="font-size:15px;margin:4px 0 4px">1 · แต่ละช่องทางตอบเร็วแค่ไหน</h3><p class="note" style="margin-bottom:8px">ตัวเลขใหญ่ = % ของ${ADMOK()?'แชทที่ลูกค้าทักมา (ทุกเรื่อง ไม่นับ Giveaway)':'แชทสนใจคอร์ส'}ในช่องทางนั้น · บรรทัดล่าง = จำนวนแชท · <b>จ่ายเงิน</b> = คุณภาพการตอบของแชทที่ตอบด้วยความเร็วนั้น (จ่ายเงินแล้ว ÷ แชท) ใช้ดูว่าตอบเร็วแล้วลูกค้าจ่ายเงินมากขึ้นจริงไหม</p>${t1}
- <h3 style="font-size:15px;margin:20px 0 4px">2 · รายชั่วโมง: แต่ละช่องทางทักมาเท่าไร ตอบนานแค่ไหน</h3><div class="hrbar"><span class="nsm">${asof}</span><button class="dlbtn" id="hrcsv" type="button">⤓ ดาวน์โหลดตารางรายชั่วโมง (CSV · เปิดใน Excel / Google Sheets)</button></div><div class="ovtop"><b>ชั่วโมงที่ตอบช้ากว่า 60 นาทีมากที่สุด</b>${rkLines}</div><details class="ovmore"><summary>เปิดตารางรายชั่วโมง (24 ชั่วโมง × ช่องทาง)</summary><details class="fhelp" style="margin:0 0 10px"><summary>วิธีอ่านตัวเลขในแต่ละช่อง</summary><div class="warnbox" style="margin-top:8px;line-height:1.8"><b>อ่านช่องละ 5 บรรทัด</b> (ตัวอย่าง: 191 แชท · ตอบภายใน 60 นาที 18 · ตอบช้ากว่า 60 นาที 72 · ไม่มีแอดมินตอบ 101 · ค่ากลางเวลารอ 7.2 ชม.)<br>
+ <h3 style="font-size:15px;margin:20px 0 4px">2 · รายชั่วโมง: แต่ละช่องทางทักมาเท่าไร ตอบนานแค่ไหน</h3><div class="hrbar"><span class="nsm">${asof}</span><span class="hrbtns"><button class="dlbtn" id="hrpdf" type="button">⤓ ดาวน์โหลด PDF (ดูง่าย พิมพ์ได้)</button><button class="dlbtn" id="hrcsv" type="button">⤓ ดาวน์โหลด CSV (Excel / Google Sheets)</button></span></div><div class="ovtop"><b>ชั่วโมงที่ตอบช้ากว่า 60 นาทีมากที่สุด</b>${rkLines}</div><details class="ovmore"><summary>เปิดตารางรายชั่วโมง (24 ชั่วโมง × ช่องทาง)</summary><details class="fhelp" style="margin:0 0 10px"><summary>วิธีอ่านตัวเลขในแต่ละช่อง</summary><div class="warnbox" style="margin-top:8px;line-height:1.8"><b>อ่านช่องละ 5 บรรทัด</b> (ตัวอย่าง: 191 แชท · ตอบภายใน 60 นาที 18 · ตอบช้ากว่า 60 นาที 72 · ไม่มีแอดมินตอบ 101 · ค่ากลางเวลารอ 7.2 ชม.)<br>
  ① <b>191 แชท</b> = ลูกค้าส่งข้อความแรกเข้ามาในชั่วโมงนั้น รวมทุกวันในช่วงเวลาที่เลือก<br>
  ② ③ ④ = แบ่ง 191 แชทนั้นเป็น 3 กลุ่มที่บวกกันได้ครบ: แอดมินตอบภายใน 60 นาที <b>18</b> + ตอบช้ากว่า 60 นาที <b>72</b> + ไม่มีแอดมินตอบเลย <b>101</b> = 191 · % ในวงเล็บคิดจากจำนวนแชทของช่องนั้น<br>
  ⑤ <b>ค่ากลางเวลารอ 7.2 ชม.</b> = เอาเฉพาะแชทที่แอดมินตอบ (18 + 72 = 90 แชท) มาเรียงจากเร็วไปช้า แชทที่อยู่ตรงกลางรอ 7.2 ชม. — ครึ่งหนึ่งได้คำตอบเร็วกว่านี้ อีกครึ่งช้ากว่านี้ <b>ไม่ได้แปลว่าทุกแชทได้คำตอบภายใน 7.2 ชม.</b><br>
@@ -2360,6 +2454,7 @@ function renderV4Speed(){
  <details class="fhelp" style="margin-top:10px"><summary>หมายเหตุการจัดอันดับ</summary><div class="note" style="margin-top:8px;display:grid;gap:6px;background:var(--card);border:1px solid var(--line);border-radius:10px;padding:12px 14px"><div><b>หมายเหตุ</b> — จัดอันดับจาก<b>จำนวน</b>แชทที่แอดมินตอบครั้งแรกช้ากว่า 60 นาที (ไม่ใช่ %) เพื่อให้เห็นชั่วโมงที่ลูกค้ารอนานมากที่สุดจริง · ชั่วโมงที่คนทักน้อยอาจมี % สูงแต่จำนวนน้อย จึงไม่ขึ้นอันดับ · เส้นคั่นหนาที่ 09.00 และ 21.00 = เปลี่ยนช่วงเวลาทำงาน · ยังไม่หักวันหยุด · ตั้งแต่ 22 ก.ย. 2026 ข้อความที่บันทึกไว้ซึ่งแอดมินกดส่งเองนับว่าแอดมินตอบแล้ว (Facebook ใช้ป้ายของ Meta · Instagram เทียบจากข้อความเดียวกันบน Facebook)</div></div></details></details>
  <h3 style="font-size:15px;margin:22px 0 4px">3 · ที่ตอบ “มากกว่า 60 นาที” เกิดขึ้นตอนไหน</h3><p class="note" style="margin-bottom:8px">แยกแชทที่แอดมินตอบช้ากว่า 60 นาที ตามช่วงเวลาที่ลูกค้าทักเข้ามา</p>${t2}`;
  const hx=$('#hrcsv');if(hx)hx.addEventListener('click',()=>hrExport(cols,rank,hb,asof));
+ const hp=$('#hrpdf');if(hp)hp.addEventListener('click',()=>hrPDF(cols,rank,hb,asof,hp));
 }
 
 
