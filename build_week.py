@@ -32,6 +32,13 @@ wk = {v, built, weeks: {ch: [[start, end, full], ...]}, end: {ch: stamp}, ids: {
   sum   per week: [S start, N entered, done, act, cus, skip, aged, none, E end] — the numbers the weekly LINE report sends.
         done = moved to the next step or closed · act = a person answered / followed up / pressed a button but it is
         still at this step · cus = the customer wrote back and nobody has answered · none = nobody touched it
+  age   row[6] (v2): whole days it had been waiting when it was first listed in the period (the list's own age:
+        บอทตอบ = since the customer's last message · the other four = since the admin's answer / the summary card)
+
+v2 (20 ต.ค. 2026, Before / After page): the same replay also cuts calendar months (1st 00:00 Thai -> next 1st, or the
+data end for the current month) -> months: {ch: [[start, end, full], ...]}, mrows / msum shaped like rows / sum.
+Months start at MONTH_FROM (1 ก.ย. 2026 — samples count from 19 ส.ค., so ส.ค. would start with an empty sample list)
+and keep the last WK_MONTHS (default 4). Weeks are unchanged: same cuts, same rows (plus row[6]).
 Run after build_stage.py (needs src/followup.json written by build_fu.py / build_pay.py). Logs counts only.
 """
 import os, re, json, glob, bisect, datetime, collections, gc, time, hashlib, urllib.request
@@ -50,6 +57,8 @@ NOISE, LOW, quality, KIND = FU_RULES['NOISE'], FU_RULES['LOW'], FU_RULES['qualit
 T0 = datetime.datetime(2026, 1, 1)
 DAY = 1440
 WEEKS = int(os.environ.get('WK_WEEKS') or 8)          # full weeks kept, plus the current week so far
+MONTHS = int(os.environ.get('WK_MONTHS') or 4)        # calendar months kept, the current month included
+MONTH_FROM = datetime.datetime.strptime(os.environ.get('WK_MONTH_FROM') or '2026-09-01', '%Y-%m-%d')
 LISTS = ('ar', 'sp', 'np', 'pay', 'pz')
 DONE, ACT = ('ans', 'smp', 'sum', 'paid', 'close'), ('fu', 'reans', 'requote', 'move')
 
@@ -167,6 +176,24 @@ def week_plan(end):
     W = [(m0 - (k + 1) * 7 * DAY, m0 - k * 7 * DAY, 1) for k in range(WEEKS)][::-1]
     if end > m0: W.append((m0, end, 0))
     return W
+
+
+def month_plan(end):
+    """[(start, end, full)] the 1st 00:00 Thai -> the next 1st (or the data end for the current month), oldest first,
+       the last MONTHS months from MONTH_FROM on"""
+    d = T0 + datetime.timedelta(minutes=end)
+    y, m = d.year, d.month
+    out = []
+    for k in range(MONTHS):
+        yy, mm = y, m - k
+        while mm <= 0: mm += 12; yy -= 1
+        s = datetime.datetime(yy, mm, 1)
+        if s < MONTH_FROM: break
+        n = datetime.datetime(yy + (mm == 12), mm % 12 + 1, 1)
+        s_m, n_m = int((s - T0).total_seconds() // 60), int((n - T0).total_seconds() // 60)
+        if s_m >= end: continue
+        out.append((s_m, min(n_m, end), 1 if n_m <= end else 0))
+    return out[::-1]
 
 
 def cut_list(W, end):
@@ -354,7 +381,7 @@ def report(WK):
     wi = full[-1]; s0 = W[wi][0]
     head = '📊 สรุป Follow up แอดมิน · สัปดาห์ %s %s\nอ่าน: ค้างต้นสัปดาห์ (+เข้าใหม่) → ✅เคลียร์แล้ว ✋ตอบ/ตามแล้ว 💬ลูกค้าทักกลับรอตอบ ⏳ยังไม่มีใครแตะ → ค้างปลายสัปดาห์' % (
         dlabel(W[wi][0], W[wi][1], 1), s0[:4])
-    out = []; admins = collections.Counter()
+    out = []; admins = collections.Counter(); tot = [0] * 9; miss = []
     for ch in ('fb', 'ig', 'line'):
         CW = WK['weeks'].get(ch) or []
         j = next((k for k, w in enumerate(CW) if w[0] == s0), None)
@@ -362,10 +389,12 @@ def report(WK):
         if j is None or not CW[j][2]:
             e = WK['end'].get(ch)
             lines.append('ยังไม่มีข้อมูลครบสัปดาห์นี้ (ข้อมูลถึง %s)' % (tlabel(e) if e else '-'))
+            miss.append(CHN[ch].split(' ', 1)[-1])
         else:
             for l in LISTS:
                 rows = WK['rows'][ch][l][j]
-                lines.append(line_of(LNAME[l], count(rows)))
+                c = count(rows); tot = [a + b for a, b in zip(tot, c)]
+                lines.append(line_of(LNAME[l], c))
                 subs = collections.defaultdict(list)
                 for row in rows: subs[row[3]].append(row)
                 for k, nm in SUBN[l].items():
@@ -379,7 +408,8 @@ def report(WK):
     tail = []
     if admins:
         tail.append('👤 ใครจัดการไปกี่แชท (ชื่อจาก LINE + ปุ่มในแดชบอร์ด): ' + ' · '.join('%s %d' % kv for kv in admins.most_common()))
-    tail.append('ดูรายชื่อแชท: %s → Follow up' % SITE)
+    tail.append('ดูรายชื่อแชท (หน้า Before / After): %s#ba' % SITE)
+    head += '\n\n' + line_of('📌 รวมทุกหมวดทุกช่องทาง' + (' (ยังไม่รวม %s)' % ' · '.join(miss) if miss else ''), tot)
     out[0] = head + '\n\n' + out[0]
     out[-1] = out[-1] + '\n\n' + '\n'.join(tail)
     return {'week': s0[:10], 'msgs': out}
@@ -400,13 +430,20 @@ def main():
         if k and at is not None: MAN[(x[0], str(x[1]))].append((at, k, x[5] or ''))
     for v in MAN.values(): v.sort()
     del agg; gc.collect()
-    WK = {'v': 1, 'built': datetime.datetime.now(datetime.timezone(datetime.timedelta(hours=7))).strftime('%Y-%m-%d %H:%M'),
-          'weeks': {}, 'end': {}, 'ids': {}, 'rows': {}, 'sum': {}, 'check': {}, 'ov': 0}
+    WK = {'v': 2, 'built': datetime.datetime.now(datetime.timezone(datetime.timedelta(hours=7))).strftime('%Y-%m-%d %H:%M'),
+          'weeks': {}, 'end': {}, 'ids': {}, 'rows': {}, 'sum': {}, 'check': {}, 'ov': 0,
+          'months': {}, 'mrows': {}, 'msum': {}}
     for ch in ('fb', 'ig', 'line'):
         if ch not in END or not END[ch]: continue
         th = load_line() if ch == 'line' else load_meta(ch)
-        end = END[ch]; W = week_plan(end); cuts = cut_list(W, end); ci = {c: i for i, c in enumerate(cuts)}
-        IDX = {}; ids = []; R = {l: [[] for _ in W] for l in LISTS}; now = collections.Counter()
+        end = END[ch]; W = week_plan(end)
+        try:
+            Mo = month_plan(end)
+        except Exception as ex:                              # months are extra: never lose the weeks over them
+            print('build_week: months skipped for %s (%s)' % (ch, type(ex).__name__)); Mo = []
+        P = W + Mo; nW = len(W)                              # weeks first, then months — one replay for both
+        cuts = cut_list(P, end); ci = {c: i for i, c in enumerate(cuts)}
+        IDX = {}; ids = []; R = {l: [[] for _ in P] for l in LISTS}; now = collections.Counter()
         for key, e in th.items():
             e['m'].sort(key=lambda x: x[0]); e['adm'].sort()
             e['m'] = [x for x in e['m'] if x[0] <= end]
@@ -415,7 +452,7 @@ def main():
             for lst in LISTS:
                 st = replay(lst, e, ch, cuts)
                 if st[-1][2]: now[lst] += 1
-                for wi, (s, t, _) in enumerate(W):
+                for wi, (s, t, _) in enumerate(P):
                     i0, i1 = ci[s], ci[min(t, end)]
                     on0 = st[i0][2] is not None
                     entry = i0 if on0 else next((j for j in range(i0 + 1, i1 + 1) if st[j][2] is not None), None)
@@ -434,7 +471,9 @@ def main():
                     if mv:
                         man = mv[0]; WK['ov'] += 1
                         if mv[1] and mv[1] not in who: who.append(mv[1])
-                    R[lst][wi].append([IDX[key], fl, out, st[entry][2], who, man])
+                    r0 = st[entry][0] or {}
+                    age = int(r0.get('wait') or 0) if isinstance(r0.get('wait'), (int, float)) else -1
+                    R[lst][wi].append([IDX[key], fl, out, st[entry][2], who, man, age])
         del th; gc.collect()
         # self-check: the replay at the data end must give the same lists the page shows
         page = {}
@@ -443,14 +482,21 @@ def main():
         for lst, todo in (('sp', bp.NP_TODO), ('np', bp.NP_TODO), ('pay', bp.TODO), ('pz', bp.TODO)):
             page[lst] = sum(1 for r in ((F.get(lst) or {}).get(ch) or []) if r[2] in todo and 1 <= r[3] < 90)
         WK['check'][ch] = {l: [now[l], page[l]] for l in LISTS}
+        RW = {l: R[l][:nW] for l in LISTS}; RM = {l: R[l][nW:] for l in LISTS}
         WK['weeks'][ch] = [[stamp(s), stamp(min(t, end)), f] for s, t, f in W]
-        WK['end'][ch] = stamp(end); WK['ids'][ch] = ids; WK['rows'][ch] = R
-        WK['sum'][ch] = {l: [count(rows) for rows in R[l]] for l in LISTS}
+        WK['end'][ch] = stamp(end); WK['ids'][ch] = ids; WK['rows'][ch] = RW
+        WK['sum'][ch] = {l: [count(rows) for rows in RW[l]] for l in LISTS}
+        WK['months'][ch] = [[stamp(s), stamp(min(t, end)), f] for s, t, f in Mo]
+        WK['mrows'][ch] = RM
+        WK['msum'][ch] = {l: [count(rows) for rows in RM[l]] for l in LISTS}
         print('week %s end %s ids %d | %s' % (ch, stamp(end), len(ids),
               ' · '.join('%s now %d/page %d' % (l, now[l], page[l]) for l in LISTS)))
         for l in LISTS:
             s = WK['sum'][ch][l]
             print('  %-3s last full week S%d N%d done%d act%d cus%d skip%d aged%d none%d E%d' % ((l,) + tuple(s[-2] if len(s) > 1 else s[-1])))
+        for mi, (s, t, f) in enumerate(Mo):
+            tot = [sum(WK['msum'][ch][l][mi][k] for l in LISTS) for k in range(9)]
+            print('  month %s%s all lists S%d N%d done%d act%d cus%d skip%d aged%d none%d E%d' % ((stamp(s)[:7], '' if f else '*') + tuple(tot)))
     WK['report'] = report(WK)
     F['wk'] = WK
     json.dump(F, open('src/followup.json.wk-tmp', 'w', encoding='utf-8'), separators=(',', ':'), ensure_ascii=False)
