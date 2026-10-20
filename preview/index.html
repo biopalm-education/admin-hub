@@ -600,6 +600,8 @@ tr.tnrlate td{background:var(--risk-soft,#FBEAE9)}
 .ovmore[open]>summary::before{transform:rotate(90deg)}
 .ovmore[open]>summary{margin-bottom:10px}
 .ovtop{background:var(--sec-soft);border-radius:10px;padding:10px 14px;margin:0 0 10px;font-size:13.5px;display:grid;gap:4px}
+.hrbar{display:flex;flex-wrap:wrap;align-items:center;justify-content:space-between;gap:8px;margin:2px 0 10px}
+.hrbar .dlbtn{white-space:normal;text-align:left}
 .fucur.sp{border-left-color:#A35F00}.fucur.pz{border-left-color:#8a6d3b}
 @media(max-width:640px){.ovs{padding:0 12px 16px;border-radius:12px;margin-bottom:22px}.ovs>.shead{margin:0 -12px 14px;padding:11px 12px}
  .ovs>.shead .lab{display:none}.ovs{scroll-margin-top:170px}}
@@ -2412,6 +2414,33 @@ function spMed(bins){const tot=bins.reduce((a,b)=>a+b,0);if(!tot)return null;con
  for(let i=0;i<bins.length;i++){if(acc+bins[i]>=need){const lo=i?EDG[i-1]:0,hi=i<EDG.length?EDG[i]:EDG[EDG.length-1]*2;return lo+(hi-lo)*((need-acc)/bins[i]);}acc+=bins[i];}return null;}
 const HRE=[5,15,30,60,120,240,480,960];
 function hrMed(b){const t=b.slice(0,8).reduce((p,q)=>p+q,0);if(!t)return null;let acc=0;for(let i=0;i<8;i++){if(acc+b[i]>=t/2){const lo=i?HRE[i-1]:0;return lo+(HRE[i]-lo)*((t/2-acc)/b[i]);}acc+=b[i];}return null;}
+/* ตารางรายชั่วโมง: วันที่ข้อมูลล่าสุด + ส่งออก CSV (20 ต.ค. 2026 · ให้แอดมินเอาไปจัดตารางกะ)
+   FB/IG อัปเดตทุกเช้าจาก refresh.yml · LINE OA ถึงวันที่ดึงล่าสุด (FU.end / FU.lend จาก build_fu.py) */
+function hrAsOf(chs){if(!FU)return '';
+ const lastOf=c=>{const k=keysOf(c)||[];return k[k.length-1];}, inScope=c=>scopeMonths().includes(lastOf(c));
+ const a=FU.end?fuDay(FU.end)+' '+FU.end.slice(11,16)+' น.':'', l=FU.lend?fuDay(FU.lend):'';
+ const fi=chs.filter(c=>c!=='line'&&inScope(c)).map(chName), p=[];
+ if(fi.length&&a)p.push(fi.join(' / ')+' ถึง <b>'+a+'</b> (อัปเดตเองทุกเช้า)');
+ if(chs.includes('line')&&inScope('line')&&l)p.push('LINE OA ถึง <b>'+l+'</b> (อัปเดตเมื่อดึงข้อมูล LINE รอบใหม่)');
+ return p.length?'ข้อมูลล่าสุด: '+p.join(' · '):'';}
+function hrExport(cols,rank,hb,asof){
+ const hh=hr=>String(hr).padStart(2,'0'), shOf=hr=>hr>=9&&hr<21?0:(hr>=21?1:2), nm=c=>c==='all'?'รวมทุกช่องทาง':CHN[c];
+ const pc=(a,b)=>b?(Math.round(a*1000/b)/10)+'%':'';
+ const F=['แชท','สัดส่วนของทั้งวัน','ตอบภายใน 60 นาที','% ตอบภายใน 60 นาที','ตอบช้ากว่า 60 นาที','% ตอบช้ากว่า 60 นาที','ไม่มีแอดมินตอบ','% ไม่มีแอดมินตอบ','ค่ากลางเวลารอ (นาที)','อันดับตอบช้า'];
+ const cell=(b,tot,rk)=>{const n=b.reduce((p,q)=>p+q,0),fast=b[0]+b[1]+b[2]+b[3],slow=b[4]+b[5]+b[6]+b[7],md=n-b[8]?hrMed(b):null;
+  return [n,pc(n,tot),fast,pc(fast,n),slow,pc(slow,n),b[8],pc(b[8],n),md==null?'':Math.round(md),rk||''];};
+ const tots=cols.map(([c,o])=>o.hr.reduce((p,q)=>p+q,0));
+ const head=['ชั่วโมงที่ลูกค้าทัก','ช่วงเวลา'];for(const [c] of cols)for(const f of F)head.push(nm(c)+' · '+f);
+ const rows=[['ชั่วโมงที่ลูกค้าทัก · '+CHN[CH]+' · '+moLabel()],[(asof||'').replace(/<[^>]+>/g,'')||'ข้อมูลตามรอบอัปเดตล่าสุด'],[],head];
+ for(let hr=0;hr<24;hr++){const r=[hh(hr)+'.00–'+hh(hr)+'.59',SHN[shOf(hr)][0]+' '+SHN[shOf(hr)][1]];
+  cols.forEach(([c,o],i)=>r.push(...cell(hb(o,hr),tots[i],rank[c][hr])));rows.push(r);}
+ const tr=['รวม 24 ชั่วโมง',''];
+ cols.forEach(([c,o],i)=>{const b=new Array(9).fill(0);for(let hr=0;hr<24;hr++)hb(o,hr).forEach((v,j)=>b[j]+=v);tr.push(...cell(b,tots[i],''));});
+ rows.push(tr,[],
+  ['วิธีอ่าน: แชท = ลูกค้าส่งข้อความแรกเข้ามาในชั่วโมงนั้น (เวลาไทย) รวมทุกวันในช่วงที่เลือก · ตอบภายใน + ตอบช้ากว่า 60 นาที + ไม่มีแอดมินตอบ = แชททั้งหมดของชั่วโมงนั้น'],
+  ['สัดส่วนของทั้งวัน = แชทในชั่วโมงนั้น ÷ แชททั้ง 24 ชั่วโมงของช่องทางนั้น · ค่ากลางเวลารอ = เฉพาะแชทที่แอดมินตอบ ครึ่งหนึ่งได้คำตอบเร็วกว่านี้ · อันดับตอบช้า = 3 ชั่วโมงที่มีแชทตอบช้ากว่า 60 นาทีมากที่สุด']);
+ const sc=/^\d{4}-\d{2}$/.test(M)?M:(M==='all'?'ทุกเดือน':(M==='R3'?'3เดือนล่าสุด':M));
+ downloadCSV(('ชั่วโมงที่ลูกค้าทัก-'+CHN[CH]+'-'+sc).replace(/\s+/g,'-')+'.csv',rows);}
 function renderV4Speed(){
  const el=$('#v4s');$('#v4sscope').textContent=CHN[CH]+' · '+moLabel();
  const per=v4chs().map(c=>[c,spSum([c],scopeOf(keysOf(c)))]).filter(x=>x[1]);
@@ -2439,19 +2468,20 @@ function renderV4Speed(){
    const fast=b[0]+b[1]+b[2]+b[3];
    body+=`<td class="n${rk?' sprk'+rk:''}${c==='all'&&!rk?' sptotc':''}"><div class="spbig">${nf(n)} <span class="spsm" style="font-family:inherit">แชท</span>${rk?'<span class="sprank">อันดับ '+rk+'</span>':''}</div>${n?sm('ตอบภายใน 60 นาที '+nf(fast)+' ('+pctS(fast,n)+')')+sm('<b style="color:var(--risk)">ตอบช้ากว่า 60 นาที '+nf(slow)+' ('+pctS(slow,n)+')</b>')+sm('ไม่มีแอดมินตอบ '+nf(b[8])+' ('+pctS(b[8],n)+')')+sm('ค่ากลางเวลารอ '+(n-b[8]?minTxt(hrMed(b)):'—')):''}</td>`;}
   body+='</tr>';}
- const ctot=o=>o.hr.reduce((p,q)=>p+q,0);
+ const ctot=o=>o.hr.reduce((p,q)=>p+q,0), asof=hrAsOf(per.map(p=>p[0]));
  const t3=`<div class="tw"><table><thead><tr><th>ชั่วโมงที่ลูกค้าทัก</th>${cols.map(([c,o])=>`<th class="n">${c==='all'?'รวมทุกช่องทาง':CN(c)}<div class="spsm" style="font-weight:400">${nf(ctot(o))} แชท</div></th>`).join('')}</tr></thead><tbody>${body}</tbody></table></div>`;
  const rkLines=cols.map(([c,o])=>{const r=Object.entries(rank[c]).sort((p,q)=>p[1]-q[1]);if(!r.length)return '';
   return `<div><b>${c==='all'?'รวมทุกช่องทาง':CHN[c]}</b> — ${r.map(([hr,k])=>{const b=hb(o,+hr),n=b.reduce((p,q)=>p+q,0),s=b[4]+b[5]+b[6]+b[7];return `อันดับ ${k}: ${hh(+hr)}.00–${hh(+hr)}.59 น. มี ${nf(s)} แชทที่ตอบช้ากว่า 60 นาที จากทั้งหมด ${nf(n)} แชท (${pctS(s,n)})`;}).join(' · ')}</div>`;}).join('');
  el.innerHTML=`<details class="fhelp" style="margin:0 0 12px"><summary>ความเร็วตอบ · n · ค่ากลาง นับอย่างไร</summary><div class="warnbox" style="margin-top:8px;line-height:1.75"><b>ความเร็วตอบ</b> = เวลาจากข้อความแรกของลูกค้า ถึงข้อความแรกที่<b>แอดมินตอบเอง</b> — พิมพ์เองหรือกดส่งข้อความที่บันทึกไว้ก็นับ (Facebook ดูจากป้ายของ Meta ว่าคนเป็นผู้ส่ง · ไม่นับบอท ข้อความอัตโนมัติ ป้ายระบบ Meta) · <b>n</b> = จำนวนแชทที่ใช้คำนวณช่องนั้น ช่องที่ n &lt; 30 เป็นสีจาง · <b>ค่ากลาง</b> = คิดเฉพาะแชทที่แอดมินตอบ ครึ่งหนึ่งได้คำตอบเร็วกว่านี้ อีกครึ่งช้ากว่า · <b>ช่วงเวลาที่ทัก</b> = เวลาไทยของข้อความแรกลูกค้า · นับเฉพาะแชทสนใจคอร์ส</div></details>
  <h3 style="font-size:15px;margin:4px 0 4px">1 · แต่ละช่องทางตอบเร็วแค่ไหน</h3><p class="note" style="margin-bottom:8px">ตัวเลขใหญ่ = % ของ${ADMOK()?'แชทที่ลูกค้าทักมา (ทุกเรื่อง ไม่นับ Giveaway)':'แชทสนใจคอร์ส'}ในช่องทางนั้น · บรรทัดล่าง = จำนวนแชท · <b>จ่ายเงิน</b> = คุณภาพการตอบของแชทที่ตอบด้วยความเร็วนั้น (จ่ายเงินแล้ว ÷ แชท) ใช้ดูว่าตอบเร็วแล้วลูกค้าจ่ายเงินมากขึ้นจริงไหม</p>${t1}
- <h3 style="font-size:15px;margin:20px 0 4px">2 · รายชั่วโมง: แต่ละช่องทางทักมาเท่าไร ตอบนานแค่ไหน</h3><div class="ovtop"><b>ชั่วโมงที่ตอบช้ากว่า 60 นาทีมากที่สุด</b>${rkLines}</div><details class="ovmore"><summary>เปิดตารางรายชั่วโมง (24 ชั่วโมง × ช่องทาง)</summary><details class="fhelp" style="margin:0 0 10px"><summary>วิธีอ่านตัวเลขในแต่ละช่อง</summary><div class="warnbox" style="margin-top:8px;line-height:1.8"><b>อ่านช่องละ 5 บรรทัด</b> (ตัวอย่าง: 191 แชท · ตอบภายใน 60 นาที 18 · ตอบช้ากว่า 60 นาที 72 · ไม่มีแอดมินตอบ 101 · ค่ากลางเวลารอ 7.2 ชม.)<br>
+ <h3 style="font-size:15px;margin:20px 0 4px">2 · รายชั่วโมง: แต่ละช่องทางทักมาเท่าไร ตอบนานแค่ไหน</h3><div class="hrbar"><span class="nsm">${asof}</span><button class="dlbtn" id="hrcsv" type="button">⤓ ดาวน์โหลดตารางรายชั่วโมง (CSV · เปิดใน Excel / Google Sheets)</button></div><div class="ovtop"><b>ชั่วโมงที่ตอบช้ากว่า 60 นาทีมากที่สุด</b>${rkLines}</div><details class="ovmore"><summary>เปิดตารางรายชั่วโมง (24 ชั่วโมง × ช่องทาง)</summary><details class="fhelp" style="margin:0 0 10px"><summary>วิธีอ่านตัวเลขในแต่ละช่อง</summary><div class="warnbox" style="margin-top:8px;line-height:1.8"><b>อ่านช่องละ 5 บรรทัด</b> (ตัวอย่าง: 191 แชท · ตอบภายใน 60 นาที 18 · ตอบช้ากว่า 60 นาที 72 · ไม่มีแอดมินตอบ 101 · ค่ากลางเวลารอ 7.2 ชม.)<br>
  ① <b>191 แชท</b> = ลูกค้าส่งข้อความแรกเข้ามาในชั่วโมงนั้น รวมทุกวันในช่วงเวลาที่เลือก<br>
  ② ③ ④ = แบ่ง 191 แชทนั้นเป็น 3 กลุ่มที่บวกกันได้ครบ: แอดมินตอบภายใน 60 นาที <b>18</b> + ตอบช้ากว่า 60 นาที <b>72</b> + ไม่มีแอดมินตอบเลย <b>101</b> = 191 · % ในวงเล็บคิดจากจำนวนแชทของช่องนั้น<br>
  ⑤ <b>ค่ากลางเวลารอ 7.2 ชม.</b> = เอาเฉพาะแชทที่แอดมินตอบ (18 + 72 = 90 แชท) มาเรียงจากเร็วไปช้า แชทที่อยู่ตรงกลางรอ 7.2 ชม. — ครึ่งหนึ่งได้คำตอบเร็วกว่านี้ อีกครึ่งช้ากว่านี้ <b>ไม่ได้แปลว่าทุกแชทได้คำตอบภายใน 7.2 ชม.</b><br>
  <b>สีแดงเข้ม → อ่อน</b> = 3 ชั่วโมงที่มีจำนวนแชท “ตอบช้ากว่า 60 นาที” มากที่สุดของช่องทางนั้น</div></details>${t3}
  <details class="fhelp" style="margin-top:10px"><summary>หมายเหตุการจัดอันดับ</summary><div class="note" style="margin-top:8px;display:grid;gap:6px;background:var(--card);border:1px solid var(--line);border-radius:10px;padding:12px 14px"><div><b>หมายเหตุ</b> — จัดอันดับจาก<b>จำนวน</b>แชทที่แอดมินตอบครั้งแรกช้ากว่า 60 นาที (ไม่ใช่ %) เพื่อให้เห็นชั่วโมงที่ลูกค้ารอนานมากที่สุดจริง · ชั่วโมงที่คนทักน้อยอาจมี % สูงแต่จำนวนน้อย จึงไม่ขึ้นอันดับ · เส้นคั่นหนาที่ 09.00 และ 21.00 = เปลี่ยนช่วงเวลาทำงาน · ยังไม่หักวันหยุด · ตั้งแต่ 22 ก.ย. 2026 ข้อความที่บันทึกไว้ซึ่งแอดมินกดส่งเองนับว่าแอดมินตอบแล้ว (Facebook ใช้ป้ายของ Meta · Instagram เทียบจากข้อความเดียวกันบน Facebook)</div></div></details></details>
  <h3 style="font-size:15px;margin:22px 0 4px">3 · ที่ตอบ “มากกว่า 60 นาที” เกิดขึ้นตอนไหน</h3><p class="note" style="margin-bottom:8px">แยกแชทที่แอดมินตอบช้ากว่า 60 นาที ตามช่วงเวลาที่ลูกค้าทักเข้ามา</p>${t2}`;
+ const hx=$('#hrcsv');if(hx)hx.addEventListener('click',()=>hrExport(cols,rank,hb,asof));
 }
 
 
