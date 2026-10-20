@@ -15,7 +15,7 @@
 """
 import os, sys, json, math, bisect, datetime, uuid, base64, gzip, hashlib, urllib.request, urllib.error
 
-PAGE = 'https://biopalm-education.github.io/admin-hub/preview/#ba'   # เปลี่ยนเป็นหน้าจริง (.../admin-hub/#ba) ตอนขึ้นหน้าจริง
+PAGE = 'https://biopalm-education.github.io/admin-hub/#ba'          # หน้า Tracking (หน้าจริง ตั้งแต่ 21 ต.ค. 2026)
 LISTS = ('ar', 'sp', 'np', 'pay', 'pz')
 DONE = ('ans', 'smp', 'sum', 'paid', 'close')
 ACT = ('fu', 'reans', 'requote', 'move')

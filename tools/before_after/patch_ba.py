@@ -1,14 +1,13 @@
 # -*- coding: utf-8 -*-
-"""page with the Follow up weekly box (tools/followup_week) -> + the "Tracking" page (เดิมชื่อ Before / After · v2, 21 ต.ค. 2026).
+"""app.html -> + the "Tracking" page (เดิมชื่อ Before / After · ขึ้นหน้าจริง 21 ต.ค. 2026).
 
-  python3 tools/followup_week/patch_app.py app.html /tmp/p1.html && python3 tools/before_after/patch_ba.py /tmp/p1.html preview/index.html
-  Re-run both whenever app.html, tools/followup_week or tools/before_after change, so the preview keeps up.
-  When approved for the live page: run both patches with app.html as input and output.
+  python3 tools/before_after/patch_ba.py app.html app.html && cp app.html index.html     # the live page (done 21 ต.ค. 2026)
+  Follow up page stays as it is. tools/followup_week/patch_app.py (weekly tables in Follow up) is optional and not live:
+  it skips a page that already has wk.js, so run it before this script if you ever want those tables in a preview.
 
 Every replacement must match the expected number of times, otherwise nothing is written. Idempotent: a patched file is left as is.
-Needs wk.js (followup_week) in the page: ba.js reuses its labels.
+ba.js reuses labels from tools/followup_week/wk.js: when the page has no wk.js yet, its definitions are added (not used by Follow up).
 Data: build_week.py -> src/ba.json (daily Follow up timeline since 1 ม.ค. + notice texts) -> build.py emits data/ba.json.
-Follow up page keeps the weekly tables of tools/followup_week; its old LINE report box goes (the Monday / Friday texts live on Tracking).
 """
 import sys, os
 HERE = os.path.dirname(os.path.abspath(__file__))
@@ -16,10 +15,9 @@ src, dst = sys.argv[1], sys.argv[2]
 h = open(src, encoding='utf-8').read()
 if 'function renderBA(' in h:
     print('already patched'); open(dst, 'w', encoding='utf-8').write(h); sys.exit(0)
-if 'function wkTop(' not in h:
-    raise SystemExit('patch_ba: run tools/followup_week/patch_app.py first (ba.js needs wk.js)')
 JS = open(os.path.join(HERE, 'ba.js'), encoding='utf-8').read()
 CSS = open(os.path.join(HERE, 'ba.css'), encoding='utf-8').read()
+WK = os.path.join(os.path.dirname(HERE), 'followup_week')
 
 
 def rep(old, new, n=1):
@@ -29,7 +27,12 @@ def rep(old, new, n=1):
     h = h.replace(old, new)
 
 
-# Follow up page: the old weekly LINE report box goes — the Monday / Friday notice texts now live on the Tracking page
+# ba.js reuses labels from tools/followup_week/wk.js (+ wk.css). Without patch_app.py (the live page, 21 ต.ค. 2026) only
+# the definitions go in: the Follow up page itself stays exactly as it is.
+if 'function wkTop(' not in h:
+    rep('</style>', open(os.path.join(WK, 'wk.css'), encoding='utf-8').read() + '\n</style>')
+    rep('async function renderFU(){', open(os.path.join(WK, 'wk.js'), encoding='utf-8').read() + '\nasync function renderFU(){')
+# the old weekly LINE report box (only shown when patch_app.py put the weekly tables in) — the Monday / Friday texts live on Tracking
 rep("const rep=FU.wk.report&&FU.wk.report.msgs?FU.wk.report.msgs.join('\\n\\n'):'';", "const rep='';")
 rep('</style>', CSS + '\n</style>')
 rep('async function renderFU(){', JS + '\nasync function renderFU(){')

@@ -1,6 +1,6 @@
-# Tracking · ความคืบหน้าการเคลียร์แชท (เดิมชื่อ Before / After · preview v2 · 21 ต.ค. 2026)
+# Tracking · ความคืบหน้าการเคลียร์แชท (เดิมชื่อ Before / After · ขึ้นหน้าจริง 21 ต.ค. 2026)
 
-หน้า preview: <https://biopalm-education.github.io/admin-hub/preview/> → ปุ่ม **Tracking** (แถบ “หน้า” ด้านบน) · ลิงก์ที่ลงท้าย `#ba` เปิดหน้านี้ทันที
+หน้าจริง: <https://biopalm-education.github.io/admin-hub/> → ปุ่ม **Tracking** (แถบ “หน้า” ด้านบน) · ลิงก์ที่ลงท้าย `#ba` เปิดหน้านี้ทันที
 
 ## ดูอะไรได้
 - กดปุ่ม Tracking → **ป๊อปอัปเลือกหมวด** ก่อน (ภาพรวมทุกหมวด หรือ 1 ใน 5 หมวด Follow up) พร้อมป้ายสถานะของแต่ละหมวด · เปลี่ยนหมวดได้จากปุ่ม “หมวด ▾”
@@ -14,7 +14,7 @@
 - **แนวโน้ม** 3 กราฟแยกกัน (% จัดการ · ค้างปลายช่วง · วันจนแตะแชทใหม่) ราย 12 สัปดาห์ หรือรายเดือนตั้งแต่ ม.ค. · กดแท่งเพื่อเปิดช่วงนั้น
 - **Source**: ปุ่ม “ดูรายชื่อแชท” หรือกดตัวเลข → รายชื่อแชท กรองสถานะ/ช่องทาง ค้นชื่อ เปิดแชท ดาวน์โหลด CSV
 - ตัวอย่างข้อความแจ้งเตือนเข้า LINE กลุ่ม แบบวันจันทร์และวันศุกร์ แยก 3 ช่องทาง (ปุ่มคัดลอก) — ข้อความชุดเดียวกับที่บอทส่ง
-- หน้า **Follow up** ใช้ตารางรายสัปดาห์ของ `tools/followup_week` ตามเดิม (กล่องข้อความรายงาน LINE เดิมเอาออก ย้ายมาอยู่หน้า Tracking)
+- หน้า **Follow up** คงเดิมตามหน้าจริง (ตารางรายสัปดาห์ของ `tools/followup_week` ไม่ได้ขึ้นหน้าจริง)
 
 ## ข้อมูล
 `build_week.py` (รันทุกเช้าในรอบอัปเดต) เขียน `src/ba.json` (+ ข้อความแจ้งเตือนจาก `notice.py`) → `build.py` เข้ารหัสเป็น `data/ba.json` (โหลดเฉพาะหน้านี้)
@@ -27,17 +27,19 @@
 | ไฟล์ | หน้าที่ |
 |---|---|
 | `ba.js`, `ba.css` | หน้า Tracking (ใช้ป้ายชื่อของ `tools/followup_week/wk.js`) |
-| `patch_ba.py` | ใส่หน้า Tracking ลงไฟล์ที่ผ่าน `tools/followup_week/patch_app.py` แล้ว · ทุกจุดต้องเจอตามจำนวน ไม่งั้นไม่เขียนไฟล์ |
+| `patch_ba.py` | ใส่หน้า Tracking ลง app.html (หน้า Follow up ไม่แตะ) · ทุกจุดต้องเจอตามจำนวน ไม่งั้นไม่เขียนไฟล์ |
 | `notice.py` | ข้อความแจ้งเตือน LINE กลุ่ม (กฎนับเดียวกับ ba.js) · `build_week.py` เรียกตอนสร้าง ba.json · `.github/workflows/line-notice.yml` เรียก `notice.py send` |
 
-สร้างหน้า preview ใหม่ (เมื่อแก้ `app.html` หรือไฟล์ในสองโฟลเดอร์นี้): `python3 tools/followup_week/patch_app.py app.html /tmp/p1.html && python3 tools/before_after/patch_ba.py /tmp/p1.html preview/index.html`
+ใส่หน้า Tracking ลงหน้าจริง (ทำแล้ว 21 ต.ค. 2026 · ทำซ้ำได้ ถ้าใส่แล้วสคริปต์จะไม่แก้อะไร):
+`python3 tools/before_after/patch_ba.py app.html app.html && cp app.html index.html` · preview/index.html = สำเนาเดียวกัน
 
-ขึ้นหน้าจริงเมื่ออนุมัติ: `python3 tools/followup_week/patch_app.py app.html /tmp/p1.html && python3 tools/before_after/patch_ba.py /tmp/p1.html app.html` แล้ว deploy ตามปกติ
+แก้ `ba.js` / `ba.css` ภายหลัง: เอาส่วนที่ใส่ไว้ใน app.html ออกก่อน (หรือแก้ใน app.html ตรง ๆ ให้ตรงกับไฟล์ในโฟลเดอร์นี้) แล้วค่อยรันใหม่
 
 ## แจ้งเตือนเข้า LINE กลุ่ม (จันทร์ · ศุกร์)
 - จันทร์ = สรุปสัปดาห์ที่แล้ว (จ.–อา.) · ศุกร์ = ความคืบหน้าสัปดาห์นี้ (จ.–พฤ.) เทียบช่วงเดียวกันของสัปดาห์ก่อน · แยก Facebook / Instagram / LINE OA เป็น 3 ข้อความในการส่งครั้งเดียว
 - `.github/workflows/line-notice.yml` รันต่อจาก refresh-dashboard ทุกรอบ ส่งเฉพาะวันจันทร์/ศุกร์ที่ข้อมูลสร้างวันนั้น · อ่านอย่างเดียว ไม่ push · ส่งซ้ำวันเดียวกันไม่ได้
-- ทดลอง: Actions → line-notice → Run workflow เลือกแบบ mon / fri (ไม่ติ๊ก “ส่งจริง” = ดูข้อความใน log อย่างเดียว)
+- ทดลอง: Actions → line-notice → Run workflow เลือกแบบ mon / fri (ไม่ติ๊ก “ส่งจริง” = เช็กว่าสร้างข้อความได้ ไม่ส่ง)
 - ต้องมี LINE OA สำหรับแจ้งเตือน (แพ็กเกจฟรี 300 ข้อความ/เดือน · นับตามจำนวนคนในกลุ่ม × จำนวนครั้งที่ส่ง) เปิด Messaging API แล้วเชิญบอทเข้ากลุ่ม
   แล้วตั้ง secrets `LINE_NOTICE_TOKEN` (channel access token) และ `LINE_NOTICE_TO` (group ID) · ยังไม่ตั้ง = ไม่ส่ง
-- ลิงก์ในข้อความชี้หน้า preview (`PAGE` ใน notice.py) — เปลี่ยนเป็นหน้าจริงตอนขึ้นหน้าจริง
+- ลิงก์ในข้อความชี้หน้า Tracking ของหน้าจริง (`PAGE` ใน notice.py)
+- log ของ Actions ไม่พิมพ์เนื้อหาข้อความ (repo เป็น public) — ดูข้อความได้ท้ายหน้า Tracking
