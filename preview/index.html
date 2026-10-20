@@ -2712,7 +2712,7 @@ let FU=null, FU_B='7', FU_K='all', FU_T='', FU_W='', FU_Q='', FU_PAGE=0;
 let FU_G='never', FU_MODE='ar';
 let FU_ASK=false;   /* Sep 23 2026: opening Follow up asks which list first (popup) */
 try{const m=localStorage.getItem('bp_fu_mode');if(m==='pay'||m==='ar'||m==='np'||m==='sp'||m==='pz'||m==='tn')FU_MODE=m;}catch(e){}
-const FU_GN={never:'ไม่เคยมีแอดมินคุย',prior:'เคยคุยแล้ว · ถามรอบใหม่ยังไม่มีคนตอบ',both:'รวมสองกลุ่ม',skip:'ไม่ต้องตาม',done:'กดตอบแล้ว · รอรอบอัปเดตเช้า ยืนยัน'};
+const FU_GN={never:'ไม่เคยมีแอดมินคุย',prior:'เคยคุยแล้ว · ถามรอบใหม่ยังไม่มีคนตอบ',both:'รวมสองกลุ่ม',skip:'ไม่ต้องตาม',done:'กดตอบแล้ว · รอรอบ 05:00 ยืนยัน'};
 const FU_KN={all:'ทั้งหมด',A:'ถามจริง · ตามก่อน',B:'กดปุ่มสนใจคอร์ส',C:'ไม่ต้องตาม'};
 let FU_KORD=['A','B'];
 const FU_KS={A:'ถามจริง',B:'กดปุ่มสนใจ',C:'ไม่ต้องตาม'};
@@ -2753,7 +2753,7 @@ function ovMove(o,st,why,opt){return new Promise(res=>{
  const ttl=opt.title||(ansDone?'บันทึกว่าตอบแล้ว':fuDone?'บันทึกว่าตามแล้ว':(st==='skip'?'ย้ายไป “ไม่ต้องตาม”':(st==='follow'?'ย้ายกลับมาในรายการที่ต้องตาม':'ยกเลิกการย้าย (คืนค่าอัตโนมัติ)')));
  const bg=document.createElement('div');bg.className='ovdlg-bg';
  bg.innerHTML=`<div class="ovdlg" role="dialog" aria-modal="true"><h4>${ttl}</h4>
-  <p class="nsm">แชท: <b>${esc(o&&o.name||'')}</b>${opt.desc?'<br>'+esc(opt.desc)+(st==='skip'&&why&&!/^ทำแล้ว/.test(why)?'<br>เหตุผล: <b>'+esc(why)+'</b>':''):ansDone?'<br>แชทจะออกจากรายการที่ต้องตอบทันที (ไม่ต้องรอรอบอัปเดตเช้า) · ถ้าลูกค้าทักมาใหม่ แชทจะกลับเข้ารายการเอง':fuDone?'<br>แชทจะไปอยู่ “ตามแล้ว · รอลูกค้าตอบ” 7 วัน ถ้าลูกค้ายังเงียบจะกลับมาในรายการที่ต้องตาม':(st==='skip'?'<br>เหตุผล: <b>'+esc(why)+'</b>':'')}</p>
+  <p class="nsm">แชท: <b>${esc(o&&o.name||'')}</b>${opt.desc?'<br>'+esc(opt.desc)+(st==='skip'&&why&&!/^ทำแล้ว/.test(why)?'<br>เหตุผล: <b>'+esc(why)+'</b>':''):ansDone?'<br>แชทจะออกจากรายการที่ต้องตอบทันที (ไม่ต้องรอรอบ 05:00) · ถ้าลูกค้าทักมาใหม่ แชทจะกลับเข้ารายการเอง':fuDone?'<br>แชทจะไปอยู่ “ตามแล้ว · รอลูกค้าตอบ” 7 วัน ถ้าลูกค้ายังเงียบจะกลับมาในรายการที่ต้องตาม':(st==='skip'?'<br>เหตุผล: <b>'+esc(why)+'</b>':'')}</p>
   ${other?'<label class="ovlab">อธิบายเหตุผล <span class="nsm">(จำเป็น อย่างน้อย 5 ตัวอักษร)</span></label><textarea rows="3" class="ovin"></textarea><div class="ovcnt nsm"></div>':''}
   <label class="ovlab">แอดมินที่ปรับ <span class="nsm">(จำเป็น)</span></label>
   <div class="ovadm">${OV_ADMINS.map(([n,r])=>`<button type="button" class="ovad" data-n="${esc(n)}">${esc(n)}${r?' <span>'+r+'</span>':''}</button>`).join('')}</div>
@@ -2816,11 +2816,11 @@ function fuExport(){const rows=fuFilt(false);
  downloadCSV('followup-'+(CH==='ig'?'instagram':(CH==='line'?'line':'facebook'))+(FU_O?'-'+FU_O:'')+'-'+FU_GN[FU_G].replace(/[^฀-๿a-zA-Z0-9]+/g,'')+'-'+(FU_B==='30'?'ค้าง30วันขึ้นไป':(FU_B==='all'?'ทุกช่วง':'ค้าง7-29วัน'))+(FU_W?'-สัปดาห์'+FU_W:'')+(FU_K!=='all'?'-'+FU_KN[FU_K]:'')+'-'+end+'.csv',out);}
 let FU_L=[];
 function fuOvCtl(o,i){
- if(o.kind==='D')return `<div class="fuov">✓ กดตอบแล้ว${o.ov&&o.ov.by?' โดย '+esc(o.ov.by):''}<br><span class="nsm">รอบอัปเดตเช้า จะเช็กจากแชทจริงอีกครั้ง</span><button class="fuovb" data-ovi="${i}" data-ovst="clear">ยกเลิก</button></div>`;
+ if(o.kind==='D')return `<div class="fuov">✓ กดตอบแล้ว${o.ov&&o.ov.by?' โดย '+esc(o.ov.by):''}<br><span class="nsm">รอบ 05:00 จะเช็กจากแชทจริงอีกครั้ง</span><button class="fuovb" data-ovi="${i}" data-ovst="clear">ยกเลิก</button></div>`;
  if(o.ov&&o.ov.st==='skip')return `<div class="fuov on">ย้ายเป็นไม่ต้องตาม${o.ov.by?' โดย '+esc(o.ov.by):''}${o.ov.why?'<br><span class="nsm">'+esc(o.ov.why)+'</span>':''}<button class="fuovb" data-ovi="${i}" data-ovst="clear">ยกเลิก</button></div>`;
  if(o.ov&&o.ov.st==='follow')return `<div class="fuov">ย้ายกลับมาตาม${o.ov.by?' โดย '+esc(o.ov.by):''}<button class="fuovb" data-ovi="${i}" data-ovst="clear">ยกเลิก</button></div>`;
  if(o.kind==='C')return `<div class="fuov"><button class="fuovb" data-ovi="${i}" data-ovst="follow">ย้ายกลับมาตาม</button></div>`;
- return `<div class="fuov"><button class="fuovb fudone" data-ovi="${i}" data-ovst="skip" data-why="ตอบแล้ว (กดเอง)" title="ตอบลูกค้าแล้ว — แชทออกจากรายการทันที ไม่ต้องรอรอบอัปเดตเช้า">✓ ตอบแล้ว</button><select class="fuovs" data-ovi="${i}" aria-label="ย้ายไปไม่ต้องตาม"><option value="">ย้ายไป “ไม่ต้องตาม”…</option>${OV_WHY.map(w=>`<option>${esc(w)}</option>`).join('')}</select></div>`;}
+ return `<div class="fuov"><button class="fuovb fudone" data-ovi="${i}" data-ovst="skip" data-why="ตอบแล้ว (กดเอง)" title="ตอบลูกค้าแล้ว — แชทออกจากรายการทันที ไม่ต้องรอรอบ 05:00">✓ ตอบแล้ว</button><select class="fuovs" data-ovi="${i}" aria-label="ย้ายไปไม่ต้องตาม"><option value="">ย้ายไป “ไม่ต้องตาม”…</option>${OV_WHY.map(w=>`<option>${esc(w)}</option>`).join('')}</select></div>`;}
 function fuStatus(){const S=((FU||{}).status||{})[CH];if(!S)return '';
  const tot=Object.values(S).reduce((a,b)=>a+b,0);
  const it=(k,lab,cls)=>`<span class="fust ${cls||''}"><b>${nf(S[k]||0)}</b> ${lab}</span>`;
@@ -3313,10 +3313,10 @@ async function renderFU(){
  const card=(b,cls,lab,v,sub,d)=>`<button class="fucard ${cls}" data-fub="${b}" aria-pressed="${FU_B===b}"><span class="lab">${lab}</span><span class="v">${nf(v)}</span><span class="s">${sub}</span>${d?'<span class="d">'+d+'</span>':''}</button>`;
  const noD=FU_G!==histG||FU_O;
  const gl=FU_G==='skip'?'ไม่ต้องตาม':'ไม่มีแอดมินตอบ';
- const cards=wkTop()+fuModeBar()+`<div class="fucards">`+
+ const cards=fuModeBar()+`<div class="fucards">`+
   card('7','warn',gl+' · 7–29 วัน',c7,'ลูกค้าทักล่าสุดเมื่อ 7–29 วันก่อน · ยังตามได้ทัน',noD?'':dd(c7,prevH&&prevH[hi]))+
   card('30','risk',gl+' · 30 วันขึ้นไป',c30,(FU_G==='skip'?'':'เป้าหมาย = 0 · ')+(LN?'ตอบแล้วแชทจะหายเมื่อดึงข้อมูล LINE เดือนถัดไป':'ตอบแล้วแชทจะหายจากรายการในรอบอัปเดตถัดไป'),noD?'':dd(c30,prevH&&prevH[hi+1]))+
-  `</div>${wkOn()?wkBox('ar'):fuFlow()}${fuStatus()}<p class="note fusm">ตัวเลขในการ์ด = กลุ่ม <b>${FU_GN[FU_G]}</b> · ยังไม่ถึง 7 วัน ${nf(c0)} แชท (ยังไม่เข้ารายการ) · ${ngive?'ไม่นับแชท Giveaway '+nf(ngive)+' แชท (บอทส่งของแถมให้แล้ว ไม่ต้องตาม) · ':''}${LN?'LINE เกือบทุกห้องเคยคุยกับแอดมิน จึงเริ่มที่ “รวมสองกลุ่ม”':''}</p>`+
+  `</div>${fuFlow()}${fuStatus()}<p class="note fusm">ตัวเลขในการ์ด = กลุ่ม <b>${FU_GN[FU_G]}</b> · ยังไม่ถึง 7 วัน ${nf(c0)} แชท (ยังไม่เข้ารายการ) · ${ngive?'ไม่นับแชท Giveaway '+nf(ngive)+' แชท (บอทส่งของแถมให้แล้ว ไม่ต้องตาม) · ':''}${LN?'LINE เกือบทุกห้องเคยคุยกับแอดมิน จึงเริ่มที่ “รวมสองกลุ่ม”':''}</p>`+
   (LN?`<p class="note fusm lnwarn">⚠️ LINE OA ดึงข้อมูลเดือนละครั้ง (ไม่มีรอบอัปเดตรายวัน) · ข้อมูลชุดนี้ถึง <b>${endT}</b> · “ค้างมาแล้ว” นับถึงวันนั้น ไม่ใช่วันนี้ · ห้องที่แอดมินตอบหลังวันนั้นแล้วจะยังอยู่ในรายการจนกว่าจะดึงเดือนถัดไป — กดเปิดแชทเช็กก่อนตามทุกครั้ง</p>`:'');
 
  /* weekly strip for the chosen bucket (ignores the week filter itself) */
@@ -3371,18 +3371,18 @@ async function renderFU(){
 
  const help=`<details class="fhelp"><summary>รายการนี้นับอย่างไร</summary><dl>
   <dt>อ่านทั้งห้อง ไม่ใช่รายเดือน</dt><dd>รายการนี้ต่อข้อความทุกเดือนของห้องเดียวกันแล้วดูว่า <b>ตอนนี้</b> ห้องอยู่สถานะไหน — ถ้าแอดมินตอบหลังข้อความล่าสุดของลูกค้าแล้ว (แม้จะคนละเดือน) ห้องนั้นไม่อยู่ในรายการ · ถ้าลูกค้าพิมพ์แค่ขอบคุณ/โอเค/สติกเกอร์หลังจากแอดมินคุยไปแล้ว ถือว่าจบบทสนทนา ไม่ต้องตาม · “เคยคุยกับแอดมิน” นับย้อนไปถึงก่อนปี 2026 ด้วย (Facebook)</dd>
-  <dt>ปุ่ม ✓ ตอบแล้ว</dt><dd>ตอบลูกค้าในแชทแล้วกดปุ่มนี้ แชทออกจากรายการและตัวเลขลดทันที (คนอื่นเห็นเมื่อ refresh) ไม่ต้องรอรอบอัปเดตเช้า · ดูแชทที่กดไว้ได้ที่กลุ่ม “กดตอบแล้ว · รอรอบอัปเดตเช้า ยืนยัน” (กดยกเลิกได้) · รอบอัปเดตเช้า จะอ่านแชทจริงแล้วย้ายเป็น “แอดมินตอบแล้ว” เอง · ถ้าลูกค้าทักมาใหม่ แชทจะกลับเข้ารายการเป็นรอบใหม่</dd>
+  <dt>ปุ่ม ✓ ตอบแล้ว</dt><dd>ตอบลูกค้าในแชทแล้วกดปุ่มนี้ แชทออกจากรายการและตัวเลขลดทันที (คนอื่นเห็นเมื่อ refresh) ไม่ต้องรอรอบ 05:00 · ดูแชทที่กดไว้ได้ที่กลุ่ม “กดตอบแล้ว · รอรอบ 05:00 ยืนยัน” (กดยกเลิกได้) · รอบ 05:00 จะอ่านแชทจริงแล้วย้ายเป็น “แอดมินตอบแล้ว” เอง · ถ้าลูกค้าทักมาใหม่ แชทจะกลับเข้ารายการเป็นรอบใหม่</dd>
   <dt>ย้ายแชทเอง</dt><dd>ถ้าเปิดดูแล้วไม่ควรตาม (ถามกวน มาปั่น ไม่ใช่ลูกค้า คุยต่อทางอื่นแล้ว) เลือกเหตุผลในช่อง “ย้ายไป ไม่ต้องตาม” ท้ายแถว (ทุกครั้งต้องเลือกชื่อแอดมินที่ปรับ และถ้าเลือก “อื่น ๆ” ต้องพิมพ์อธิบายเหตุผลอย่างน้อย 5 ตัวอักษร) แชทจะหายจากรายการและตัวเลขทันที · กดยกเลิกเพื่อคืนค่าได้ · ถ้าลูกค้าส่งข้อความใหม่ในภายหลัง แชทจะกลับเข้ารายการเองเพราะเป็นรอบใหม่ · แชทที่ระบบซ่อนไว้ผิด เลือกกลุ่ม “ไม่ต้องตาม” แล้วกด “ย้ายกลับมาตาม”</dd>
   <dt>กลุ่มแชท</dt><dd>เลือกได้ทีละกลุ่ม รายชื่อจะเปลี่ยนเป็นแชทของกลุ่มนั้นทันที · <b>ไม่เคยมีแอดมินคุย</b> ลูกค้าได้แต่ข้อความอัตโนมัติมาตลอด · <b>เคยคุยแล้ว · ถามรอบใหม่ยังไม่มีคนตอบ</b> เคยมีแอดมินคุย (รวมก่อนปี 2026 บน Facebook) แต่ข้อความล่าสุดของลูกค้ายังไม่มีคนตอบ · <b>ไม่ต้องตาม</b> ระบบคัดออก (รูป/สติกเกอร์/ทักทาย/ข้อความไม่ชัด/ลูกค้าปฏิเสธ) หรือแอดมินย้ายเอง · ตัวเลขในกล่อง “อ่านทั้งห้องแชท” ที่มีกรอบกดได้ จะเปิดรายชื่อกลุ่มนั้น<b>ทุกช่วงเวลา</b></dd>
   <dt>LINE OA</dt><dd>อ่านทั้งห้องต่อกันทุกเดือนที่ดึงมาแล้ว · LINE บอกชื่อแอดมินที่ส่งทุกข้อความ ข้อความจากบัญชีบอท/ข้อความตอบกลับอัตโนมัติ = อัตโนมัติ · ห้องเข้ารายการเมื่อข้อความล่าสุดของลูกค้ายังไม่มีแอดมินคนไหนตอบ (รวมห้องที่เคยคุยแล้ว เพราะ LINE เกือบทุกห้องเคยคุยกับแอดมิน) · “ผู้ดูแล” = แอดมินที่ LINE ตั้งเป็นผู้รับผิดชอบห้อง กดชื่อเพื่อดูเฉพาะห้องของคนนั้น · ปุ่ม “เปิดแชทนี้” เข้าห้องใน LINE OA Manager ได้ตรง · ข้อมูล LINE ดึงเดือนละครั้ง “ค้างมาแล้ว” จึงนับถึงข้อความล่าสุดในชุดที่ดึงมา (ไม่ใช่วันนี้)</dd>
   <dt>แชทแบบไหนเข้ารายการ</dt><dd>ลูกค้าทักมาแล้วได้รับแต่ <b>ข้อความอัตโนมัติ</b> (ข้อความต้อนรับ ปุ่มคำถามที่ตั้งไว้ ข้อความตอบตามคีย์เวิร์ด ข้อความติดตามที่ตั้งเวลาส่ง) และ <b>ไม่มีแอดมินตอบเลย</b> นับจากข้อความล่าสุดของลูกค้า</dd>
   <dt>แยกแอดมินกับข้อความอัตโนมัติอย่างไร</dt><dd><b>Facebook</b> — Meta ติดป้ายทุกข้อความว่าส่งมาจากไหน ข้อความที่ส่งจากแอปมือถือ (Business Suite) = มีคนกดส่ง นับเป็นแอดมินตอบ ทั้งที่พิมพ์เองและกดส่งข้อความที่บันทึกไว้ · ข้อความที่ระบบส่งเอง (ข้อความต้อนรับ ปุ่มคำถาม ตอบตามคีย์เวิร์ด ข้อความติดตามที่ตั้งเวลา บอทตรวจสลิป) = อัตโนมัติ · <b>Instagram</b> — API ไม่มีป้ายนี้ จึงเทียบจากข้อความเดียวกันบน Facebook (แอดมินใช้ข้อความชุดเดียวกัน) ข้อความที่ไม่เคยเจอบน Facebook ใช้จังหวะเวลา: ส่งหลังลูกค้าทัก 2 นาทีขึ้นไป = แอดมิน · <b>LINE OA</b> — ระบบ LINE บอกชื่อแอดมินที่ส่งทุกข้อความอยู่แล้ว</dd>
   <dt>“ค้างมาแล้ว” นับจากไหน</dt><dd>จากข้อความล่าสุดของลูกค้า ถึงเวลาที่ดึงข้อมูลชุดนี้ (${endT}) · 7–29 วัน = ยังตามได้ทัน · 30 วันขึ้นไป = กองค้างที่ควรเคลียร์ให้เป็น 0</dd>
-  <dt>ตอบแล้วแชทหายจากรายการเมื่อไร</dt><dd>รอบอัปเดตอัตโนมัติถัดไปหลังแอดมินตอบในแชทนั้น (ทุกเช้า ขึ้นหน้าเว็บราว 09:00–10:00 น. ดึงเดือนปัจจุบัน · วันจันทร์และวันที่ 1 ดึงเดือนก่อนหน้าซ้ำด้วย) — ระบบต่อแชทข้ามเดือนด้วยรหัสห้องแชท แชทเก่าที่ตอบในเดือนนี้จึงหายจากกองด้วย</dd>
+  <dt>ตอบแล้วแชทหายจากรายการเมื่อไร</dt><dd>รอบอัปเดตอัตโนมัติถัดไปหลังแอดมินตอบในแชทนั้น (รายวัน 05:00 ดึงเดือนปัจจุบัน · จันทร์ 04:00 ดึงเดือนก่อนหน้าซ้ำ) — ระบบต่อแชทข้ามเดือนด้วยรหัสห้องแชท แชทเก่าที่ตอบในเดือนนี้จึงหายจากกองด้วย</dd>
   <dt>ควรตามแค่ไหน</dt><dd>อ่านจากสิ่งที่ลูกค้าส่งมาในรอบที่ยังไม่มีคนตอบ · <b>ถามจริง · ตามก่อน</b> ลูกค้าพิมพ์ข้อความจริง (4 ตัวอักษรขึ้นไป ไม่ใช่แค่ทักทาย/ขอบคุณ) ที่พูดถึงคอร์ส ระดับชั้น ราคา ตาราง การสมัคร เรื่องของนักเรียนเดิม (ลิงก์ ชีท ใบเสร็จ) หรือเป็นประโยคคำถาม · <b>กดปุ่มสนใจคอร์ส</b> ไม่ได้พิมพ์ แต่กดปุ่มโฆษณาหรือปุ่มเมนูเรื่องคอร์ส (เช่น สนใจลงเรียน ม.ต้น, รายละเอียดคอร์ส) · <b>ไม่ต้องตาม</b> ซ่อนไว้ — ส่งแค่รูป/สติกเกอร์/ตอบกลับสตอรี่ ทักทายหรือขอบคุณอย่างเดียว ข้อความสั้นไม่ชัด (เช่น “ใคร” “ม.8”) หรือลูกค้าบอกไม่สนใจ · แชท <b>Giveaway</b> ไม่นับในรายการนี้</dd>
   <dt>ไฟล์ CSV</dt><dd>ดาวน์โหลดตามตัวกรองที่เลือกอยู่ มีลิงก์ตรงเข้าห้องแชทใน Meta Business Suite (Instagram เกือบครบทุกแชท · Facebook ทุกห้องที่เก็บรหัสบัญชีลูกค้าไว้แล้ว ห้องที่ยังไม่มีใช้ปุ่ม “เปิด Inbox + คัดลอกชื่อ” แล้ววางชื่อในช่องค้นหา) และคอลัมน์ว่าง “ผู้ติดตาม · วันที่ติดตาม · ผลการติดตาม” ไว้ให้ทีมกรอกต่อ</dd></dl></details>`;
 
- el.innerHTML=cards+`<div class="fugrid"><div>${wtable}</div><div>${want}</div></div>`+list+hist+help;wkBind(el);
+ el.innerHTML=cards+`<div class="fugrid"><div>${wtable}</div><div>${want}</div></div>`+list+hist+help;
  el.querySelectorAll('[data-fub]').forEach(b=>b.addEventListener('click',()=>{FU_B=b.dataset.fub;FU_W='';FU_PAGE=0;renderFU();}));
  el.querySelectorAll('[data-fuw]').forEach(r=>{const go=()=>{FU_W=FU_W===r.dataset.fuw?'':r.dataset.fuw;FU_PAGE=0;renderFU();};
   r.addEventListener('click',go);r.addEventListener('keydown',e=>{if(e.key==='Enter'||e.key===' '){e.preventDefault();go();}});});
@@ -3573,8 +3573,8 @@ function puOvCtl(o,i){
  if(o.ov&&o.ov.st==='follow')return `<div class="fuov">ย้ายกลับมาตาม${o.ov.by?' โดย '+esc(o.ov.by):''}<button class="fuovb" data-pui="${i}" data-ovst="clear">ยกเลิก</button></div>`;
  if(o.g==='X')return `<div class="fuov"><button class="fuovb" data-pui="${i}" data-ovst="follow">ย้ายกลับมาตาม</button></div>`;
  if(o.fuMan&&o.g==='F')return `<div class="fuov">✓ กดตามแล้ว${o.ov.by?' โดย '+esc(o.ov.by):''}<button class="fuovb" data-pui="${i}" data-ovst="clear">ยกเลิก</button></div>`;
- if(o.ansMan)return `<div class="fuov">✓ กดตอบแล้ว${o.ov.by?' โดย '+esc(o.ov.by):''}<br><span class="nsm">รอบอัปเดตเช้า จะเช็กจากแชทจริงอีกครั้ง</span><button class="fuovb" data-pui="${i}" data-ovst="clear">ยกเลิก</button></div>`;
- return `<div class="fuov">${o.g==='R'?`<button class="fuovb fudone" data-pui="${i}" data-ovst="skip" data-why="ตอบแล้ว (กดเอง)" title="ตอบคำถามลูกค้าแล้ว — ย้ายไป “คุยต่อหลังได้สรุปยอด” ทันที ไม่ต้องรอรอบอัปเดตเช้า">✓ ตอบแล้ว</button>`:(o.g==='F'?'':`<button class="fuovb fudone" data-pui="${i}" data-ovst="skip" data-why="ตามแล้ว (กดเอง)" title="ทักตามลูกค้าแล้ว (ในแชท โทร หรือ LINE) — ย้ายไป “ตามแล้ว · รอลูกค้าตอบ” ทันที ไม่ต้องรอรอบอัปเดตเช้า">✓ ตามแล้ว</button>`)}<select class="fuovs" data-pui="${i}" aria-label="ย้ายไปไม่ต้องตาม"><option value="">ย้ายไป “ไม่ต้องตาม”…</option>${PU_WHY.map(w=>`<option>${esc(w)}</option>`).join('')}</select></div>`;}
+ if(o.ansMan)return `<div class="fuov">✓ กดตอบแล้ว${o.ov.by?' โดย '+esc(o.ov.by):''}<br><span class="nsm">รอบ 05:00 จะเช็กจากแชทจริงอีกครั้ง</span><button class="fuovb" data-pui="${i}" data-ovst="clear">ยกเลิก</button></div>`;
+ return `<div class="fuov">${o.g==='R'?`<button class="fuovb fudone" data-pui="${i}" data-ovst="skip" data-why="ตอบแล้ว (กดเอง)" title="ตอบคำถามลูกค้าแล้ว — ย้ายไป “คุยต่อหลังได้สรุปยอด” ทันที ไม่ต้องรอรอบ 05:00">✓ ตอบแล้ว</button>`:(o.g==='F'?'':`<button class="fuovb fudone" data-pui="${i}" data-ovst="skip" data-why="ตามแล้ว (กดเอง)" title="ทักตามลูกค้าแล้ว (ในแชท โทร หรือ LINE) — ย้ายไป “ตามแล้ว · รอลูกค้าตอบ” ทันที ไม่ต้องรอรอบ 05:00">✓ ตามแล้ว</button>`)}<select class="fuovs" data-pui="${i}" aria-label="ย้ายไปไม่ต้องตาม"><option value="">ย้ายไป “ไม่ต้องตาม”…</option>${PU_WHY.map(w=>`<option>${esc(w)}</option>`).join('')}</select></div>`;}
 
 function renderPay(){
  const el=$('#fu'), sc=$('#fuscope'), LN=CH==='line', chn=CH==='ig'?'Instagram':(LN?'LINE OA':'Facebook');
@@ -3592,7 +3592,7 @@ function renderPay(){
  const dd=(now,prev)=>prev==null||PU_G!=='all'||FU_O||!prevH?'':(now-prev===0?'<span class="fud0">เท่าเดิม</span>':(now<prev?'<span class="fudok">▼ '+nf(prev-now)+'</span>':'<span class="fudbad">▲ '+nf(now-prev)+'</span>'))+' <span class="nsm">เทียบรอบ '+fuDay(prevH[0])+'</span>';
  const card=(b,cls,lab,v,sub,d)=>`<button class="fucard ${cls}" data-pub="${b}" aria-pressed="${PU_B===b}"><span class="lab">${lab}</span><span class="v">${nf(v)}</span><span class="s">${sub}</span>${d?'<span class="d">'+d+'</span>':''}</button>`;
  const gl=PU_G==='all'?(FUT[PU_KEY]||''):PU_GN[PU_G];
- const cards=wkTop()+fuModeBar()+`<div class="fucards c3">`+
+ const cards=fuModeBar()+`<div class="fucards c3">`+
   card('1','risk',gl+' · 1–6 วัน',c1,NPM?(SPM?'แอดมินตอบล่าสุดเมื่อ 1–6 วันก่อน · ส่งคลิปตัวอย่าง/ฟอร์มทดลองเรียนให้เลย ตอนลูกค้ายังสนใจ':'แอดมินตอบล่าสุดเมื่อ 1–6 วันก่อน · ส่งสรุปยอด/โปรให้เลย ตอนลูกค้ายังสนใจ'):'ส่งสรุปยอดล่าสุดเมื่อ 1–6 วันก่อน · ตามรอบแรก ช่วงที่ลูกค้ายังจำได้',dd(c1,prevH&&prevH[hi]))+
   card('7','warn',gl+' · 7–29 วัน',c7,NPM?(SPM?'ทักถามต่อ · ส่งตัวอย่างพร้อมแนะนำคอร์สที่ตรงชั้นของน้อง':'ทักถามต่อ · เสนอรอบเรียนที่ใกล้เริ่มพร้อมราคา'):'ตามรอบสอง · เสนอโปร/รอบเรียนที่ใกล้เริ่ม',dd(c7,prevH&&prevH[hi+1]))+
   card('30','',gl+' · 30–89 วัน',c30,'ลูกค้าเก่า · ปลุกด้วยข่าวคอร์สใหม่/เปิดรอบใหม่',dd(c30,prevH&&prevH[hi+2]))+`</div>`;
@@ -3623,7 +3623,7 @@ function renderPay(){
   <dt>สรุปยอด (ข้อความฝั่งเรา แอดมินหรือข้อความอัตโนมัติ)</dt><dd>ภายใน 30 นาทีต้องมี<b>ครบทั้ง 3 ส่วน</b> (ส่วนใหญ่อยู่ในข้อความเดียว)<div class="fukw"><code>สรุปรายละเอียด / รหัสคอร์ส</code><code>ยอดเงิน เช่น 5,500 บาท · 4500.- · ราคา 5500</code><code>166-3-63464-6 / โอนชำระค่าเรียนได้ที่</code></div>ข้อความที่แค่บอกราคา หรือ “แอดมินสรุปยอดชำระให้ซักครู่นะคะ” ไม่นับ · เปลี่ยนเกณฑ์ 30 ก.ย. 2026 (เดิมนับทุกข้อความที่มีราคา ทำให้ตัวเลขเกินจริงราว 8 เท่า)</dd>
   <dt>แยก 2 หมวด</dt><dd>ในรอบการขายเดียวกัน ฝั่งเราเคยส่งตัวอย่าง → หมวด <b>แนบตัวอย่าง + สรุปจ่ายแล้ว แต่ลูกค้ายังไม่โอน</b> · ไม่เคยส่ง → หมวด <b>ส่งสรุปจ่ายแล้วแต่ยังไม่โอน</b> (ส่วนใหญ่เป็นนักเรียนเก่าที่สมัครต่อ)</dd>
   <dt>โอนแล้ว = หลุดจากรายการ</dt><dd><div class="fukw"><code>สถานะ: ตรวจสอบสลิปสำเร็จ</code><code>ชื่อผู้รับ: บจก. ไบโอปาล์ม</code>${LN?'<code>แท็ก LINE “สมัครแล้ว”</code>':''}</div>ต้องมา<b>หลัง</b>ใบสรุปยอดรอบนั้น · ถ้าส่งสรุปยอดใหม่หลังเคยโอน (ซื้อคอร์สต่อ) จะนับเป็นรอบใหม่ และติดป้าย “เคยโอนแล้ว”</dd>
-  <dt>ตามแล้ว (ระบบจับเอง)</dt><dd>ข้อความที่<b>แอดมินกดส่งเอง</b> หลังลูกค้าเงียบ <b>12 ชม.ขึ้นไป</b> และหลังส่งสรุปยอดแล้ว 12 ชม.ขึ้นไป (ข้อความอัตโนมัติไม่นับ · ส่งหลายข้อความภายใน 30 นาทีนับ 1 ครั้ง) · ส่งการ์ดราคาซ้ำแบบนี้ก็นับเป็นการตาม <b>ไม่</b>นับเป็นส่งสรุปยอดใหม่ วันที่ “ส่งสรุปยอดมาแล้ว” จึงไม่รีเซ็ต · ลูกค้ายังไม่ตอบ = อยู่ “ตามแล้ว · รอลูกค้าตอบ” 7 วัน ครบแล้วยังเงียบ = กลับมาในรายการพร้อมป้าย “ครบกำหนดตามรอบถัดไป” · ลูกค้าตอบ = ย้ายไปถามค้าง/คุยต่อ · ตามทางโทรหรือ LINE ที่ระบบมองไม่เห็น กดปุ่ม <b>✓ ตามแล้ว</b> ได้ทันที (ตามในแชทแล้วไม่อยากรอรอบอัปเดตเช้า หรือตามทางโทร/LINE ก็ได้) มีผล 7 วันเหมือนกัน · แถว “ลูกค้าถามค้าง” มีปุ่ม <b>✓ ตอบแล้ว</b> ย้ายไป “คุยต่อหลังได้สรุปยอด” ทันที</dd>
+  <dt>ตามแล้ว (ระบบจับเอง)</dt><dd>ข้อความที่<b>แอดมินกดส่งเอง</b> หลังลูกค้าเงียบ <b>12 ชม.ขึ้นไป</b> และหลังส่งสรุปยอดแล้ว 12 ชม.ขึ้นไป (ข้อความอัตโนมัติไม่นับ · ส่งหลายข้อความภายใน 30 นาทีนับ 1 ครั้ง) · ส่งการ์ดราคาซ้ำแบบนี้ก็นับเป็นการตาม <b>ไม่</b>นับเป็นส่งสรุปยอดใหม่ วันที่ “ส่งสรุปยอดมาแล้ว” จึงไม่รีเซ็ต · ลูกค้ายังไม่ตอบ = อยู่ “ตามแล้ว · รอลูกค้าตอบ” 7 วัน ครบแล้วยังเงียบ = กลับมาในรายการพร้อมป้าย “ครบกำหนดตามรอบถัดไป” · ลูกค้าตอบ = ย้ายไปถามค้าง/คุยต่อ · ตามทางโทรหรือ LINE ที่ระบบมองไม่เห็น กดปุ่ม <b>✓ ตามแล้ว</b> ได้ทันที (ตามในแชทแล้วไม่อยากรอรอบ 05:00 หรือตามทางโทร/LINE ก็ได้) มีผล 7 วันเหมือนกัน · แถว “ลูกค้าถามค้าง” มีปุ่ม <b>✓ ตอบแล้ว</b> ย้ายไป “คุยต่อหลังได้สรุปยอด” ทันที</dd>
   <dt>ไม่ต้องตาม</dt><dd><div class="fukw"><code>โอนแล้ว / แนบสลิป / ชำระแล้ว</code><code>ถามเรื่องไฟล์ ลิงก์เข้าเรียน ชีท</code><code>ไม่สนใจ / ไว้ก่อน / แพง / ยกเลิก</code><code>ชวนไปคุย LINE แล้ว</code></div>(ลูกค้าพิมพ์หลังได้สรุปยอด) · หรือแอดมินย้ายเอง</dd></dl></details>`;
  const kwSP=`<details class="fhelp" style="margin:8px 0 16px"><summary>กฎที่ใช้จับ “แอดมินตอบแล้ว แต่ยังไม่แนบตัวอย่าง”</summary><dl>
   <dt>เข้ารายการเมื่อ</dt><dd>ลูกค้า<b>พิมพ์เอง</b>ถามเรื่องคอร์ส <b>และ</b>แอดมิน (คน) ตอบข้อความล่าสุดของลูกค้าแล้ว <b>และ</b>ฝั่งเรา<b>ยังไม่เคยส่งตัวอย่าง</b>ในห้องนี้ <b>และ</b>ยังไม่ได้ส่งสรุปยอด · ลูกค้าทักล่าสุดตั้งแต่ 19 ส.ค. 2026 · ไม่นับนักเรียนเดิม (เคยโอนแล้ว · LINE แท็ก “สมัครแล้ว” · ถามเรื่องลิงก์เข้าเรียน) · ครบ 1 วันหลังแอดมินตอบจึงเข้ารายการ</dd>
@@ -3684,7 +3684,7 @@ function renderPay(){
    <button class="dlbtn fudl" id="pudl" type="button">⤓ ดาวน์โหลดรายการนี้ (CSV) · ${nf(L.length)} แชท</button><span class="fupager">${pager}</span></div></div>`;
  const hist=H.length>1?`<div class="fuhd"><b>ค้างโอนรายรอบอัปเดต</b> <span class="nsm">ทุกกลุ่มยกเว้นไม่ต้องตาม</span></div><div class="tw"><table><thead><tr><th>ข้อมูลถึง</th><th class="n">1–6 วัน</th><th class="n">7–29 วัน</th><th class="n">30–89 วัน</th></tr></thead><tbody>${H.slice(-8).reverse().map(h=>`<tr><td>${fuDay(h[0])}</td><td class="n">${nf(h[hi]||0)}</td><td class="n">${nf(h[hi+1]||0)}</td><td class="n">${nf(h[hi+2]||0)}</td></tr>`).join('')}</tbody></table></div>`:
   `<p class="note fusm">ตัวเลขเทียบรายรอบจะเริ่มขึ้นหลังรอบอัปเดตถัดไป</p>`;
- el.innerHTML=cards+(wkOn()?wkBox(PU_KEY):flow)+(NPM?statNP:stat)+note+(SPM?kwSP:(NPM?kwNP:kw))+`<div class="fugrid"><div>${wtable}</div><div>${amt}</div></div>`+list+(NPM?'':hist);wkBind(el);
+ el.innerHTML=cards+flow+(NPM?statNP:stat)+note+(SPM?kwSP:(NPM?kwNP:kw))+`<div class="fugrid"><div>${wtable}</div><div>${amt}</div></div>`+list+(NPM?'':hist);
  fuModeBind(el);
  el.querySelectorAll('[data-pub]').forEach(b=>b.addEventListener('click',()=>{PU_B=b.dataset.pub;PU_W='';PU_PAGE=0;renderPay();}));
  el.querySelectorAll('[data-pug]').forEach(b=>b.addEventListener('click',()=>{PU_G=b.dataset.pug;PU_W='';PU_T='';PU_PAGE=0;renderPay();}));
@@ -4024,7 +4024,7 @@ function renderAdmPend(){
  el.innerHTML=`<p class="note" style="margin-bottom:8px">ห้องแชทที่ข้อความล่าสุดของลูกค้ายังไม่มีแอดมินตอบ แยกตามจำนวนวันที่รอมาแล้ว${end?' (นับถึง '+end+')':''} · <b>กดตัวเลขเพื่อเปิดรายชื่อในหน้า Follow up</b></p>
  <div class="tw"><table class="pdt"><thead><tr><th>ช่องทาง</th>${AGEB.map(a=>`<th class="n"><i style="display:inline-block;width:9px;height:9px;border-radius:2px;background:${a[2]};margin-right:5px"></i>${a[1]}</th>`).join('')}<th class="n">รวม</th><th class="n">ไม่เคยมีแอดมินคุย</th><th class="n">เคยคุยแล้ว ถามรอบใหม่</th></tr></thead>
  <tbody>${per.map(([c,x])=>row(c,x)).join('')}${per.length>1?row('',T,true):''}</tbody></table></div>
- <p class="note" style="margin-top:8px">เป้าหมาย: ช่อง <b style="color:var(--risk)">30 วันขึ้นไป</b> = 0 · ไม่นับ: รอบล่าสุดมีแค่สติกเกอร์/รูป/ทักทาย/ขอบคุณ ${nf(T.skip)} ห้อง (รวมที่ย้ายไป “ไม่ต้องตาม”) · แอดมินกด “ตอบแล้ว” รอยืนยันรอบอัปเดตเช้า ${nf(T.done)} ห้อง · Giveaway${CH==='all'||CH==='line'?' · LINE OA นับถึงวันสุดท้ายที่ดึงข้อมูล ห้องที่ตอบหลังจากนั้นจะหายเมื่อดึงเดือนถัดไป':''}</p>`;
+ <p class="note" style="margin-top:8px">เป้าหมาย: ช่อง <b style="color:var(--risk)">30 วันขึ้นไป</b> = 0 · ไม่นับ: รอบล่าสุดมีแค่สติกเกอร์/รูป/ทักทาย/ขอบคุณ ${nf(T.skip)} ห้อง (รวมที่ย้ายไป “ไม่ต้องตาม”) · แอดมินกด “ตอบแล้ว” รอยืนยันรอบ 05:00 ${nf(T.done)} ห้อง · Giveaway${CH==='all'||CH==='line'?' · LINE OA นับถึงวันสุดท้ายที่ดึงข้อมูล ห้องที่ตอบหลังจากนั้นจะหายเมื่อดึงเดือนถัดไป':''}</p>`;
  fujBind(el);}
 
 /* ---------- คุณภาพการตอบ (30 ก.ย. 2026) ----------
