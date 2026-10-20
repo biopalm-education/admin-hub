@@ -10,7 +10,7 @@
   notice.py send     GitHub Actions (.github/workflows/line-notice.yml) หลัง refresh-dashboard ทุกรอบ
       env ADMIN_SECRET (ตัวเดิม ใช้ถอดรหัส data/ba.json) · LINE_NOTICE_TOKEN · LINE_NOTICE_TO · KIND · SEND
       KIND=auto ส่งเฉพาะจันทร์/ศุกร์ (เวลาไทย) และต้องเป็นข้อมูลที่สร้างวันนี้ · mon / fri = ใช้แบบนั้นทันที
-      SEND=1 ส่งจริง · อย่างอื่น = พิมพ์ข้อความใน log อย่างเดียว
+      SEND=1 ส่งจริง · อย่างอื่น = เช็กว่าถอดรหัส/สร้างข้อความได้ ไม่ส่ง · log ไม่พิมพ์เนื้อหาข้อความ (repo เป็น public)
       ยังไม่ตั้ง LINE_NOTICE_TOKEN / LINE_NOTICE_TO = ไม่ส่ง · ส่งซ้ำวันเดียวกันไม่ได้ (X-Line-Retry-Key ต่อวัน)
 """
 import os, sys, json, math, bisect, datetime, uuid, base64, gzip, hashlib, urllib.request, urllib.error
@@ -324,19 +324,20 @@ def send():
         print('ข้อมูลยังไม่ใช่ของวันนี้ (สร้างเมื่อ %s) — ไม่ส่ง รอรอบอัปเดตเช้า' % built); return
     D = drafts(BA, today)[kind]
     texts = [D['msgs'][ch] for ch in CHS if ch in D['msgs']]
-    print('ข้อมูลสร้างเมื่อ %s · แบบ%s · %s\n' % (built, 'วันจันทร์' if kind == 'mon' else 'วันศุกร์', D['lab']))
-    print('\n\n-----\n\n'.join(texts))
+    # repo is public, so is the Actions log: only sizes here, never the texts (they are on the Tracking page)
+    print('ข้อมูลสร้างเมื่อ %s · แบบ%s · %s · %s' % (built, 'วันจันทร์' if kind == 'mon' else 'วันศุกร์', D['lab'],
+          ' · '.join('%s %d ตัวอักษร' % (CHN[ch], len(D['msgs'][ch])) for ch in CHS if ch in D['msgs'])))
     if dry:
-        print('\n(ทดลองดูข้อความ — ไม่ส่ง)'); return
+        print('ทดลอง — ไม่ส่ง (ดูข้อความได้ที่หน้า Tracking)'); return
     token, to = (os.environ.get('LINE_NOTICE_TOKEN') or '').strip(), (os.environ.get('LINE_NOTICE_TO') or '').strip()
     if not token or not to:
-        print('\nยังไม่ได้ตั้ง LINE_NOTICE_TOKEN / LINE_NOTICE_TO — ไม่ส่ง'); return
+        print('ยังไม่ได้ตั้ง LINE_NOTICE_TOKEN / LINE_NOTICE_TO — ไม่ส่ง'); return
     # automatic runs: one key per day and kind, so a second refresh on the same day is refused by LINE (409) instead of
     # sending twice · a manual test run gets a fresh key
     rk = str(uuid.uuid5(uuid.NAMESPACE_URL, 'biopalm-tracking/%s/%s/%s' % (today.isoformat(), kind, to))) if auto else str(uuid.uuid4())
     code, err = push(token, to, texts, rk)
-    if code == 200: print('\nส่งเข้า LINE กลุ่มแล้ว (%d ข้อความ)' % len(texts))
-    elif code == 409: print('\nวันนี้ส่งข้อความแบบนี้ไปแล้ว — ไม่ส่งซ้ำ')
+    if code == 200: print('ส่งเข้า LINE กลุ่มแล้ว (%d ข้อความ)' % len(texts))
+    elif code == 409: print('วันนี้ส่งข้อความแบบนี้ไปแล้ว — ไม่ส่งซ้ำ')
     else: raise SystemExit('ส่งไม่สำเร็จ HTTP %s %s' % (code, err))
 
 
