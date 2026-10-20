@@ -52,7 +52,7 @@ Weeks (wk in followup.json) are unchanged: same cuts, same rows (plus row[6]); t
 The 19 ส.ค. sample rule is untouched: the sample lists simply have nobody on them before that date.
 Run after build_stage.py (needs src/followup.json written by build_fu.py / build_pay.py). Logs counts only.
 """
-import os, re, json, glob, bisect, datetime, collections, gc, time, hashlib, urllib.request
+import os, sys, re, json, glob, bisect, datetime, collections, gc, time, hashlib, urllib.request
 os.chdir(os.path.dirname(os.path.abspath(__file__)))
 import build_pay as bp
 
@@ -532,6 +532,13 @@ def main():
     F['wk'] = WK
     json.dump(F, open('src/followup.json.wk-tmp', 'w', encoding='utf-8'), separators=(',', ':'), ensure_ascii=False)
     os.replace('src/followup.json.wk-tmp', 'src/followup.json')
+    try:   # LINE group notice texts (tools/before_after/notice.py): shown on the Tracking page, sent Mon / Fri by line-notice.yml
+        sys.path.insert(0, os.path.join(os.path.dirname(os.path.abspath(__file__)), 'tools', 'before_after'))
+        import notice
+        BA['notice'] = notice.drafts(BA)
+        print('notice drafts: mon %s · fri %s' % (BA['notice']['mon']['lab'], BA['notice']['fri']['lab']))
+    except Exception as e:
+        print('notice drafts failed: %s %s' % (type(e).__name__, str(e)[:200]))
     json.dump(BA, open('src/ba.json.tmp', 'w', encoding='utf-8'), separators=(',', ':'), ensure_ascii=False)
     os.replace('src/ba.json.tmp', 'src/ba.json')
     print('build_week done in %.0fs · manual moves merged %d · ba.json %d KB' % (time.time() - t_start, WK['ov'], os.path.getsize('src/ba.json') // 1024))
