@@ -1,0 +1,63 @@
+name: line-notice
+
+# Tracking · แจ้งเตือนเข้า LINE กลุ่ม — จันทร์ = สรุปสัปดาห์ที่แล้ว · ศุกร์ = ความคืบหน้าสัปดาห์นี้ (จ.–พฤ.)
+# แยก Facebook / Instagram / LINE OA เป็น 3 ข้อความ · ข้อความชุดเดียวกับตัวอย่างในหน้า Tracking (tools/before_after/notice.py)
+#
+# รันต่อจาก refresh-dashboard ทุกรอบ แล้วส่งเฉพาะวันจันทร์/ศุกร์ (เวลาไทย) ที่ข้อมูลสร้างวันนั้น
+# อ่านอย่างเดียว: ถอดรหัส data/ba.json แล้วส่งข้อความ ไม่เขียนอะไรกลับเข้า repo จึงไม่ชนกับรอบอัปเดต
+# ส่งซ้ำวันเดียวกันไม่ได้ (LINE ปฏิเสธ retry key เดิมภายใน 24 ชม.)
+#
+# secrets (Settings > Secrets and variables > Actions):
+#   ADMIN_SECRET       ตัวเดิม (ใช้ถอดรหัสข้อมูล)
+#   LINE_NOTICE_TOKEN  Channel access token (long-lived) ของ LINE OA สำหรับแจ้งเตือน
+#   LINE_NOTICE_TO     group ID ของ LINE กลุ่ม (ขึ้นต้นด้วย C)
+# ยังไม่ตั้ง LINE_NOTICE_TOKEN / LINE_NOTICE_TO = แสดงข้อความใน log อย่างเดียว ไม่ส่ง
+
+on:
+  workflow_run:
+    workflows: [refresh-dashboard]
+    types: [completed]
+  workflow_dispatch:
+    inputs:
+      kind:
+        description: 'แบบข้อความ: auto = ตามวัน (จันทร์/ศุกร์) · mon = สรุปสัปดาห์ก่อน · fri = ความคืบหน้าสัปดาห์นี้'
+        type: choice
+        options: [fri, mon, auto]
+        default: fri
+      send:
+        description: 'ส่งเข้า LINE กลุ่มจริง (ไม่ติ๊ก = แสดงข้อความใน log อย่างเดียว)'
+        type: boolean
+        default: false
+
+concurrency:
+  group: line-notice
+  cancel-in-progress: false
+
+permissions:
+  contents: read
+
+jobs:
+  notice:
+    if: ${{ github.event_name == 'workflow_dispatch' || github.event.workflow_run.conclusion != 'cancelled' }}
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    steps:
+      - uses: actions/checkout@v5
+        with:
+          ref: main
+
+      - uses: actions/setup-python@v6
+        with:
+          python-version: '3.11'
+
+      - name: ติดตั้ง dependency
+        run: pip install --quiet --disable-pip-version-check cryptography
+
+      - name: แจ้งเตือน LINE กลุ่ม
+        env:
+          ADMIN_SECRET: ${{ secrets.ADMIN_SECRET }}
+          LINE_NOTICE_TOKEN: ${{ secrets.LINE_NOTICE_TOKEN }}
+          LINE_NOTICE_TO: ${{ secrets.LINE_NOTICE_TO }}
+          KIND: ${{ inputs.kind || 'auto' }}
+          SEND: ${{ (github.event_name == 'workflow_run' || inputs.send) && '1' || '' }}
+        run: python3 tools/before_after/notice.py send
