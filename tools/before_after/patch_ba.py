@@ -1,14 +1,14 @@
 # -*- coding: utf-8 -*-
-"""page with the Follow up weekly box (tools/followup_week) -> + the "Before / After" page (v2, 21 ต.ค. 2026).
+"""page with the Follow up weekly box (tools/followup_week) -> + the "Tracking" page (เดิมชื่อ Before / After · v2, 21 ต.ค. 2026).
 
   python3 tools/followup_week/patch_app.py app.html /tmp/p1.html && python3 tools/before_after/patch_ba.py /tmp/p1.html preview/index.html
   Re-run both whenever app.html, tools/followup_week or tools/before_after change, so the preview keeps up.
   When approved for the live page: run both patches with app.html as input and output.
 
 Every replacement must match the expected number of times, otherwise nothing is written. Idempotent: a patched file is left as is.
-Needs wk.js (followup_week) in the page: ba.js reuses its labels, and falls back to its weekly box until ba.json exists.
-Data: build_week.py -> src/ba.json (daily Follow up timeline since 1 ม.ค.) -> build.py emits data/ba.json.
-Follow up page: the 5-row weekly table and the weekly box give way to one progress card for the category on screen.
+Needs wk.js (followup_week) in the page: ba.js reuses its labels.
+Data: build_week.py -> src/ba.json (daily Follow up timeline since 1 ม.ค. + notice texts) -> build.py emits data/ba.json.
+Follow up page keeps the weekly tables of tools/followup_week; its old LINE report box goes (the Monday / Friday texts live on Tracking).
 """
 import sys, os
 HERE = os.path.dirname(os.path.abspath(__file__))
@@ -29,18 +29,16 @@ def rep(old, new, n=1):
     h = h.replace(old, new)
 
 
-# Follow up page (before ba.js goes in, so its own text cannot match): progress card instead of the weekly tables
-rep('wkTop()+fuModeBar()', 'baFuTop()+fuModeBar()', 2)
-rep("wkOn()?wkBox('ar'):fuFlow()", "wkOn()?baFuBox('ar'):fuFlow()")
-rep('wkOn()?wkBox(PU_KEY):flow', 'wkOn()?baFuBox(PU_KEY):flow')
+# Follow up page: the old weekly LINE report box goes — the Monday / Friday notice texts now live on the Tracking page
+rep("const rep=FU.wk.report&&FU.wk.report.msgs?FU.wk.report.msgs.join('\\n\\n'):'';", "const rep='';")
 rep('</style>', CSS + '\n</style>')
 rep('async function renderFU(){', JS + '\nasync function renderFU(){')
 # the page button (works on ทุกช่องทาง and on each channel) + its section; the button opens the category popup every time
 rep('<button data-v="raw" aria-pressed="false">ข้อมูลดิบ</button>',
-    '<button data-v="ba" aria-pressed="false">Before / After</button>\n   <button data-v="raw" aria-pressed="false">ข้อมูลดิบ</button>')
+    '<button data-v="ba" aria-pressed="false">Tracking</button>\n   <button data-v="raw" aria-pressed="false">ข้อมูลดิบ</button>')
 rep("if(b.dataset.v==='fu')FU_ASK=true;", "if(b.dataset.v==='fu')FU_ASK=true;if(b.dataset.v==='ba')BA_ASK=true;")
 rep('<section id="s-fu" hidden>',
-    '<section id="s-ba" class="ovs baov" hidden><div class="shead"><h2>Before / After · ความคืบหน้าการเคลียร์แชท</h2>'
+    '<section id="s-ba" class="ovs baov" hidden><div class="shead"><h2>Tracking · ความคืบหน้าการเคลียร์แชท</h2>'
     '<span class="lab" id="bascope"></span></div><div id="ba"></div></section>\n <section id="s-fu" hidden>')
 rep("const fu=VIEW==='fu'; $('#s-fu').hidden=!fu; const mc=$('#mctl'); if(mc)mc.hidden=fu;",
     "const fu=VIEW==='fu', ba=VIEW==='ba'; $('#s-fu').hidden=!fu; {const sb=$('#s-ba');if(sb)sb.hidden=!ba;} const mc=$('#mctl'); if(mc)mc.hidden=fu||ba;\n"
@@ -52,4 +50,4 @@ rep("refresh();\n}\n\n/* ---- lead tier",
     "if(/^#ba\\b/.test(location.hash)){VIEW='ba';$('#vseg').querySelectorAll('button').forEach(x=>x.setAttribute('aria-pressed',String(x.dataset.v===VIEW)));}\n"
     "refresh();\n}\n\n/* ---- lead tier")
 open(dst, 'w', encoding='utf-8').write(h)
-print('patched -> %s (Before / After v2 + Follow up progress card)' % dst)
+print('patched -> %s (Tracking page)' % dst)

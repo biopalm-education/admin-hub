@@ -1,4 +1,4 @@
-/* ---------- Before / After v2 (preview 21 ต.ค. 2026) — data: build_week.py -> ba.json (daily timeline since ม.ค.) ----------
+/* ---------- Tracking (เดิมชื่อ Before / After) v2 (preview 21 ต.ค. 2026) — data: build_week.py -> ba.json (daily timeline since ม.ค.) ----------
    Any range (a week, a month, or dates picked on the calendar) is counted from the daily timeline: a chat is "before"
    when it is on the list at 00:00 of the first day, "after" when it still is at 24:00 of the last day (or the data end),
    and in between we know whether an admin wrote in it, pressed a button, or the chat moved on. Same rules and numbers as
@@ -233,17 +233,13 @@ function baCatsGrid(s,p){return `<div class="bbcats">${BA_LS.map(l=>{const c=baR
 function baChTable(v){if(CH!=='all')return '';const rows=Object.keys(v.chs).map(ch=>{const c=baCount(v.rows.filter(o=>o.ch===ch));
   return `<tr><td>${BA_CHI[ch]} ${BA_CHN[ch]}${v.part.includes(ch)?' <span class="nsm">ถึง '+baEndTxt(ch)+'</span>':''}</td><td class="n">${nf(c.S)}</td><td class="n">${nf(c.N)}</td><td class="n ok">${nf(c.done)}</td><td class="n act">${nf(c.act)}</td><td class="n warnc">${nf(c.cus)}</td><td class="n bad">${nf(c.none)}</td><td class="n"><b>${nf(c.E)}</b></td><td class="n">${c.pct==null?'—':c.pct+'%'}</td><td class="n">${baDays(c.med)}</td></tr>`;}).join('');
  return `<details class="fhelp bbdet"><summary>ตัวเลขแยกช่องทาง</summary><div class="tw" style="margin-top:8px"><table class="wkt bbtab"><thead><tr><th>ช่องทาง</th><th>ค้างต้นช่วง</th><th>เข้าใหม่</th><th>✅</th><th>✋</th><th>💬</th><th>⏳</th><th>ค้างปลายช่วง</th><th>จัดการ</th><th>แตะใหม่</th></tr></thead><tbody>${rows}</tbody></table></div></details>`;}
-function baNotice(s,v,st){const c=v.c,L=BA_LN[BA_CAT],u=baUnit(),who={};
- for(const o of v.rows){if(o.b!=='done'&&o.b!=='act')continue;for(const n of o.who)who[n]=(who[n]||0)+1;}
- const ws=Object.keys(who).sort((a,b)=>who[b]-who[a]);
- const out=[`📣 ความคืบหน้าแอดมิน · ${L[0]} ${L[2]} · ${baLab(s)}${CH==='all'?'':' · '+BA_CHN[CH]}`,`${st.e} ${st.t}`,
-  `ต้น${u}ค้าง ${nf(c.S)} → ปลาย${u} ${nf(c.E)} (${c.E===c.S?'เท่าเดิม':(c.E<c.S?'▼'+nf(c.S-c.E):'▲'+nf(c.E-c.S))})`,
-  `แอดมินจัดการ ${nf(c.h)} แชท (✅ ${nf(c.done)} · ✋ ${nf(c.act)})${c.pct!=null?' = '+c.pct+'% ของงาน':''}`,
-  `แตะแชทใหม่ ${baDays(c.med)} · 💬 ลูกค้าทักกลับรอตอบ ${nf(c.cus)} · ⏳ ยังไม่มีใครแตะ ${nf(c.none)}`];
- if(BA_CAT==='all'){out.push('');for(const l of BA_LS){const x=baRange(s,l).c;if(x.S||x.N)out.push(`${BA_LN[l][0]} ${BA_LN[l][2]}: ${nf(x.S)} → ${nf(x.E)} · จัดการ ${x.pct==null?'—':x.pct+'%'}`);}}
- if(v.miss.length)out.push('(ยังไม่รวม '+v.miss.map(c=>BA_CHN[c]).join(' · ')+')');
- if(ws.length)out.push('👤 ใครจัดการ: '+ws.map(n=>n+' '+nf(who[n])).join(' · '));
- out.push('ดูรายชื่อแชท: https://biopalm-education.github.io/admin-hub/#ba');return out.join('\n');}
+let BA_NK=(()=>{const d=new Date().getDay();return d>=1&&d<=4?'mon':'fri';})(), BA_NOPEN=false;
+function baNoticeBox(){const N=BA&&BA.notice,hd='<summary>ข้อความแจ้งเตือนเข้า LINE กลุ่ม · จันทร์ / ศุกร์</summary>';
+ if(!N||!N.mon)return `<details class="fhelp bbdet">${hd}<p class="nsm">ตัวอย่างข้อความจะขึ้นหลังรอบอัปเดตเช้า</p></details>`;
+ const D=N[BA_NK]||N.mon,M=D.msgs||{};
+ const tabs=[['mon','จันทร์ · สรุปสัปดาห์ก่อน',N.mon],['fri','ศุกร์ · ความคืบหน้าสัปดาห์นี้',N.fri]].filter(x=>x[2]).map(x=>`<button type="button" class="chip" data-bb="nk|${x[0]}" aria-pressed="${BA_NK===x[0]}">${x[1]} <b>${esc(x[2].lab)}</b></button>`).join('');
+ const boxes=BA_CH.filter(c=>M[c]).map(c=>`<div class="bbnt"><div class="h"><b>${BA_CHI[c]} ${BA_CHN[c]}</b><button type="button" class="chip" data-bb="ncopy|${c}">คัดลอก</button></div><pre class="wkrep">${esc(M[c])}</pre></div>`).join('');
+ return `<details class="fhelp bbdet"${BA_NOPEN?' open':''} id="bbntd">${hd}<p class="nsm" style="margin:6px 0">แยก Facebook / Instagram / LINE OA เป็น 3 ข้อความ · ส่งอัตโนมัติทุกวันจันทร์และศุกร์หลังรอบอัปเดตเช้า (เมื่อตั้งค่าบอท LINE แล้ว) · ตัวอย่างนี้คำนวณเมื่อ ${esc(fuDay(N.built)+' '+String(N.built).slice(11,16))} น.</p><div class="fl" style="display:flex;flex-wrap:wrap;gap:6px;margin:6px 0">${tabs}</div><div class="bbnts">${boxes}</div></details>`;}
 function baHelp(){return `<details class="fhelp bbdet"><summary>นับอย่างไร</summary><dl>
  <dt>หมวด</dt><dd>5 หมวดเดียวกับหน้า Follow up · 🤖 บอทตอบ = ลูกค้าได้แต่ข้อความอัตโนมัติ ค้าง 7 วันขึ้นไป · อีก 4 หมวด = แชทที่รอ 1–89 วัน · 🎬🗨️💸 เริ่มนับ 19 ส.ค. 2026 ตามกติกาทีม (นับ “แนบตัวอย่าง” ตั้งแต่วันนั้น)</dd>
  <dt>ก่อน · หลัง</dt><dd>ระบบอ่านแชทจริงทุกห้องย้อนหลังทีละวัน (ตัดที่เที่ยงคืน) ตั้งแต่ 1 ม.ค. 2026 ด้วยกฎเดียวกับรายการ Follow up · ก่อน = อยู่ในรายการตอน 00:00 ของวันแรก · หลัง = ยังอยู่ตอน 24:00 ของวันสุดท้าย (หรือเวลาข้อมูลล่าสุด)</dd>
@@ -277,7 +273,7 @@ function renderBA(){
   `<h3 class="bbh3">ก่อน → หลัง <span class="nsm">${esc(baLab(s))} · กดตัวเลขเพื่อดูรายชื่อแชท</span></h3>`+baHero(c,u)+
   (BA_CAT==='all'?`<h3 class="bbh3">แยกหมวด <span class="nsm">กดการ์ดเพื่อดูหมวดนั้น · แท่งเล็ก = % จัดการ 8 ${tn}ล่าสุด</span></h3>${baCatsGrid(s,p)}`:'')+
   charts+baSrc(s,v)+baChTable(v)+
-  `<details class="fhelp bbdet"><summary>ข้อความแจ้งเตือนเข้า LINE กลุ่ม (ตัวอย่าง)</summary><pre class="wkrep" id="bbnotice">${esc(baNotice(s,v,st))}</pre><button type="button" class="chip" data-bb="copy">คัดลอกข้อความ</button> <span class="nsm">ขั้นต่อไป: ส่งเข้า LINE กลุ่มเองทุกเช้าวันจันทร์</span></details>`+baHelp();
+  baNoticeBox()+baHelp();
  baBind(el);
  if(BA_ASK){BA_ASK=false;baCatPicker();}}
 function baGo(){BA_PG=0;BA_SB='';renderBA();}
@@ -309,7 +305,8 @@ function baBind(el){
   if(k==='sc'){BA_SC=a[1];BA_PG=0;renderBA();return;}
   if(k==='pg'){BA_PG=Math.max(0,+a[1]||0);baSrcOnly();baScrollSrc();return;}
   if(k==='csv'){const s=baSel();if(s)baCSV(s,baRange(s,BA_CAT));return;}
-  if(k==='copy'){const t2=(el.querySelector('#bbnotice')||{}).textContent||'';toast(copyText(t2)?'คัดลอกข้อความแล้ว':'คัดลอกไม่สำเร็จ');return;}};
+  if(k==='nk'){BA_NK=a[1];BA_NOPEN=true;const d=el.querySelector('#bbntd');if(d)d.outerHTML=baNoticeBox();return;}
+  if(k==='ncopy'){const N=BA.notice||{},t2=((N[BA_NK]||{}).msgs||{})[a[1]]||'';toast(t2&&copyText(t2)?'คัดลอกข้อความ '+BA_CHN[a[1]]+' แล้ว':'คัดลอกไม่สำเร็จ');return;}};
  el.onclick=e=>{const t=e.target.closest('[data-bb]');if(!t||!el.contains(t)||t.disabled)return;e.preventDefault();baTip(null);act(t);};
  el.onchange=e=>{const t=e.target.closest('[data-bbsel]');if(!t)return;const [a,b]=t.value.split('|');BA_A=a;BA_B=b;baGo();};
  el.onmouseover=e=>baTip(e.target.closest('[data-tip]'));
@@ -317,26 +314,3 @@ function baBind(el){
  const q=el.querySelector('#bbq');if(q){let h=null;q.addEventListener('input',()=>{clearTimeout(h);h=setTimeout(()=>{BA_SQ=q.value;BA_PG=0;baSrcOnly();},200);});}}
 function baScrollSrc(){const s=document.getElementById('bbsrc');if(s&&s.scrollIntoView)s.scrollIntoView({behavior:'smooth',block:'start'});}
 function baSrcOnly(){const s=baSel(),box=document.getElementById('bbsrcl');if(!s||!box)return;box.innerHTML=baSrcList(baRange(s,BA_CAT));}
-/* ---------- Follow up page: progress card for the category on screen (replaces the weekly tables) ---------- */
-const baHas=()=>!!(MAN&&MAN.files&&MAN.files.ba)&&!BA_ERR;
-function baFuTop(){return baHas()?'':wkTop();}                       /* the 5-row weekly table goes once the daily data is there */
-function baFuBox(l){if(baHas()){const h=baFuCard(l);if(h)return h;}return wkBox(l);}
-function baFuCard(mode){if(!BA_LS.includes(mode)||!BA_CH.includes(CH))return '';
- if(!BA){if(!BA_ERR){baLoad().then(()=>{if(VIEW==='fu'&&BA)wkRe();});return '<div class="bbfu ld">กำลังโหลดความคืบหน้า…</div>';}return '';}
- const C=BA.ch[CH];if(!C)return '';
- const last=C.lastDay,dow=(baDt(last).getUTCDay()+6)%7;let mon=last-dow,span=dow,lab='สัปดาห์นี้';
- if(span<1){mon-=7;span=6;lab='สัปดาห์ที่แล้ว';}
- const cur={a:baYmd(mon),b:baYmd(mon+6)},pr={a:baYmd(mon-7),b:baYmd(mon-7+span)};
- const c=baRange(cur,mode).c,pc=baRange(pr,mode).c,st=baStatus(c,pc),W=baWeeks(),i=W.findIndex(w=>w.a===cur.a);
- const sp=W.slice(Math.max(0,i-7),i+1).map(w=>{const x=baRange(w,mode).c;return `<i class="${w.a===cur.a?'on':''}" style="height:${x.pct==null?3:Math.max(5,x.pct)}%" data-tip="${esc(baLab(w,'w')+': จัดการ '+(x.pct==null?'—':x.pct+'%')+' · ค้างปลายสัปดาห์ '+nf(x.E))}"></i>`;}).join('');
- const g=st.it,dot=s=>`<span class="tg ${baTC(s)}">${baTI(s)}</span>`,early=BA_FROM[mode]&&mon+6<baK(BA_FROM[mode]);
- return `<section class="bbfu ${st.cls}" aria-label="ความคืบหน้า"><div class="h"><span class="bbbadge ${st.cls}">${st.e} ${st.t}</span><b>ความคืบหน้าหมวดนี้ · ${lab} (${esc(baLab(cur,'w').replace(' (ยังไม่จบ)',''))})</b><span class="nsm">เทียบสัปดาห์ก่อนช่วงวันเดียวกัน${CH==='line'?' · LINE ถึง '+baEndTxt('line')+(typeof FU_O!=='undefined'&&FU_O?' · ทุกผู้ดูแลห้อง':''):''}</span><button type="button" class="go" data-bafu="${mode}" data-a="${cur.a}" data-b="${cur.b}">ดูละเอียด / แนวโน้ม →</button></div>
-  <div class="r"><div class="k"><span class="lab">แอดมินจัดการ</span><b>${nf(c.h)} <small>แชท</small></b><span class="d">${c.pct==null?'—':c.pct+'% ของงาน'} ${dot(g[0].s)}</span></div>
-  <div class="k"><span class="lab">แชทค้าง</span><b>${nf(c.S)} → ${nf(c.E)}</b><span class="d">${c.E===c.S?'เท่าเดิม':(c.E<c.S?'▼ '+nf(c.S-c.E):'▲ '+nf(c.E-c.S))} ${dot(g[1].s)}</span></div>
-  <div class="k"><span class="lab">แตะแชทใหม่</span><b>${baDays(c.med)}</b><span class="d">${pc.med!=null?'เดิม '+baDays(pc.med):''} ${dot(g[2].s)}</span></div>
-  <div class="k spk"><span class="lab">% จัดการ 8 สัปดาห์</span><span class="bars" aria-hidden="true">${sp}</span></div></div>
-  <p class="m">${esc(early?'หมวดนี้เริ่มนับ 19 ส.ค. 2026':baHead(c,pc,st,lab))}</p></section>`;}
-document.addEventListener('click',e=>{const t=e.target.closest&&e.target.closest('[data-bafu]');if(!t)return;e.preventDefault();baTip(null);
- BA_CAT=t.dataset.bafu;BA_M='w';BA_A=t.dataset.a||'';BA_B=t.dataset.b||'';BA_ASK=false;BA_SRC=false;BA_CAL=null;try{localStorage.setItem('bp_ba_cat',BA_CAT);localStorage.setItem('bp_ba_m','w');}catch(x){}
- VIEW='ba';$('#vseg').querySelectorAll('button').forEach(x=>x.setAttribute('aria-pressed',String(x.dataset.v===VIEW)));refresh();try{window.scrollTo({top:0,behavior:'smooth'});}catch(x){}});
-document.addEventListener('mouseover',e=>{if(!e.target.closest)return;const t=e.target.closest('.bbfu [data-tip]');if(t)baTip(t);else if(!e.target.closest('#ba'))baTip(null);});
