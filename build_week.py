@@ -35,10 +35,21 @@ wk = {v, built, weeks: {ch: [[start, end, full], ...]}, end: {ch: stamp}, ids: {
   age   row[6] (v2): whole days it had been waiting when it was first listed in the period (the list's own age:
         บอทตอบ = since the customer's last message · the other four = since the admin's answer / the summary card)
 
-v2 (20 ต.ค. 2026, Before / After page): the same replay also cuts calendar months (1st 00:00 Thai -> next 1st, or the
-data end for the current month) -> months: {ch: [[start, end, full], ...]}, mrows / msum shaped like rows / sum.
-Months start at MONTH_FROM (1 ก.ย. 2026 — samples count from 19 ส.ค., so ส.ค. would start with an empty sample list)
-and keep the last WK_MONTHS (default 4). Weeks are unchanged: same cuts, same rows (plus row[6]).
+v3 (21 ต.ค. 2026, Before / After page): the same replay runs on every Thai midnight from TL_FROM (1 ม.ค. 2026) and
+writes src/ba.json (build.py publishes it as data/ba.json, loaded only by the Before / After page and the Follow up
+progress card), so the page can count ANY range — a week, a month, or dates picked on a calendar:
+  ba = {v, built, d0: 'YYYY-MM-DD' (cut 0), ch: {ch: {end, n, ids: [[tid, name, owner]], nm: [names],
+        L: {list: [[i, k, code, k, code, ...], ...]}, aw: [per id: [[k, name idx, ...], ...] or 0],
+        mp: [per id: [[k press, a|s|u, name idx or -1, k next customer message or -1], ...] or 0]}}}
+  cut k        = d0 + k days 00:00 Thai; the last cut (k = n-1) is the data end
+  L codes      one entry per change, from the first day the chat is on the list: '+<sub>@<anchor day>' = on the list
+               (age at cut k = k - anchor) · otherwise outcome() at that cut (ans smp sum paid close fu reans requote
+               move cus x aged) — "where it stands" for a range that ends there
+  aw           days an admin (person) wrote, as the cut index right after the message (k0 < k <= k1 = wrote in the range)
+  mp           shared-sheet buttons, same day logic as manual_for()
+  range [ka, kb] -> exactly the weekly rows' numbers (checked: every week, list and channel equal wk.sum)
+Weeks (wk in followup.json) are unchanged: same cuts, same rows (plus row[6]); the LINE report still uses them.
+The 19 ส.ค. sample rule is untouched: the sample lists simply have nobody on them before that date.
 Run after build_stage.py (needs src/followup.json written by build_fu.py / build_pay.py). Logs counts only.
 """
 import os, re, json, glob, bisect, datetime, collections, gc, time, hashlib, urllib.request
@@ -57,8 +68,7 @@ NOISE, LOW, quality, KIND = FU_RULES['NOISE'], FU_RULES['LOW'], FU_RULES['qualit
 T0 = datetime.datetime(2026, 1, 1)
 DAY = 1440
 WEEKS = int(os.environ.get('WK_WEEKS') or 8)          # full weeks kept, plus the current week so far
-MONTHS = int(os.environ.get('WK_MONTHS') or 4)        # calendar months kept, the current month included
-MONTH_FROM = datetime.datetime.strptime(os.environ.get('WK_MONTH_FROM') or '2026-09-01', '%Y-%m-%d')
+TL_FROM = datetime.datetime.strptime(os.environ.get('WK_TL_FROM') or '2026-01-01', '%Y-%m-%d')   # daily timeline start
 LISTS = ('ar', 'sp', 'np', 'pay', 'pz')
 DONE, ACT = ('ans', 'smp', 'sum', 'paid', 'close'), ('fu', 'reans', 'requote', 'move')
 
@@ -148,8 +158,9 @@ def replay(lst, e, ch, cuts):
        only ages, so the rules run once per day that had a message (and again for 'F', whose 7-day window expires)"""
     J, inl = JUDGE[lst]
     ms, times = e['m'], e['t']
-    out = []; prev = None; pidx = -1; pcut = None
-    for c in cuts:
+    n0 = bisect.bisect_left(cuts, times[0]) if times else len(cuts)      # cuts before the first message: nothing yet
+    out = [(None, 'nocus', None)] * n0; prev = None; pidx = -1; pcut = None
+    for c in cuts[n0:]:
         idx = bisect.bisect_right(times, c)
         if prev is not None and idx == pidx and not (prev[0] is not None and prev[1] == 'F'):
             r, w = prev
@@ -178,22 +189,22 @@ def week_plan(end):
     return W
 
 
-def month_plan(end):
-    """[(start, end, full)] the 1st 00:00 Thai -> the next 1st (or the data end for the current month), oldest first,
-       the last MONTHS months from MONTH_FROM on"""
-    d = T0 + datetime.timedelta(minutes=end)
-    y, m = d.year, d.month
-    out = []
-    for k in range(MONTHS):
-        yy, mm = y, m - k
-        while mm <= 0: mm += 12; yy -= 1
-        s = datetime.datetime(yy, mm, 1)
-        if s < MONTH_FROM: break
-        n = datetime.datetime(yy + (mm == 12), mm % 12 + 1, 1)
-        s_m, n_m = int((s - T0).total_seconds() // 60), int((n - T0).total_seconds() // 60)
-        if s_m >= end: continue
-        out.append((s_m, min(n_m, end), 1 if n_m <= end else 0))
-    return out[::-1]
+def tl_segs(lst, st, e, cuts, k0):
+    """daily timeline of one chat on one list: [k, code, k, code, ...] from the first cut it is listed (see v3 above)"""
+    out = []; prev = None; t_in = None
+    for k in range(k0, len(st)):
+        r, w, g = st[k]
+        if g is not None:
+            if prev is None or prev[0] != '+': t_in = cuts[k]
+            a = r.get('_a') if r else None
+            anc = round((a - cuts[k0]) / 1440.0, 1) if a is not None else round((k - k0) - float(r.get('wait') or 0), 1)
+            code = '+%s@%s' % (g, anc)
+        else:
+            if prev is None: continue
+            code = outcome(lst, st[k], e, t_in, cuts[k])
+        if code != prev:
+            out += [k - k0, code]; prev = code
+    return out
 
 
 def cut_list(W, end):
@@ -430,29 +441,35 @@ def main():
         if k and at is not None: MAN[(x[0], str(x[1]))].append((at, k, x[5] or ''))
     for v in MAN.values(): v.sort()
     del agg; gc.collect()
-    WK = {'v': 2, 'built': datetime.datetime.now(datetime.timezone(datetime.timedelta(hours=7))).strftime('%Y-%m-%d %H:%M'),
-          'weeks': {}, 'end': {}, 'ids': {}, 'rows': {}, 'sum': {}, 'check': {}, 'ov': 0,
-          'months': {}, 'mrows': {}, 'msum': {}}
+    built = datetime.datetime.now(datetime.timezone(datetime.timedelta(hours=7))).strftime('%Y-%m-%d %H:%M')
+    WK = {'v': 3, 'built': built, 'weeks': {}, 'end': {}, 'ids': {}, 'rows': {}, 'sum': {}, 'check': {}, 'ov': 0}
+    BA = {'v': 1, 'built': built, 'd0': TL_FROM.strftime('%Y-%m-%d'), 'ch': {}}
+    t0 = int((TL_FROM - T0).total_seconds() // 60)
+    KIND_C = {'act': 'a', 'skip': 's', 'undo': 'u'}
     for ch in ('fb', 'ig', 'line'):
         if ch not in END or not END[ch]: continue
         th = load_line() if ch == 'line' else load_meta(ch)
         end = END[ch]; W = week_plan(end)
-        try:
-            Mo = month_plan(end)
-        except Exception as ex:                              # months are extra: never lose the weeks over them
-            print('build_week: months skipped for %s (%s)' % (ch, type(ex).__name__)); Mo = []
-        P = W + Mo; nW = len(W)                              # weeks first, then months — one replay for both
-        cuts = cut_list(P, end); ci = {c: i for i, c in enumerate(cuts)}
-        IDX = {}; ids = []; R = {l: [[] for _ in P] for l in LISTS}; now = collections.Counter()
+        # every Thai midnight from TL_FROM (the weeks' cuts are among them) -> one replay for weeks and the timeline
+        cuts = cut_list(W + ([(t0, end, 0)] if t0 < end else []), end); ci = {c: i for i, c in enumerate(cuts)}
+        k0 = ci.get(t0, 0)
+        IDX = {}; ids = []; R = {l: [[] for _ in W] for l in LISTS}; now = collections.Counter()
+        TID = []; TL = {l: [] for l in LISTS}; AW = []; MP = []; NM = {}
+        def nmi(n):
+            if n not in NM: NM[n] = len(NM)
+            return NM[n]
         for key, e in th.items():
             e['m'].sort(key=lambda x: x[0]); e['adm'].sort()
             e['m'] = [x for x in e['m'] if x[0] <= end]
             if not any(x[1] == 0 for x in e['m']): continue
             e['t'] = [x[0] for x in e['m']]
+            segs = {}
             for lst in LISTS:
                 st = replay(lst, e, ch, cuts)
                 if st[-1][2]: now[lst] += 1
-                for wi, (s, t, _) in enumerate(P):
+                sg = tl_segs(lst, st, e, cuts, k0)
+                if sg: segs[lst] = sg
+                for wi, (s, t, _) in enumerate(W):
                     i0, i1 = ci[s], ci[min(t, end)]
                     on0 = st[i0][2] is not None
                     entry = i0 if on0 else next((j for j in range(i0 + 1, i1 + 1) if st[j][2] is not None), None)
@@ -474,6 +491,25 @@ def main():
                     r0 = st[entry][0] or {}
                     age = int(r0.get('wait') or 0) if isinstance(r0.get('wait'), (int, float)) else -1
                     R[lst][wi].append([IDX[key], fl, out, st[entry][2], who, man, age])
+            if not segs: continue
+            # ---- daily timeline (ba.json) ----
+            ti = len(TID); TID.append([key, e['n'] or '', e.get('ow') or ''])
+            for lst, sg in segs.items(): TL[lst].append([ti] + sg)
+            first = min(sg[0] for sg in segs.values())
+            days = collections.OrderedDict()
+            for tm, n in e['adm']:
+                d = bisect.bisect_left(cuts, tm) - k0
+                if d <= first: continue                       # only writes after the chat first went on a list count
+                days.setdefault(d, set())
+                if ch == 'line' and n: days[d].add(nmi(str(n)))
+            AW.append([[d] + sorted(v) for d, v in days.items()] or 0)
+            mp = []
+            cus_t = [x[0] for x in e['m'] if x[1] == 0]
+            for at, kd, by in MAN.get((ch, key)) or []:
+                j = bisect.bisect_right(cus_t, at)
+                nc = bisect.bisect_left(cuts, cus_t[j]) - k0 if j < len(cus_t) else -1
+                mp.append([bisect.bisect_left(cuts, at) - k0, KIND_C[kd], nmi(by) if by else -1, nc])
+            MP.append(mp or 0)
         del th; gc.collect()
         # self-check: the replay at the data end must give the same lists the page shows
         page = {}
@@ -482,26 +518,23 @@ def main():
         for lst, todo in (('sp', bp.NP_TODO), ('np', bp.NP_TODO), ('pay', bp.TODO), ('pz', bp.TODO)):
             page[lst] = sum(1 for r in ((F.get(lst) or {}).get(ch) or []) if r[2] in todo and 1 <= r[3] < 90)
         WK['check'][ch] = {l: [now[l], page[l]] for l in LISTS}
-        RW = {l: R[l][:nW] for l in LISTS}; RM = {l: R[l][nW:] for l in LISTS}
         WK['weeks'][ch] = [[stamp(s), stamp(min(t, end)), f] for s, t, f in W]
-        WK['end'][ch] = stamp(end); WK['ids'][ch] = ids; WK['rows'][ch] = RW
-        WK['sum'][ch] = {l: [count(rows) for rows in RW[l]] for l in LISTS}
-        WK['months'][ch] = [[stamp(s), stamp(min(t, end)), f] for s, t, f in Mo]
-        WK['mrows'][ch] = RM
-        WK['msum'][ch] = {l: [count(rows) for rows in RM[l]] for l in LISTS}
+        WK['end'][ch] = stamp(end); WK['ids'][ch] = ids; WK['rows'][ch] = R
+        WK['sum'][ch] = {l: [count(rows) for rows in R[l]] for l in LISTS}
+        BA['ch'][ch] = {'end': stamp(end), 'n': len(cuts) - k0, 'ids': TID, 'nm': list(NM), 'L': TL, 'aw': AW, 'mp': MP}
         print('week %s end %s ids %d | %s' % (ch, stamp(end), len(ids),
               ' · '.join('%s now %d/page %d' % (l, now[l], page[l]) for l in LISTS)))
         for l in LISTS:
             s = WK['sum'][ch][l]
             print('  %-3s last full week S%d N%d done%d act%d cus%d skip%d aged%d none%d E%d' % ((l,) + tuple(s[-2] if len(s) > 1 else s[-1])))
-        for mi, (s, t, f) in enumerate(Mo):
-            tot = [sum(WK['msum'][ch][l][mi][k] for l in LISTS) for k in range(9)]
-            print('  month %s%s all lists S%d N%d done%d act%d cus%d skip%d aged%d none%d E%d' % ((stamp(s)[:7], '' if f else '*') + tuple(tot)))
+        print('  timeline %s: %d chats since %s · %s' % (ch, len(TID), BA['d0'], ' · '.join('%s %d' % (l, len(TL[l])) for l in LISTS)))
     WK['report'] = report(WK)
     F['wk'] = WK
     json.dump(F, open('src/followup.json.wk-tmp', 'w', encoding='utf-8'), separators=(',', ':'), ensure_ascii=False)
     os.replace('src/followup.json.wk-tmp', 'src/followup.json')
-    print('build_week done in %.0fs · manual moves merged %d' % (time.time() - t_start, WK['ov']))
+    json.dump(BA, open('src/ba.json.tmp', 'w', encoding='utf-8'), separators=(',', ':'), ensure_ascii=False)
+    os.replace('src/ba.json.tmp', 'src/ba.json')
+    print('build_week done in %.0fs · manual moves merged %d · ba.json %d KB' % (time.time() - t_start, WK['ov'], os.path.getsize('src/ba.json') // 1024))
 
 
 if __name__ == '__main__':

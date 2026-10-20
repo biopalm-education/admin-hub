@@ -43,6 +43,8 @@ if os.path.exists('src/followup.json'):   # FB/IG follow-up list (build_fu.py)
     emit('followup', 'src/followup.json')
 if os.path.exists('src/threads.json'):    # one chat across months (build_fu.py)
     emit('threads', 'src/threads.json')
+if os.path.exists('src/ba.json'):         # daily Follow up timeline since ม.ค. (build_week.py) — Before / After page only
+    emit('ba', 'src/ba.json')
 for p in sorted(glob.glob('src/fb_*.json')):
     emit('fb-' + re.search(r'fb_(.+)\.json$', p).group(1), p)
 for p in sorted(glob.glob('src/line_*.json')):
