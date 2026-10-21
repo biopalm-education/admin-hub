@@ -2,7 +2,8 @@
 """Tracking · ข้อความแจ้งเตือนเข้า LINE กลุ่ม (21 ต.ค. 2026)
 
   จันทร์ = สรุปสัปดาห์ที่แล้ว (จ.–อา.) · ศุกร์ = ความคืบหน้าสัปดาห์นี้ (จ.–พฤ.)
-  แยก Facebook / Instagram / LINE OA เป็น 3 ข้อความ (ส่งในครั้งเดียว — LINE นับเป็นข้อความเดียวต่อสมาชิก 1 คน)
+  ส่งเป็นข้อความเดียว (บับเบิลเดียว) รวม Facebook / Instagram / LINE OA จัดกลุ่มตามหัวข้อ — combined()
+  ข้อความแยกช่องทาง (msgs) ยังเก็บไว้ให้หน้า Tracking แสดงตัวอย่าง
   ตัวเลขนับจากไทม์ไลน์รายวันใน ba.json ด้วยกฎเดียวกับหน้า Tracking (ba.js: baEval / baCount / baStatus)
 
   drafts(BA)         build_week.py เรียกตอนสร้าง src/ba.json -> BA["notice"] (หน้า Tracking แสดงตัวอย่างข้อความ)
@@ -16,6 +17,7 @@
 import os, sys, json, math, bisect, datetime, uuid, base64, gzip, hashlib, urllib.request, urllib.error
 
 PAGE = 'https://biopalm-education.github.io/admin-hub/#ba'          # หน้า Tracking (หน้าจริง ตั้งแต่ 21 ต.ค. 2026)
+FOOT = '📊 ดูหน้า Tracking: ' + PAGE                                # บรรทัดปิดท้ายของทุกข้อความ
 LISTS = ('ar', 'sp', 'np', 'pay', 'pz')
 DONE = ('ans', 'smp', 'sum', 'paid', 'close')
 ACT = ('fu', 'reans', 'requote', 'move')
@@ -222,7 +224,7 @@ def message(BA, ch, kind, today):
     when = ('สรุปสัปดาห์ %s (จ.–อา.)' if kind == 'mon' else 'ความคืบหน้าสัปดาห์นี้ %s (จ.–พฤ.)') % dlab(a, b)
     cur = rng(BA, ch, LISTS, a, b)
     if not cur:
-        return '\n'.join([head, when, '', 'ยังไม่มีข้อมูลช่วงนี้%s — จะขึ้นหลังดึงข้อมูลรอบถัดไป' % (' (ข้อมูลถึง %s)' % end_txt(C) if C else '')]), None
+        return '\n'.join([head, when, '', 'ยังไม่มีข้อมูลช่วงนี้%s — จะขึ้นหลังดึงข้อมูลรอบถัดไป' % (' (ข้อมูลถึง %s)' % end_txt(C) if C else ''), '', FOOT]), None
     prev = rng(BA, ch, LISTS, pa, pb)
     c, p = cur['c'], (prev['c'] if prev else None)
     st = status(c, p)
@@ -263,8 +265,84 @@ def message(BA, ch, kind, today):
     if c['cus']: todo.append('💬 ลูกค้าทักกลับ %s แชท' % nf(c['cus']))
     if c['none']: todo.append('⏳ แชทใหม่ที่ยังไม่มีใครแตะ')
     if todo: tail.append(('👉 สัปดาห์นี้เริ่มจาก ' if kind == 'mon' else '⏰ ก่อนเสาร์–อาทิตย์ ช่วยกันเคลียร์ ') + ' + '.join(todo))
-    tail.append('ดูรายชื่อแชท: ' + PAGE)
+    tail.append(FOOT)
     return '\n'.join(L + [''] + tail), {'all': [c[k] for k in ('S', 'N', 'done', 'act', 'cus', 'skip', 'aged', 'none', 'E')] + [c['med']]}
+
+
+SHORT = {'fb': 'FB', 'ig': 'IG', 'line': 'LINE'}
+
+
+def combined(BA, kind, today):
+    """one LINE bubble for all 3 channels, grouped by topic — this is what line-notice.yml sends"""
+    a, b, pa, pb = periods(today, kind)
+    L = ['📣 Tracking · %s %s' % ('สรุปสัปดาห์' if kind == 'mon' else 'ความคืบหน้าสัปดาห์นี้', dlab(a, b)),
+         '(จ.–อา. · เทียบสัปดาห์ก่อน)' if kind == 'mon' else '(จ.–พฤ. · เทียบ จ.–พฤ. สัปดาห์ก่อน)', '', '📊 ภาพรวม']
+    R = {}
+    for ch in CHS:
+        C = BA['ch'].get(ch)
+        if not C: continue
+        cur = rng(BA, ch, LISTS, a, b)
+        if not cur:
+            L.append('%s %s · ยังไม่มีข้อมูล (ข้อมูลถึง %s)' % (CHI[ch], CHN[ch], end_txt(C))); continue
+        prev = rng(BA, ch, LISTS, pa, pb)
+        c, p = cur['c'], (prev['c'] if prev else None)
+        st = status(c, p)
+        R[ch] = (cur, c, p, st)
+        L.append('%s %s · %s %s%s' % (CHI[ch], CHN[ch], st['e'], st['t'], ' (นับถึง %s)' % end_txt(C) if cur['part'] else ''))
+    if not R: return '\n'.join(L + ['', FOOT])
+    lab = lambda ch: '%s %s' % (CHI[ch], SHORT[ch])
+
+    def sec(title, fn, note=None):
+        rows = [fn(ch, R[ch][1], R[ch][2]) for ch in CHS if ch in R]
+        L.extend(['', title] + rows + ([note] if note else []))
+
+    def pend(ch, c, p):
+        d = c['E'] - c['S']
+        return '%s %s → %s (%s)' % (lab(ch), nf(c['S']), nf(c['E']), 'เท่าเดิม' if d == 0 else ('▼' + nf(-d) if d < 0 else '▲' + nf(d)))
+
+    sec('📥 แชทค้าง · ต้นช่วง → ปลายช่วง', pend)
+    sec('✅ แอดมินจัดการ · % ของงาน', lambda ch, c, p: '%s %s แชท%s%s' % (
+        lab(ch), nf(c['h']), ' · %d%%' % c['pct'] if c['pct'] is not None else '',
+        ' (เดิม %d%%)' % p['pct'] if p and p['pct'] is not None else ''))
+    sec('⏱️ แตะแชทใหม่ · ค่ากลาง', lambda ch, c, p: '%s %s%s' % (
+        lab(ch), days_txt(c['med']), ' (เดิม %s)' % days_txt(p['med']) if p and p['med'] is not None else ''))
+    sec('🔔 รอแอดมิน', lambda ch, c, p: '%s 💬 %s · ⏳ %s' % (lab(ch), nf(c['cus']), nf(c['none'])),
+        '(💬 ลูกค้าทักกลับรอตอบ · ⏳ ยังไม่มีใครแตะ)')
+    cats = []
+    for l in LISTS:
+        parts = []
+        for ch in CHS:
+            if ch not in R: continue
+            x = rng(BA, ch, (l,), a, b)
+            if not x or (not x['c']['S'] and not x['c']['N']): continue
+            parts.append('%s %s (%s)' % (CHI[ch], nf(x['c']['E']), '—' if x['c']['pct'] is None else '%d%%' % x['c']['pct']))
+        if parts: cats += ['%s %s' % LN[l], '   ' + ' · '.join(parts)]
+    if cats: L += ['', '🗂️ แยกหมวด · ค้างปลายช่วง (% จัดการ)'] + cats
+    up = [ch for ch in R if R[ch][2] and R[ch][3]['sc'] > 0]
+    th = sum(R[ch][1]['h'] for ch in R)
+    if up and len(up) == len(R) and any(R[ch][3]['sc'] >= 2 for ch in up): cheer = 'เยี่ยมมาก ดีขึ้นทุกช่องทาง ทีมทำได้ดีขึ้นจริง ๆ 🎉'
+    elif up: cheer = 'ดีขึ้นที่ %s — ทำต่อแบบนี้เลย 💪' % ' · '.join(lab(ch) for ch in CHS if ch in up)
+    elif th: cheer = 'จัดการไปแล้ว %s แชท — ขอบคุณทุกคนที่ช่วยกันตามแชท 🙏' % nf(th)
+    else: cheer = ''
+    rec = {}
+    if kind == 'mon':
+        for ch in CHS:
+            if ch in R and R[ch][2]:
+                for r in records(BA, ch, a, R[ch][1]): rec.setdefault(r, []).append(SHORT[ch])
+    hi = ([cheer] if cheer else []) + ['%s (%s)' % (r, ', '.join(v)) for r, v in rec.items()]
+    if hi: L += ['', '🌟 ไฮไลต์'] + hi
+    who = {}
+    for ch in R:
+        for o in R[ch][0]['rows']:
+            if o['b'] in ('done', 'act'):
+                for n in o['who']: who[n] = who.get(n, 0) + 1
+    if who: L += ['', '👤 ใครจัดการ (รวมทุกช่องทาง)', ' · '.join('%s %s' % (n, nf(who[n])) for n in sorted(who, key=lambda k: -who[k]))]
+    todo = []
+    tc = sum(R[ch][1]['cus'] for ch in R)
+    if tc: todo.append('💬 ลูกค้าทักกลับ %s แชท' % nf(tc))
+    if any(R[ch][1]['none'] for ch in R): todo.append('⏳ แชทใหม่ที่ยังไม่มีใครแตะ')
+    if todo: L += ['', ('👉 สัปดาห์นี้เริ่มจาก ' if kind == 'mon' else '⏰ ก่อนเสาร์–อาทิตย์ ช่วยกันเคลียร์ ') + ' + '.join(todo)]
+    return '\n'.join(L + ['', FOOT])
 
 
 def drafts(BA, today=None):
@@ -278,7 +356,8 @@ def drafts(BA, today=None):
         for ch in CHS:
             if ch not in BA['ch']: continue
             msgs[ch], chk[ch] = message(BA, ch, kind, today)
-        out[kind] = {'a': a.isoformat(), 'b': b.isoformat(), 'lab': dlab(a, b), 'msgs': msgs, 'chk': chk}
+        out[kind] = {'a': a.isoformat(), 'b': b.isoformat(), 'lab': dlab(a, b), 'msgs': msgs, 'chk': chk,
+                     'one': combined(BA, kind, today)}
     return out
 
 
@@ -323,10 +402,10 @@ def send():
     if auto and built[:10] != today.isoformat():
         print('ข้อมูลยังไม่ใช่ของวันนี้ (สร้างเมื่อ %s) — ไม่ส่ง รอรอบอัปเดตเช้า' % built); return
     D = drafts(BA, today)[kind]
-    texts = [D['msgs'][ch] for ch in CHS if ch in D['msgs']]
+    texts = [D['one']]
     # repo is public, so is the Actions log: only sizes here, never the texts (they are on the Tracking page)
-    print('ข้อมูลสร้างเมื่อ %s · แบบ%s · %s · %s' % (built, 'วันจันทร์' if kind == 'mon' else 'วันศุกร์', D['lab'],
-          ' · '.join('%s %d ตัวอักษร' % (CHN[ch], len(D['msgs'][ch])) for ch in CHS if ch in D['msgs'])))
+    print('ข้อมูลสร้างเมื่อ %s · แบบ%s · %s · ข้อความเดียว %d ช่องทาง %d ตัวอักษร' % (
+          built, 'วันจันทร์' if kind == 'mon' else 'วันศุกร์', D['lab'], len(D['msgs']), len(D['one'])))
     if dry:
         print('ทดลอง — ไม่ส่ง (ดูข้อความได้ที่หน้า Tracking)'); return
     token, to = (os.environ.get('LINE_NOTICE_TOKEN') or '').strip(), (os.environ.get('LINE_NOTICE_TO') or '').strip()
@@ -336,7 +415,7 @@ def send():
     # sending twice · a manual test run gets a fresh key
     rk = str(uuid.uuid5(uuid.NAMESPACE_URL, 'biopalm-tracking/%s/%s/%s' % (today.isoformat(), kind, to))) if auto else str(uuid.uuid4())
     code, err = push(token, to, texts, rk)
-    if code == 200: print('ส่งเข้า LINE กลุ่มแล้ว (%d ข้อความ)' % len(texts))
+    if code == 200: print('ส่งเข้า LINE กลุ่มแล้ว (%d บับเบิล)' % len(texts))
     elif code == 409: print('วันนี้ส่งข้อความแบบนี้ไปแล้ว — ไม่ส่งซ้ำ')
     else: raise SystemExit('ส่งไม่สำเร็จ HTTP %s %s' % (code, err))
 
@@ -349,4 +428,4 @@ if __name__ == '__main__':
         N = drafts(BA)
         for kind in ('mon', 'fri'):
             print('===== %s %s =====' % ('จันทร์' if kind == 'mon' else 'ศุกร์', N[kind]['lab']))
-            for ch, t in N[kind]['msgs'].items(): print(t + '\n')
+            print(N[kind]['one'] + '\n')
