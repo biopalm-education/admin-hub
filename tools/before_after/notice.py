@@ -273,7 +273,7 @@ SHORT = {'fb': 'FB', 'ig': 'IG', 'line': 'LINE'}
 
 
 def combined(BA, kind, today):
-    """one LINE bubble — Overview: overall number first, then each channel (this is what line-notice.yml sends)"""
+    """one LINE bubble, laid out for a phone: 4 sections, overall first then each channel (line-notice.yml sends this)"""
     a, b, pa, pb = periods(today, kind)
     R, miss = {}, {}
     for ch in CHS:
@@ -281,11 +281,13 @@ def combined(BA, kind, today):
         if not C: continue
         cur = rng(BA, ch, LISTS, a, b)
         if not cur:
-            miss[ch] = 'ยังไม่มีข้อมูล (ข้อมูลถึง %s)' % end_txt(C); continue
+            miss[ch] = 'ยังไม่มีข้อมูล (ถึง %s)' % end_txt(C); continue
         prev = rng(BA, ch, LISTS, pa, pb)
         R[ch] = (cur['c'], prev['c'] if prev else None, ' (นับถึง %s)' % end_txt(C) if cur['part'] else '')
-    L = ['📣 Tracking · %s %s %s' % ('สรุปสัปดาห์' if kind == 'mon' else 'ความคืบหน้าสัปดาห์นี้', dlab(a, b),
-                                    '(จ.–อา. เทียบสัปดาห์ก่อน)' if kind == 'mon' else '(จ.–พฤ. เทียบสัปดาห์ก่อน)'), '', 'Overview']
+    mon = kind == 'mon'
+    L = ['📣 Tracking · %s %s' % ('สรุปสัปดาห์' if mon else 'ความคืบหน้า', dlab(a, b)),
+         '(จ.–อา. เทียบกับสัปดาห์ก่อน)' if mon else '(จ.–พฤ. เทียบกับ จ.–พฤ. สัปดาห์ก่อน)']
+    BAR = '━━━━━━━━━━━━'
 
     def tot(cs):
         if not cs or any(x is None for x in cs): return None
@@ -297,20 +299,23 @@ def combined(BA, kind, today):
         d = c['E'] - c['S']
         return 'เท่าเดิม' if d == 0 else ('▼' + nf(-d) if d < 0 else '▲' + nf(d))
 
-    def pct(c, p, tail=' ของงาน'):
-        return ('%s แชท' % nf(c['h'])) + (' = %d%%%s' % (c['pct'], tail) if c['pct'] is not None else '') + \
+    def pc(c, p):
+        return ('%d%%' % c['pct'] if c['pct'] is not None else '—') + \
                (' (เดิม %d%%)' % p['pct'] if p and p['pct'] is not None else '')
 
-    def group(D, fn, head='• รวม: ', first=False):
-        L.append(head + fn(tot([D[ch][0] for ch in D]), tot([D[ch][1] for ch in D])))
+    def section(title, sub, D, fn, first=False):
+        L.extend(['', BAR, title] + sub + ['', '📌 รวม ' + fn(tot([D[ch][0] for ch in D]), tot([D[ch][1] for ch in D])), ''])
         for ch in CHS:
-            if ch in D: L.append('+ %s: %s%s' % (CHN[ch], fn(D[ch][0], D[ch][1]), D[ch][2] if first else ''))
-            elif first and ch in miss: L.append('+ %s: %s' % (CHN[ch], miss[ch]))
+            if ch in D: L.append('%s %s %s%s' % (CHI[ch], SHORT[ch], fn(D[ch][0], D[ch][1]), D[ch][2] if first else ''))
+            elif first and ch in miss: L.append('%s %s %s' % (CHI[ch], SHORT[ch], miss[ch]))
 
     if R:
-        group(R, lambda c, p: 'แชทค้าง %s → %s (%s)' % (nf(c['S']), nf(c['E']), arrow(c)), first=True)
-        group(R, lambda c, p: 'แอดมินจัดการ ' + pct(c, p))
-        group(R, lambda c, p: '💬 ลูกค้าทักกลับรอตอบ %s · ⏳ ยังไม่มีใครแตะ %s' % (nf(c['cus']), nf(c['none'])))
+        section('📥 แชทค้าง', ['(ต้นสัปดาห์ → ปลายสัปดาห์)' if mon else '(วันจันทร์ → วันพฤหัส)'], R,
+                lambda c, p: '%s → %s (%s)' % (nf(c['S']), nf(c['E']), arrow(c)), first=True)
+        section('✅ แอดมินจัดการ', ['(จำนวนแชท · % ของงาน)'], R,
+                lambda c, p: '%s แชท · %s' % (nf(c['h']), pc(c, p)))
+        section('🔔 รอแอดมิน', ['💬 ลูกค้าทักกลับรอตอบ', '⏳ ยังไม่มีใครแตะ'], R,
+                lambda c, p: '💬 %s · ⏳ %s' % (nf(c['cus']), nf(c['none'])))
         SP = {}
         for ch in ('fb', 'line'):
             if ch not in R: continue
@@ -319,11 +324,11 @@ def combined(BA, kind, today):
             px = rng(BA, ch, ('sp',), pa, pb)
             SP[ch] = (x['c'], px['c'] if px else None, '')
         if SP:
-            group(SP, lambda c, p: 'ยังไม่แนบ %s → %s (%s) · จัดการ %s' % (nf(c['S']), nf(c['E']), arrow(c), pct(c, None, '')),
-                  head='• แนบตัวอย่าง (FB+LINE) รวม: ')
+            section('🎬 แนบตัวอย่าง (FB + LINE)', ['(ยังไม่แนบ ต้น → ปลาย · % จัดการ)'], SP,
+                    lambda c, p: '%s → %s (%s) · %s' % (nf(c['S']), nf(c['E']), arrow(c), '%d%%' % c['pct'] if c['pct'] is not None else '—'))
     else:
-        L += ['+ %s: %s' % (CHN[ch], miss[ch]) for ch in CHS if ch in miss]
-    return '\n'.join(L + ['', FOOT])
+        L += [''] + ['%s %s %s' % (CHI[ch], SHORT[ch], miss[ch]) for ch in CHS if ch in miss]
+    return '\n'.join(L + ['', BAR, '📊 ดูรายละเอียดหน้า Tracking', PAGE])
 
 
 def drafts(BA, today=None):
