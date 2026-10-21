@@ -273,75 +273,56 @@ SHORT = {'fb': 'FB', 'ig': 'IG', 'line': 'LINE'}
 
 
 def combined(BA, kind, today):
-    """one LINE bubble for all 3 channels, grouped by topic — this is what line-notice.yml sends"""
+    """one LINE bubble — Overview: overall number first, then each channel (this is what line-notice.yml sends)"""
     a, b, pa, pb = periods(today, kind)
-    L = ['📣 Tracking · %s %s' % ('สรุปสัปดาห์' if kind == 'mon' else 'ความคืบหน้าสัปดาห์นี้', dlab(a, b)),
-         '(จ.–อา. · เทียบสัปดาห์ก่อน)' if kind == 'mon' else '(จ.–พฤ. · เทียบ จ.–พฤ. สัปดาห์ก่อน)', '', '📊 ภาพรวม']
-    R = {}
+    R, miss = {}, {}
     for ch in CHS:
         C = BA['ch'].get(ch)
         if not C: continue
         cur = rng(BA, ch, LISTS, a, b)
         if not cur:
-            L.append('%s %s · ยังไม่มีข้อมูล (ข้อมูลถึง %s)' % (CHI[ch], CHN[ch], end_txt(C))); continue
+            miss[ch] = 'ยังไม่มีข้อมูล (ข้อมูลถึง %s)' % end_txt(C); continue
         prev = rng(BA, ch, LISTS, pa, pb)
-        c, p = cur['c'], (prev['c'] if prev else None)
-        st = status(c, p)
-        R[ch] = (cur, c, p, st)
-        L.append('%s %s · %s %s%s' % (CHI[ch], CHN[ch], st['e'], st['t'], ' (นับถึง %s)' % end_txt(C) if cur['part'] else ''))
-    if not R: return '\n'.join(L + ['', FOOT])
-    lab = lambda ch: '%s %s' % (CHI[ch], SHORT[ch])
+        R[ch] = (cur['c'], prev['c'] if prev else None, ' (นับถึง %s)' % end_txt(C) if cur['part'] else '')
+    L = ['📣 Tracking · %s %s %s' % ('สรุปสัปดาห์' if kind == 'mon' else 'ความคืบหน้าสัปดาห์นี้', dlab(a, b),
+                                    '(จ.–อา. เทียบสัปดาห์ก่อน)' if kind == 'mon' else '(จ.–พฤ. เทียบสัปดาห์ก่อน)'), '', 'Overview']
 
-    def sec(title, fn, note=None):
-        rows = [fn(ch, R[ch][1], R[ch][2]) for ch in CHS if ch in R]
-        L.extend(['', title] + rows + ([note] if note else []))
+    def tot(cs):
+        if not cs or any(x is None for x in cs): return None
+        t = {k: sum(x[k] for x in cs) for k in ('S', 'E', 'h', 'need', 'cus', 'none')}
+        t['pct'] = jround(t['h'] * 100 / t['need']) if t['need'] else None
+        return t
 
-    def pend(ch, c, p):
+    def arrow(c):
         d = c['E'] - c['S']
-        return '%s %s → %s (%s)' % (lab(ch), nf(c['S']), nf(c['E']), 'เท่าเดิม' if d == 0 else ('▼' + nf(-d) if d < 0 else '▲' + nf(d)))
+        return 'เท่าเดิม' if d == 0 else ('▼' + nf(-d) if d < 0 else '▲' + nf(d))
 
-    sec('📥 แชทค้าง · ต้นช่วง → ปลายช่วง', pend)
-    sec('✅ แอดมินจัดการ · % ของงาน', lambda ch, c, p: '%s %s แชท%s%s' % (
-        lab(ch), nf(c['h']), ' · %d%%' % c['pct'] if c['pct'] is not None else '',
-        ' (เดิม %d%%)' % p['pct'] if p and p['pct'] is not None else ''))
-    sec('⏱️ แตะแชทใหม่ · ค่ากลาง', lambda ch, c, p: '%s %s%s' % (
-        lab(ch), days_txt(c['med']), ' (เดิม %s)' % days_txt(p['med']) if p and p['med'] is not None else ''))
-    sec('🔔 รอแอดมิน', lambda ch, c, p: '%s 💬 %s · ⏳ %s' % (lab(ch), nf(c['cus']), nf(c['none'])),
-        '(💬 ลูกค้าทักกลับรอตอบ · ⏳ ยังไม่มีใครแตะ)')
-    cats = []
-    for l in LISTS:
-        parts = []
+    def pct(c, p, tail=' ของงาน'):
+        return ('%s แชท' % nf(c['h'])) + (' = %d%%%s' % (c['pct'], tail) if c['pct'] is not None else '') + \
+               (' (เดิม %d%%)' % p['pct'] if p and p['pct'] is not None else '')
+
+    def group(D, fn, head='• รวม: ', first=False):
+        L.append(head + fn(tot([D[ch][0] for ch in D]), tot([D[ch][1] for ch in D])))
         for ch in CHS:
+            if ch in D: L.append('+ %s: %s%s' % (CHN[ch], fn(D[ch][0], D[ch][1]), D[ch][2] if first else ''))
+            elif first and ch in miss: L.append('+ %s: %s' % (CHN[ch], miss[ch]))
+
+    if R:
+        group(R, lambda c, p: 'แชทค้าง %s → %s (%s)' % (nf(c['S']), nf(c['E']), arrow(c)), first=True)
+        group(R, lambda c, p: 'แอดมินจัดการ ' + pct(c, p))
+        group(R, lambda c, p: '💬 ลูกค้าทักกลับรอตอบ %s · ⏳ ยังไม่มีใครแตะ %s' % (nf(c['cus']), nf(c['none'])))
+        SP = {}
+        for ch in ('fb', 'line'):
             if ch not in R: continue
-            x = rng(BA, ch, (l,), a, b)
+            x = rng(BA, ch, ('sp',), a, b)
             if not x or (not x['c']['S'] and not x['c']['N']): continue
-            parts.append('%s %s (%s)' % (CHI[ch], nf(x['c']['E']), '—' if x['c']['pct'] is None else '%d%%' % x['c']['pct']))
-        if parts: cats += ['%s %s' % LN[l], '   ' + ' · '.join(parts)]
-    if cats: L += ['', '🗂️ แยกหมวด · ค้างปลายช่วง (% จัดการ)'] + cats
-    up = [ch for ch in R if R[ch][2] and R[ch][3]['sc'] > 0]
-    th = sum(R[ch][1]['h'] for ch in R)
-    if up and len(up) == len(R) and any(R[ch][3]['sc'] >= 2 for ch in up): cheer = 'เยี่ยมมาก ดีขึ้นทุกช่องทาง ทีมทำได้ดีขึ้นจริง ๆ 🎉'
-    elif up: cheer = 'ดีขึ้นที่ %s — ทำต่อแบบนี้เลย 💪' % ' · '.join(lab(ch) for ch in CHS if ch in up)
-    elif th: cheer = 'จัดการไปแล้ว %s แชท — ขอบคุณทุกคนที่ช่วยกันตามแชท 🙏' % nf(th)
-    else: cheer = ''
-    rec = {}
-    if kind == 'mon':
-        for ch in CHS:
-            if ch in R and R[ch][2]:
-                for r in records(BA, ch, a, R[ch][1]): rec.setdefault(r, []).append(SHORT[ch])
-    hi = ([cheer] if cheer else []) + ['%s (%s)' % (r, ', '.join(v)) for r, v in rec.items()]
-    if hi: L += ['', '🌟 ไฮไลต์'] + hi
-    who = {}
-    for ch in R:
-        for o in R[ch][0]['rows']:
-            if o['b'] in ('done', 'act'):
-                for n in o['who']: who[n] = who.get(n, 0) + 1
-    if who: L += ['', '👤 ใครจัดการ (รวมทุกช่องทาง)', ' · '.join('%s %s' % (n, nf(who[n])) for n in sorted(who, key=lambda k: -who[k]))]
-    todo = []
-    tc = sum(R[ch][1]['cus'] for ch in R)
-    if tc: todo.append('💬 ลูกค้าทักกลับ %s แชท' % nf(tc))
-    if any(R[ch][1]['none'] for ch in R): todo.append('⏳ แชทใหม่ที่ยังไม่มีใครแตะ')
-    if todo: L += ['', ('👉 สัปดาห์นี้เริ่มจาก ' if kind == 'mon' else '⏰ ก่อนเสาร์–อาทิตย์ ช่วยกันเคลียร์ ') + ' + '.join(todo)]
+            px = rng(BA, ch, ('sp',), pa, pb)
+            SP[ch] = (x['c'], px['c'] if px else None, '')
+        if SP:
+            group(SP, lambda c, p: 'ยังไม่แนบ %s → %s (%s) · จัดการ %s' % (nf(c['S']), nf(c['E']), arrow(c), pct(c, None, '')),
+                  head='• แนบตัวอย่าง (FB+LINE) รวม: ')
+    else:
+        L += ['+ %s: %s' % (CHN[ch], miss[ch]) for ch in CHS if ch in miss]
     return '\n'.join(L + ['', FOOT])
 
 
