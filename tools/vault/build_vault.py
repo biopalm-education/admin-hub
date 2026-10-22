@@ -901,6 +901,60 @@ def write_chat_notes(mkey, res, ads, camps):
     return n
 
 
+# ---------------------------------------------------------------- สถิติแชทสะสม (แยกไฟล์เล็กรายเดือน)
+# Composio ส่งคำตอบกลับได้ราว 10k token → ไฟล์ state ต้องเล็ก: .vault/stats/<เดือน>/main.json + ads-NN.json (โฆษณาละไม่เกิน 25 ตัว)
+STATE_DIR = '.vault/stats'
+AD_SHARD = 25
+BAD_STATE_MONTHS = set()          # เดือนที่อ่านไฟล์ state ไม่ครบ → ไม่เขียนทับ/ไม่ลบไฟล์ของเดือนนั้น (ถ้ารอบนี้ไม่ได้ประมวลผลใหม่)
+
+
+def load_state():
+    months = {}
+    for p in PREFETCH_FAILED:
+        m = re.match(r'^%s/(\d{4}-\d{2})/' % re.escape(STATE_DIR), p)
+        if m:
+            BAD_STATE_MONTHS.add(m.group(1))
+    base = os.path.join(VAULT, *STATE_DIR.split('/'))
+    if os.path.isdir(base):
+        for m in sorted(os.listdir(base)):
+            d = os.path.join(base, m)
+            if not (re.match(r'^\d{4}-\d{2}$', m) and os.path.isdir(d)):
+                continue
+            st = {'by_ad': {}}
+            for fn in sorted(os.listdir(d)):
+                try:
+                    part = json.load(open(os.path.join(d, fn), encoding='utf-8'))
+                except Exception:
+                    BAD_STATE_MONTHS.add(m)
+                    continue
+                if fn == 'main.json':
+                    st.update({k: v for k, v in part.items() if k != 'by_ad'})
+                else:
+                    st['by_ad'].update(part)
+            months[m] = st
+    if BAD_STATE_MONTHS:
+        warn('สถิติแชทสะสมอ่านไม่ครบ %d เดือน (%s) — คงไฟล์เดิมของเดือนนั้นไว้' % (
+            len(BAD_STATE_MONTHS), ', '.join(sorted(BAD_STATE_MONTHS))))
+    return {'months': months}
+
+
+def save_state(state):
+    for m, st in sorted(state['months'].items()):
+        if m in BAD_STATE_MONTHS:
+            continue
+        main_part = {k: v for k, v in st.items() if k != 'by_ad'}
+        put('%s/%s/main.json' % (STATE_DIR, m), json.dumps(main_part, ensure_ascii=False, sort_keys=True, separators=(',', ':')))
+        ads = sorted((st.get('by_ad') or {}).items())
+        for i in range(0, len(ads), AD_SHARD):
+            part = {}
+            for aid, v in ads[i:i + AD_SHARD]:
+                v = dict(v)
+                v['topics'] = dict(Counter(v.get('topics') or {}).most_common(5))
+                part[aid] = v
+            put('%s/%s/ads-%02d.json' % (STATE_DIR, m, i // AD_SHARD + 1),
+                json.dumps(part, ensure_ascii=False, sort_keys=True, separators=(',', ':')))
+
+
 # ---------------------------------------------------------------- notes: ads / campaigns / months
 def ad_chat_totals(state):
     tot = defaultdict(lambda: dict(chats=0, leads=0, closed=0, s_end=[], topics=Counter(), exact=0))
@@ -1065,7 +1119,7 @@ def write_months(M, fbov, line, ig, state):
             if mt:
                 tot = sum(mt.values())
                 body += ['', 'จับคู่แชทโฆษณากับตัวโฆษณา: ' + ' · '.join(
-                    '%s %d (%s%%)' % (k, v, pct(v, tot)) for k, v in sorted(mt.items(), key=lambda x: -x[1]))]
+                    '%s %d (%s%%)' % (k, v, pct(v, tot)) for k, v in sorted(mt.items(), key=lambda x: (-x[1], x[0])))]
         body += ['', '## โน้ตของฉันเดือนนี้', '- (จดสิ่งที่เกิดขึ้น เช่น เปลี่ยนครีเอทีฟ เปิดคอร์สใหม่ ช่วงสอบ)']
         put('Monthly/%s.md' % m, front(fm) + '\n' + '\n'.join(body))
 
@@ -1163,19 +1217,26 @@ def gh(slug, args):
 
 
 def api_tree():
-    """รายชื่อไฟล์ทั้งหมดใน vault + blob sha · ลองแบบ recursive ก่อน ถ้าคำตอบใหญ่เกินไล่ทีละโฟลเดอร์"""
+    """รายชื่อไฟล์ทั้งหมดใน vault + blob sha · ลองแบบ recursive ก่อน ถ้าคำตอบใหญ่เกิน (Composio ส่งกลับได้ราว 10k token)
+    ไล่ทีละโฟลเดอร์ · โฟลเดอร์ที่รายชื่อยาวเกินจนอ่านไม่ได้ → คืนใน unknown (เขียนทับทุกไฟล์ในนั้น และไม่ลบไฟล์ในนั้น)"""
     try:
         d = gh('GITHUB_GET_A_TREE', {'tree_sha': BRANCH, 'recursive': True})
         if isinstance(d.get('tree'), list) and not d.get('truncated'):
-            return {e['path']: e['sha'] for e in d['tree'] if e.get('type') == 'blob' and e.get('path')}, False
+            return {e['path']: e['sha'] for e in d['tree'] if e.get('type') == 'blob' and e.get('path')}, []
     except ToolError as e:
         if 'TOO_LARGE' not in str(e):
             raise
-    out = {}
+    out, unknown = {}, []
 
     def walk(item):
         sha, prefix = item
-        d = gh('GITHUB_GET_A_TREE', {'tree_sha': sha, 'recursive': False})
+        try:
+            d = gh('GITHUB_GET_A_TREE', {'tree_sha': sha, 'recursive': False})
+        except ToolError as e:
+            if 'TOO_LARGE' in str(e) and prefix:
+                unknown.append(prefix)
+                return []
+            raise
         subs = []
         for e in d.get('tree') or []:
             pth = prefix + str(e.get('path') or '')
@@ -1189,7 +1250,7 @@ def api_tree():
     with ThreadPoolExecutor(4) as ex:
         while frontier:
             frontier = [x for subs in ex.map(walk, frontier) for x in subs]
-    return out, False
+    return out, sorted(unknown)
 
 
 def api_read(path):
@@ -1206,14 +1267,18 @@ def api_read(path):
     return c
 
 
+PREFETCH_FAILED = set()
+
+
 def api_prefetch(tree):
-    """ดึงไฟล์ที่ผู้ใช้แก้ได้ (Config, Topics) + state ลงโฟลเดอร์ชั่วคราว ให้โค้ดส่วนอื่นอ่านเหมือนโหมด git"""
+    """ดึงไฟล์ที่ผู้ใช้แก้ได้ (Config, Topics) + สถิติแชทสะสม ลงโฟลเดอร์ชั่วคราว ให้โค้ดส่วนอื่นอ่านเหมือนโหมด git"""
     want = [p for p in tree if p == 'Config/คำ sentiment.md' or (p.startswith('Topics/') and p.endswith('.md'))
-            or p == '.vault/chat_stats.json']
+            or (p.startswith(STATE_DIR + '/') and p.endswith('.json'))]
     for p in want:
         try:
             t = api_read(p)
         except ToolError as e:
+            PREFETCH_FAILED.add(p)
             warn('อ่าน %s จาก vault ไม่ได้ (%s)' % (p, str(e)[:60]))
             continue
         if t is None:
@@ -1231,8 +1296,11 @@ def blob_sha(text):
 
 
 def is_generated(path, processed, keep_from):
-    if path in ('05 สถานะระบบ.md', '.vault/chat_stats.json'):
+    if path in ('05 สถานะระบบ.md', '.vault/chat_stats.json'):        # chat_stats.json = รูปแบบเดิม (ไฟล์เดียว ใหญ่เกินอ่านกลับ)
         return True
+    m = re.match(r'^%s/(\d{4}-\d{2})/' % re.escape(STATE_DIR), path)
+    if m:
+        return m.group(1) not in BAD_STATE_MONTHS
     if path.startswith(('Ads/', 'Monthly/', 'Sources/')):
         return True
     m = re.match(r'^Chats/FB/(\d{4}-\d{2})/', path)
@@ -1241,9 +1309,10 @@ def is_generated(path, processed, keep_from):
     return False
 
 
-def api_commit(tree, truncated, processed, keep_from):
+def api_commit(tree, unknown, processed, keep_from):
+    """unknown = โฟลเดอร์ที่อ่านรายชื่อไม่ได้: ไฟล์ในนั้นไม่มีใน tree จึงถูกเขียนทับทุกไฟล์ และไม่มีการลบ"""
     up = [(p, t) for p, t in sorted(FILES.items()) if tree.get(p) != blob_sha(t)]
-    dels = [] if truncated else sorted(p for p in tree if p not in FILES and is_generated(p, processed, keep_from))
+    dels = sorted(p for p in tree if p not in FILES and is_generated(p, processed, keep_from))
     for pre in ('Ads/', 'Monthly/'):                 # กันพลาด: ถ้ารอบนี้สร้างได้น้อยกว่าครึ่งของของเดิม ไม่ลบโฟลเดอร์นั้น
         old = sum(1 for p in tree if p.startswith(pre))
         new = sum(1 for p in FILES if p.startswith(pre))
@@ -1279,6 +1348,10 @@ def api_commit(tree, truncated, processed, keep_from):
                 done += len(b) + len(d)
                 break
             except ToolError as e:
+                if 'TOO_LARGE' in str(e):
+                    # commit สำเร็จแล้ว (Composio ตอบ successful) แค่คำตอบรายชื่อไฟล์ยาวเกินจะส่งกลับ — ห้ามส่งซ้ำ
+                    done += len(b) + len(d)
+                    break
                 if attempt == 3:
                     raise
                 log('  commit ส่วน %d ไม่ผ่าน ลองใหม่ (%s)' % (i, type(e).__name__))
@@ -1322,16 +1395,14 @@ def main():
     t0 = time.time()
     if not os.path.isdir(VAULT):
         raise SystemExit('ไม่พบโฟลเดอร์ vault: ' + VAULT)
-    tree, truncated = None, False
+    tree, unknown = None, []
     if MODE == 'api':
-        tree, truncated = api_tree()
+        tree, unknown = api_tree()
+        if unknown:
+            log('vault: โฟลเดอร์ที่รายชื่อยาวเกินอ่าน %d โฟลเดอร์ → เขียนทับทั้งโฟลเดอร์' % len(unknown))
         api_prefetch(tree)
     log('โหมด: %s%s' % (MODE, ' (dry run)' if DRY_RUN else ''))
-    state_path = os.path.join(VAULT, '.vault', 'chat_stats.json')
-    try:
-        state = json.load(open(state_path, encoding='utf-8'))
-    except Exception:
-        state = {'months': {}}
+    state = load_state()
     cfg, topics = load_config()
     log('config: คำบวก %d · คำลบ %d · ลังเล %d · หัวข้อ %d' % (len(cfg['positive']), len(cfg['negative']),
                                                             len(cfg['hesitant']), len(topics)))
@@ -1371,6 +1442,7 @@ def main():
         res = analyse_threads(mkey, summ, threads, ads, eq, rx_list, labels, M['daily'], cfg, topics)
         st = month_chat_stats(res)
         state['months'][mkey] = st
+        BAD_STATE_MONTHS.discard(mkey)            # เดือนนี้คำนวณใหม่ครบแล้ว เขียนทับได้
         n = write_chat_notes(mkey, res, ads, camps)
         notes_total += n
         processed.append(mkey)
@@ -1385,7 +1457,10 @@ def main():
     write_months(M, fbov, line, ig, state)
     write_sources(files)
     for rel, text in seed_files().items():
-        exists = (rel in tree) if MODE == 'api' else os.path.exists(os.path.join(VAULT, rel))
+        if MODE == 'api':
+            exists = rel in tree or any(rel.startswith(u) for u in unknown)
+        else:
+            exists = os.path.exists(os.path.join(VAULT, rel))
         if not exists:
             put(rel, text)
 
@@ -1395,12 +1470,13 @@ def main():
              '- เดือนแชทที่ประมวลผลรอบนี้: %s' % (', '.join(processed) or '-'),
              '- ช่วง 3 เดือนล่าสุดของ Meta: %s' % (', '.join(last3) or '-'),
              '- คำขอไป Composio %d · ลดขนาดช่วงอ่าน %d · พักรอโควตา Google %d · ลองใหม่ %d' % (
-                 STATS['calls'], STATS['shrink'], STATS['quota_waits'], STATS['retries']), '']
+                 STATS['calls'], STATS['shrink'], STATS['quota_waits'], STATS['retries']),
+             '- โฟลเดอร์ใน vault ที่รายชื่อยาวเกินอ่าน (เขียนทับทั้งโฟลเดอร์ ไม่ลบไฟล์เก่า): %s' % (', '.join(unknown) or '-'), '']
     lines += ['- ' + s for s in STATUS['steps']]
     if STATUS['warnings']:
         lines += ['', '## คำเตือน'] + ['- ' + w for w in STATUS['warnings']]
     put('05 สถานะระบบ.md', front(dict(type='status', updated=STATUS['finished'])) + '\n' + '\n'.join(lines))
-    put('.vault/chat_stats.json', json.dumps(state, ensure_ascii=False, indent=1, sort_keys=True))
+    save_state(state)
 
     if MODE == 'git':
         for rel, text in FILES.items():
@@ -1409,7 +1485,7 @@ def main():
             with open(p, 'w', encoding='utf-8') as fh:
                 fh.write(text)
     else:
-        api_commit(tree, truncated, set(processed), keep_from)
+        api_commit(tree, unknown, set(processed), keep_from)
     kinds = Counter(rel.split('/')[0] if '/' in rel else 'root' for rel in FILES)
     log('เขียนไฟล์ %d (%s) · โน้ตแชท %d · %.0f วินาที' % (
         len(FILES), ', '.join('%s %d' % kv for kv in sorted(kinds.items())), notes_total, time.time() - t0))
