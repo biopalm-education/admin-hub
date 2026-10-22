@@ -299,9 +299,12 @@ def combined(BA, kind, today):
         d = c['E'] - c['S']
         return 'เท่าเดิม' if d == 0 else ('▼' + nf(-d) if d < 0 else '▲' + nf(d))
 
-    def pc(c, p):
-        return ('%d%%' % c['pct'] if c['pct'] is not None else '—') + \
-               (' (เดิม %d%%)' % p['pct'] if p and p['pct'] is not None else '')
+    def left(c, p):
+        if c['pct'] is None: return '—'
+        r = 100 - c['pct']
+        if not p or p['pct'] is None: return '%d%%' % r
+        d = r - (100 - p['pct'])
+        return '%d%% (เดิม %d%%) %s' % (r, 100 - p['pct'], '➖' if d == 0 else ('▼%d 👍' % -d if d < 0 else '▲%d ⚠️' % d))
 
     def section(title, sub, D, fn, first=False):
         L.extend(['', BAR, title] + sub + ['', '📌 รวม ' + fn(tot([D[ch][0] for ch in D]), tot([D[ch][1] for ch in D])), ''])
@@ -312,8 +315,8 @@ def combined(BA, kind, today):
     if R:
         section('📥 แชทค้าง', ['(ต้นสัปดาห์ → ปลายสัปดาห์)' if mon else '(วันจันทร์ → วันพฤหัส)'], R,
                 lambda c, p: '%s → %s (%s)' % (nf(c['S']), nf(c['E']), arrow(c)), first=True)
-        section('✅ แอดมินจัดการ', ['(จำนวนแชท · % ของงาน)'], R,
-                lambda c, p: '%s แชท · %s' % (nf(c['h']), pc(c, p)))
+        section('✅ ความคืบหน้า', ['(ตอบแล้ว · เหลือ · % ที่ยังเหลือ)'], R,
+                lambda c, p: 'ตอบแล้ว %s · เหลือ %s\n   └ เหลือ %s' % (nf(c['h']), nf(c['cus'] + c['none']), left(c, p)))
         section('🔔 รอแอดมิน', ['💬 ลูกค้าทักกลับรอตอบ', '⏳ ยังไม่มีใครแตะ'], R,
                 lambda c, p: '💬 %s · ⏳ %s' % (nf(c['cus']), nf(c['none'])))
         SP = {}
