@@ -58,11 +58,30 @@ class ToolError(Exception):
     pass
 
 
+STATS = Counter()
+_QUOTA = re.compile(r'429|quota exceeded|rate.?limit|too many requests|resource.?exhausted', re.I)
+
+
 def call(slug, args):
-    res, err = run_composio_tool(slug, args)
-    if err:
-        raise ToolError('%s: %s' % (slug, str(err)[:160]))
-    return (res or {}).get('data') or {}
+    """เรียก Composio · ติดโควตา Google Sheets (โปรเจกต์ของ Composio ใช้ร่วมกันทุกคน จำกัดต่อนาที) → พักแล้วลองใหม่"""
+    err = ''
+    for attempt in range(8):
+        res, err = run_composio_tool(slug, args)
+        if not err:
+            STATS['calls'] += 1
+            return (res or {}).get('data') or {}
+        err = str(err)
+        if 'TOO_LARGE' in err or attempt == 7:
+            break
+        if _QUOTA.search(err):
+            STATS['quota_waits'] += 1
+            time.sleep(40 + 20 * attempt)
+            continue
+        if attempt >= 1:
+            break
+        STATS['retries'] += 1
+        time.sleep(30)
+    raise ToolError('%s: %s' % (slug, err[:160]))
 
 
 # ---------------------------------------------------------------- Google Sheets
@@ -98,56 +117,86 @@ def read_window(sid, tab, r1, r2, c1, c2):
     return batch_get(sid, ["'%s'!%s%d:%s%d" % (tab, c1, r1, c2, r2)])[0]
 
 
-def read_rows(sid, tab, first, last, c1, c2, chunk, parallel=1):
-    """อ่านแถว first..last ทีละ chunk · คำตอบใหญ่เกิน (TOO_LARGE) → ลด chunk ลงครึ่งหนึ่ง"""
-    wins = []
-    r = first
+def read_cols(sid, tab, first, last, idxs, chunk, max_chunk=None):
+    """อ่านเฉพาะคอลัมน์ idxs (เลขคอลัมน์เริ่ม 1) แถว first..last — 1 คำขอต่อช่วงแถว อ่านทีละช่วงตามลำดับ
+    คำตอบใหญ่เกิน (TOO_LARGE) → ลดขนาดช่วงลงครึ่งหนึ่งแล้วใช้ขนาดนั้นต่อ · ผ่านติดกัน 3 ครั้ง → ค่อย ๆ เพิ่มกลับ
+    (ไม่เกินขนาดที่เคยใหญ่เกินมาแล้ว)"""
+    idxs = sorted(set(idxs))
+    runs = []
+    for i in idxs:
+        if runs and i == runs[-1][1] + 1:
+            runs[-1][1] = i
+        else:
+            runs.append([i, i])
+    cap = max_chunk or chunk * 2
+    out = {i: [] for i in idxs}
+    r, size, streak = first, chunk, 0
     while r <= last:
-        wins.append((r, min(last, r + chunk - 1)))
-        r += chunk
-
-    def get(w):
-        a, b = w
+        b = min(last, r + size - 1)
         try:
-            return read_window(sid, tab, a, b, c1, c2)
+            parts = batch_get(sid, ["'%s'!%s%d:%s%d" % (tab, col_letter(a), r, col_letter(z), b) for a, z in runs])
         except ToolError as e:
-            if 'TOO_LARGE' in str(e) and b - a > 20:
-                mid = (a + b) // 2
-                return get((a, mid)) + get((mid + 1, b))
+            if 'TOO_LARGE' in str(e) and b > r:
+                cap = min(cap, b - r)
+                size, streak = max(1, (b - r + 1) // 2), 0
+                STATS['shrink'] += 1
+                continue
             raise
+        n = b - r + 1
+        for (a, z), p in zip(runs, parts):
+            p = list(p)[:n] + [[]] * (n - len(p))        # แถวว่างท้ายช่วงถูกตัดทิ้ง → เติมให้ตรงตำแหน่ง
+            for row in p:
+                for i in range(a, z + 1):
+                    j = i - a
+                    out[i].append(row[j] if j < len(row) else '')
+        r = b + 1
+        streak += 1
+        if streak >= 3 and size < cap:
+            size, streak = min(cap, size * 3 // 2 + 1), 0
+    return out
 
-    if parallel > 1:
-        with ThreadPoolExecutor(parallel) as ex:
-            parts = list(ex.map(get, wins))
-    else:
-        parts = [get(w) for w in wins]
-    rows = []
-    for (a, b), p in zip(wins, parts):
-        rows.extend(p + [[]] * ((b - a + 1) - len(p)))   # แถวว่างท้ายช่วงถูกตัดทิ้ง → เติมให้ตรงตำแหน่ง
-    return rows
 
-
-def read_table(sid, tab, tabinfo, first_header, chunk=800, max_col=None, head_scan=8, parallel=1):
+def find_header(sid, tab, tabinfo, match, head_scan=8):
+    """หาแถวหัวตารางจากคอลัมน์ A (match = ข้อความหรือฟังก์ชัน) แล้วอ่านแถวหัวทั้งแถว"""
     if tab not in tabinfo:
         raise ToolError('ไม่พบแท็บ %s' % tab)
-    nrows, ncols = tabinfo[tab]
-    last_col = col_letter(min(max_col or ncols, ncols))
-    head = read_window(sid, tab, 1, head_scan, 'A', last_col)
-    hr = None
-    for i, row in enumerate(head):
-        if row and str(row[0]).strip() == first_header:
-            hr = i + 1
-            break
+    ok = match if callable(match) else (lambda s: s == match)
+    colA = read_window(sid, tab, 1, head_scan, 'A', 'A')
+    hr = next((i + 1 for i, r in enumerate(colA) if r and ok(str(r[0]).strip())), None)
     if hr is None:
-        raise ToolError('ไม่พบหัวตาราง "%s" ในแท็บ %s' % (first_header, tab))
-    header = [str(h).strip() for h in head[hr - 1]]
-    rows = read_rows(sid, tab, hr + 1, max(nrows, hr + 1), 'A', last_col, chunk, parallel)
+        raise ToolError('ไม่พบหัวตารางในแท็บ %s' % tab)
+    head = read_window(sid, tab, hr, hr, 'A', col_letter(max(1, tabinfo[tab][1])))
+    return hr, [str(h).strip() for h in (head[0] if head else [])]
+
+
+def read_table(sid, tab, tabinfo, first_header, cols=None, heavy=(), chunk=500, heavy_chunk=40, head_scan=8):
+    """อ่านตารางเฉพาะคอลัมน์ที่ใช้ (cols = ชื่อหัวคอลัมน์) · คอลัมน์ข้อความยาว (heavy) อ่านแยกทีละช่วงเล็ก"""
+    hr, header = find_header(sid, tab, tabinfo, first_header, head_scan)
+    nrows = tabinfo[tab][0]
+    pos = {}
+    for i, h in enumerate(header, 1):
+        if h and h not in pos:
+            pos[h] = i
+    want = list(cols) if cols else [h for h in pos]
+    missing = [c for c in want if c not in pos]
+    if missing:
+        warn('แท็บ %s ไม่มีคอลัมน์ %d รายการ: %s' % (tab, len(missing), ', '.join(missing)[:100]))
+    names = [(c, pos[c]) for c in want if c in pos]
+    light = [i for c, i in names if c not in heavy]
+    data = {}
+    if nrows > hr and names:
+        if light:
+            data.update(read_cols(sid, tab, hr + 1, nrows, light, chunk))
+        for c, i in names:
+            if c in heavy:
+                data.update(read_cols(sid, tab, hr + 1, nrows, [i], heavy_chunk))
     out = []
-    for r in rows:
-        if not any(str(c).strip() for c in r):
-            continue
-        r = list(r) + [''] * (len(header) - len(r))
-        out.append(dict(zip(header, r)))
+    for k in range(max(0, nrows - hr)):
+        d = {c: (data[i][k] if k < len(data.get(i, ())) else '') for c, i in names}
+        if any(str(v).strip() for v in d.values()):
+            for c in missing:
+                d[c] = ''
+            out.append(d)
     return header, out
 
 
@@ -246,59 +295,59 @@ def load_meta():
     SOURCES['meta'] = [(next((h[0] for h in hits if h[1] == sid), 'Meta Ads'), sid)]
     T = tabs_of(sid)
     M = {}
-    _, M['camps'] = read_table(sid, 'แคมเปญ', T, 'Campaign ID')
-    _, M['ads'] = read_table(sid, 'โฆษณาและครีเอทีฟ', T, 'Ad ID', chunk=100, max_col=40, parallel=3)
-    _, M['welcome'] = read_table(sid, 'ข้อความต้อนรับแชทของโฆษณา', T, 'Ad ID', chunk=300, max_col=13, parallel=2)
-    _, M['cmon'] = read_table(sid, 'แคมเปญรายเดือน', T, 'เดือน (เริ่ม)', chunk=500)
-    _, M['amon'] = read_table(sid, 'โฆษณารายเดือน', T, 'เดือน (เริ่ม)', chunk=500, parallel=3)
-    _, acct = read_table(sid, 'บัญชีโฆษณา', T, 'เดือน (เริ่ม)', head_scan=40, chunk=60)
+    _, M['camps'] = read_table(sid, 'แคมเปญ', T, 'Campaign ID', cols=[
+        'Campaign ID', 'ชื่อแคมเปญ', 'เป้าหมาย (objective)', 'สถานะจริง', 'วันเริ่ม (เวลาไทย)', 'วันจบ (เวลาไทย)',
+        SPEND, CHATS, 'ลีด', BUYS, CPM], chunk=300)
+    _, M['ads'] = read_table(sid, 'โฆษณาและครีเอทีฟ', T, 'Ad ID', cols=[
+        'Ad ID', 'ชื่อโฆษณา', 'Ad set ID', 'ชื่อชุดโฆษณา', 'Campaign ID', 'ชื่อแคมเปญ', 'สถานะจริง', 'สร้างเมื่อ (เวลาไทย)',
+        'ประเภทครีเอทีฟ', 'หัวข้อ (headline)', 'ปุ่ม CTA', 'ลิงก์ดูตัวอย่างโฆษณา', 'Quality ranking',
+        SPEND, CHATS, 'ลีด', BUYS, PRIMARY], heavy=(PRIMARY,), chunk=300, heavy_chunk=40)
+    _, M['welcome'] = read_table(sid, 'ข้อความต้อนรับแชทของโฆษณา', T, 'Ad ID', cols=[
+        'Ad ID', 'ปลายทาง', 'วันแรกที่แสดงผล (เวลาบัญชี LA)', 'วันสุดท้ายที่แสดงผล (เวลาบัญชี LA)', W_TEXT, W_BTN],
+        heavy=(W_TEXT, W_BTN), chunk=600, heavy_chunk=150)
+    _, M['cmon'] = read_table(sid, 'แคมเปญรายเดือน', T, 'เดือน (เริ่ม)', cols=[
+        'เดือน (เริ่ม)', 'Campaign ID', SPEND, CHATS, BUYS], chunk=1000)
+    _, M['amon'] = read_table(sid, 'โฆษณารายเดือน', T, 'เดือน (เริ่ม)', cols=[
+        'เดือน (เริ่ม)', 'Ad ID', SPEND, CHATS, BUYS], chunk=1500)
+    _, acct = read_table(sid, 'บัญชีโฆษณา', T, 'เดือน (เริ่ม)', cols=[
+        'เดือน (เริ่ม)', SPEND, CHATS, 'ลีด', BUYS, CPM], head_scan=40, chunk=100)
     M['acct'] = [r for r in acct if re.match(r'^\d{4}-\d{2}-\d{2}$', str(r.get('เดือน (เริ่ม)') or '').strip())]
     M['daily'] = load_daily(sid, T)
-    log('Meta: แคมเปญ %d · โฆษณา %d · ข้อความต้อนรับ %d · รายเดือน %d/%d · รายวัน %d แถว' % (
-        len(M['camps']), len(M['ads']), len(M['welcome']), len(M['cmon']), len(M['amon']), len(M['daily'])))
+    log('Meta: แคมเปญ %d · โฆษณา %d · ข้อความต้อนรับ %d · รายเดือน %d/%d · รายวัน %d แถว · คำขอ %d (ลดขนาด %d)' % (
+        len(M['camps']), len(M['ads']), len(M['welcome']), len(M['cmon']), len(M['amon']), len(M['daily']),
+        STATS['calls'], STATS['shrink']))
     return M
 
 
 def load_daily(sid, T):
     tab = 'โฆษณารายวัน'
-    nrows, ncols = T[tab]
-    head = read_window(sid, tab, 1, 8, 'A', col_letter(ncols))
-    hr = next((i + 1 for i, r in enumerate(head) if r and str(r[0]).startswith('วันที่')), None)
-    if hr is None:
+    try:
+        hr, h = find_header(sid, tab, T, lambda s: s.startswith('วันที่'))
+    except ToolError:
         warn('ไม่พบหัวตาราง โฆษณารายวัน — จับคู่แชทด้วยวันที่ไม่ได้')
         return {}
-    h = [str(x).strip() for x in head[hr - 1]]
     try:
         ci_ad = h.index('Ad ID') + 1
-        ci_ch = h.index('เริ่มแชท (7 วัน)') + 1
+        ci_ch = h.index(CHATS) + 1
     except ValueError:
         warn('คอลัมน์ Ad ID / เริ่มแชท ในแท็บโฆษณารายวันเปลี่ยนชื่อ')
         return {}
+    cols = read_cols(sid, tab, hr + 1, T[tab][0], [1, ci_ad, ci_ch], 3000, 6000)
     out = {}
-    step = 3000
-    wins = [(r, min(nrows, r + step - 1)) for r in range(hr + 1, nrows + 1, step)]
-
-    def get(w):
-        a, b = w
-        A, B, C = batch_get(sid, ["'%s'!A%d:A%d" % (tab, a, b),
-                                  "'%s'!%s%d:%s%d" % (tab, col_letter(ci_ad), a, col_letter(ci_ad), b),
-                                  "'%s'!%s%d:%s%d" % (tab, col_letter(ci_ch), a, col_letter(ci_ch), b)])
-        return A, B, C
-
-    with ThreadPoolExecutor(3) as ex:
-        for A, B, C in ex.map(get, wins):
-            for i in range(len(A)):
-                d = (A[i][0] if A[i] else '').strip()
-                ad = (B[i][0] if i < len(B) and B[i] else '').strip()
-                ch = num(C[i][0]) if i < len(C) and C[i] else 0
-                if d and ad and ch:
-                    out[(d, ad)] = out.get((d, ad), 0) + ch
+    for d, ad, ch in zip(cols[1], cols[ci_ad], cols[ci_ch]):
+        d, ad, ch = str(d).strip(), str(ad).strip(), num(ch)
+        if d and ad and ch:
+            out[(d, ad)] = out.get((d, ad), 0) + ch
     return out
 
 
+SPEND, CHATS, BUYS = 'Spend (ยอดใช้จ่าย บาท)', 'เริ่มแชท (7 วัน)', 'การซื้อ'
+CPM, PRIMARY = 'CPM (บาท/1,000 ครั้ง)', 'ข้อความหลัก (primary text)'
+W_TEXT = 'ข้อความต้อนรับ (ข้อความแรกที่ลูกค้าเห็นในแชท)'
+W_BTN = 'ปุ่มคำถาม / ตอบด่วน (→ คำตอบอัตโนมัติ)'
+
+
 def build_ads_model(M):
-    W_TEXT = 'ข้อความต้อนรับ (ข้อความแรกที่ลูกค้าเห็นในแชท)'
-    W_BTN = 'ปุ่มคำถาม / ตอบด่วน (→ คำตอบอัตโนมัติ)'
     camps = {}
     for r in M['camps']:
         cid = str(r.get('Campaign ID') or '').strip()
@@ -642,15 +691,14 @@ def load_fb_month(sid, mkey):
     T = tabs_of(sid)
     if 'สรุปรายแชท' not in T:
         raise ToolError('ไม่พบแท็บ สรุปรายแชท')
-    _, summ = read_table(sid, 'สรุปรายแชท', T, 'เดือน', chunk=800, max_col=26, parallel=3)
+    _, summ = read_table(sid, 'สรุปรายแชท', T, 'เดือน', cols=[
+        'Thread ID', 'กลุ่ม', 'ป้าย Meta', 'แอดมินพิมพ์เองครั้งแรก', 'ทีมที่ตอบ', 'ได้รับราคา', 'ลูกค้าแจ้งจ่าย',
+        'หมวด (เกณฑ์ admin-hub)'], chunk=1500)
     threads = defaultdict(list)
     mtabs = [t for t in T if t.startswith('ข้อความ')]
-    for tab in mtabs:
-        try:
-            header, rows = read_table(sid, tab, T, 'เดือน', chunk=600, max_col=12, parallel=4)
-        except ToolError as e:
-            warn('อ่านแท็บข้อความไม่ได้ 1 แท็บ (%s)' % str(e)[:60])
-            continue
+    for tab in mtabs:                       # อ่านไม่ครบทุกแท็บ → ยกเลิกเดือนนี้ทั้งเดือน (ไม่สร้างโน้ตจากข้อมูลครึ่ง ๆ กลาง ๆ)
+        header, rows = read_table(sid, tab, T, 'เดือน', cols=['Thread ID', 'ลำดับ', 'เวลา', 'ฝ่าย', 'ประเภท', 'ข้อความ'],
+                                  heavy=('ข้อความ',), chunk=3000, heavy_chunk=800)
         for r in rows:
             tid = str(r.get('Thread ID') or '').strip()
             if not tid:
@@ -1345,7 +1393,9 @@ def main():
     lines = ['# สถานะระบบ', '', 'อัปเดตอัตโนมัติโดย GitHub Actions (admin-hub → obsidian-vault) — ไฟล์นี้ระบบเขียนทับทุกรอบ', '',
              '- เริ่ม: %s · เสร็จ: %s (%.0f วินาที)' % (STATUS['started'], STATUS['finished'], time.time() - t0),
              '- เดือนแชทที่ประมวลผลรอบนี้: %s' % (', '.join(processed) or '-'),
-             '- ช่วง 3 เดือนล่าสุดของ Meta: %s' % (', '.join(last3) or '-'), '']
+             '- ช่วง 3 เดือนล่าสุดของ Meta: %s' % (', '.join(last3) or '-'),
+             '- คำขอไป Composio %d · ลดขนาดช่วงอ่าน %d · พักรอโควตา Google %d · ลองใหม่ %d' % (
+                 STATS['calls'], STATS['shrink'], STATS['quota_waits'], STATS['retries']), '']
     lines += ['- ' + s for s in STATUS['steps']]
     if STATUS['warnings']:
         lines += ['', '## คำเตือน'] + ['- ' + w for w in STATUS['warnings']]
@@ -1368,4 +1418,8 @@ def main():
 
 
 if __name__ == '__main__':
-    main()
+    try:
+        main()
+    finally:
+        log('คำขอ %d · ลดขนาดช่วงอ่าน %d · พักรอโควตา %d · ลองใหม่ %d' % (
+            STATS['calls'], STATS['shrink'], STATS['quota_waits'], STATS['retries']))
