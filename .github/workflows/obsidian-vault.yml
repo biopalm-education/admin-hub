@@ -48,6 +48,14 @@ jobs:
       - name: ติดตั้ง dependency
         run: pip install --quiet --disable-pip-version-check requests pyyaml
 
+      - name: ป้ายคอลัมน์ ต้นทุนต่อการปิด
+        # ผู้ใช้ขอเปลี่ยนชื่อคอลัมน์ "บาท/การปิด" เป็น "ต้นทุนต่อการปิด" (22 ต.ค. 2026) — แก้ตอนรันเพราะ build_vault.py ใหญ่เกินจะแก้ผ่าน API
+        # ครั้งหน้าที่มีคนแก้ build_vault.py ทั้งไฟล์: เปลี่ยนข้อความในโค้ดตรง ๆ แล้วลบขั้นนี้ได้
+        run: |
+          sed -i 's|บาท/การปิด|ต้นทุนต่อการปิด|g; s|บาทต่อการปิด|ต้นทุนต่อการปิด|g' tools/vault/build_vault.py
+          if grep -q 'บาท/การปิด\|บาทต่อการปิด' tools/vault/build_vault.py; then echo 'ยังเหลือป้ายเดิม'; exit 1; fi
+          python -m py_compile tools/vault/build_vault.py
+
       - name: สร้างโน้ตแล้ว commit ลง vault
         env:
           COMPOSIO_API_KEY: ${{ secrets.COMPOSIO_API_KEY }}
