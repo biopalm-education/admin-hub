@@ -1,0 +1,61 @@
+name: meta-ads-export
+
+# ดึง Meta Ads ทุกระดับ (ชุดโฆษณา/โฆษณา รายเดือน + โฆษณารายวัน + ข้อความต้อนรับแชท + breakdown แยกแคมเปญ)
+# ลงชีต "ข้อมูล Meta Ads ..." — เพิ่มแท็บใหม่ ไม่แตะแท็บเดิม
+# งานแยกจาก refresh-dashboard (คนละ concurrency group) · ใช้ secret COMPOSIO_API_KEY ตัวเดิม ไม่ต้องตั้งเพิ่ม
+# repo นี้ public: log บอกแค่ขั้นตอน จำนวนแถว และผลตรวจ ตรง/ไม่ตรง — ตัวเลขจริงอยู่ในชีตเท่านั้น
+# ความคืบหน้าดูได้ที่แท็บ แหล่งข้อมูล แถว "สถานะงาน meta-ads-export"
+# รันเมื่อแก้ไฟล์ใน tools/meta_ads/ หรือกด Run workflow เอง (ไม่มีรอบอัตโนมัติ)
+
+on:
+  push:
+    branches: [main]
+    paths:
+      - 'tools/meta_ads/**'
+      - '.github/workflows/meta-ads-export.yml'
+  workflow_dispatch:
+    inputs:
+      since:
+        description: 'วันเริ่ม (YYYY-MM-DD เวลาบัญชี LA) เว้นว่าง = 2026-01-01'
+        required: false
+        default: ''
+      until:
+        description: 'วันจบ (YYYY-MM-DD เวลาบัญชี LA) เว้นว่าง = 2026-10-21'
+        required: false
+        default: ''
+      only:
+        description: 'เขียนเฉพาะแท็บ (คั่นด้วย comma) เว้นว่าง = ทุกแท็บใหม่'
+        required: false
+        default: ''
+
+concurrency:
+  group: meta-ads-export
+  cancel-in-progress: false
+
+permissions:
+  contents: read
+
+jobs:
+  export:
+    runs-on: ubuntu-latest
+    timeout-minutes: 150
+    steps:
+      - uses: actions/checkout@v5
+
+      - uses: actions/setup-python@v6
+        with:
+          python-version: '3.11'
+
+      - name: ติดตั้ง dependency
+        run: pip install --quiet --disable-pip-version-check requests
+
+      - name: ดึง Meta Ads แล้วเขียนลงชีต
+        env:
+          COMPOSIO_API_KEY: ${{ secrets.COMPOSIO_API_KEY }}
+          COMPOSIO_MCP_URL: ${{ vars.COMPOSIO_MCP_URL }}
+          MCP_PARALLEL: '4'
+          WORKERS: '4'
+          SINCE: ${{ inputs.since }}
+          UNTIL: ${{ inputs.until }}
+          ONLY: ${{ inputs.only }}
+        run: python tools/meta_ads/export.py
