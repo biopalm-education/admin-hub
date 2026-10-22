@@ -1,0 +1,58 @@
+name: obsidian-vault
+
+# สร้างโน้ต Obsidian (Meta Ads + แชท FB + sentiment) แล้ว commit ลง repo private biopalm-education/biopalm-insight
+# อ่านชีตอย่างเดียว + เขียน repo private ผ่าน Composio ตัวเดิม (secret COMPOSIO_API_KEY เดิม ไม่ต้องตั้งเพิ่ม)
+# งานแยกจาก refresh-dashboard (คนละ concurrency group) · รันต่อจาก refresh-dashboard ทุกเช้าเมื่อชีตอัปเดตเสร็จ
+# repo นี้ public: log พิมพ์แค่จำนวนและสถานะ ห้ามพิมพ์ชื่อหรือข้อความลูกค้า · ไม่อัปโหลด artifact
+# ผลแต่ละรอบดูได้ในโน้ต "05 สถานะระบบ" ของ vault
+
+on:
+  workflow_run:
+    workflows: [refresh-dashboard]
+    types: [completed]
+  push:
+    branches: [main]
+    paths:
+      - 'tools/vault/**'
+      - '.github/workflows/obsidian-vault.yml'
+  workflow_dispatch:
+    inputs:
+      months:
+        description: 'เดือนแชท FB ที่จะสร้างโน้ต เช่น 2026-10 หรือ 2026-09,2026-10 (เว้นว่าง = เดือนปัจจุบัน + เดือนก่อนถ้าวันที่ 1-3)'
+        required: false
+        default: ''
+      dry_run:
+        description: 'คำนวณอย่างเดียว ไม่ commit'
+        type: boolean
+        default: false
+
+concurrency:
+  group: obsidian-vault
+  cancel-in-progress: false
+
+permissions:
+  contents: read
+
+jobs:
+  build:
+    if: github.event_name != 'workflow_run' || github.event.workflow_run.conclusion == 'success'
+    runs-on: ubuntu-latest
+    timeout-minutes: 60
+    steps:
+      - uses: actions/checkout@v5
+
+      - uses: actions/setup-python@v6
+        with:
+          python-version: '3.11'
+
+      - name: ติดตั้ง dependency
+        run: pip install --quiet --disable-pip-version-check requests pyyaml
+
+      - name: สร้างโน้ตแล้ว commit ลง vault
+        env:
+          COMPOSIO_API_KEY: ${{ secrets.COMPOSIO_API_KEY }}
+          COMPOSIO_MCP_URL: ${{ vars.COMPOSIO_MCP_URL }}
+          MCP_PARALLEL: '4'
+          FB_MONTHS: ${{ inputs.months || (github.event_name == 'push' && '2026-10') || '' }}
+          DRY_RUN: ${{ inputs.dry_run && '1' || '' }}
+        run: python tools/vault/build_vault.py
