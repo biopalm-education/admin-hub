@@ -42,9 +42,22 @@ def fam_of_code(g):
     e=CAT.get(g)
     return family(e[0],e[1]) if e else None
 GC=re.compile(r'G\s?-?\s?(\d{3})')
+def card_heads(t):
+    """Positions of card headers that are followed by course lines (a 30-min window can hold a first and a revised card)."""
+    ks=[m.start() for m in re.finditer('สรุปรายละเอียด',t)]
+    out=[]
+    for j,q in enumerate(ks):
+        end=ks[j+1] if j+1<len(ks) else len(t)
+        if 'รหัสคอร์ส' in t[q:end]: out.append(q)
+    return ks,out
+def card_start(t):
+    ks,full=card_heads(t)
+    if full: return full[-1]          # the latest complete card = what the customer was asked to pay
+    return ks[0] if ks else -1
 def parse_card(text):
     t=str(text).replace('\\n','\n')
-    k=t.find('สรุปรายละเอียด')
+    k=card_start(t)
+    n_hdr=len(card_heads(t)[1])
     body=t[k:] if k>=0 else t
     nstu=re.search(r'สำหรับนักเรียน\s*(\d+)\s*ท่าน',body)
     blocks=re.split(r'(?=รหัสคอร์ส)',body)
@@ -86,4 +99,4 @@ def parse_card(text):
                    ('ราคาพิเศษ/โปร',r'ราคาพิเศษ|โปรโมชั่น|โปร\s'),('ส่วนลดอื่น',r'ส่วนลด|ลดเหลือ|ลดพิเศษ')]:
         if re.search(rx,body,re.I): disc.append(lab)
     mode='online' if re.search(r'online|ออนไลน์',body,re.I) else ('onsite' if re.search(r'onsite|ออนไซต์|MBK|สยาม',body,re.I) else '')
-    return dict(n_students=int(nstu.group(1)) if nstu else 1, items=items, total=tot, amounts=amts, disc=disc, mode=mode)
+    return dict(n_students=int(nstu.group(1)) if nstu else 1, items=items, total=tot, amounts=amts, disc=disc, mode=mode, n_hdr=n_hdr)

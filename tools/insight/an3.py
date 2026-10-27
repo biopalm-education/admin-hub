@@ -14,7 +14,7 @@ INT=[('แจ้ง/ถามระดับชั้น',re.compile(r'^\s*(?:�
      ('โปร/ส่วนลด',re.compile(r'โปร|ส่วนลด|ลดไหม|ลดได้|ลดราคา|early|ราคาพิเศษ',re.I)),
      ('วิธีสมัคร/จอง/ชำระเงิน',re.compile(r'สมัคร|ลงทะเบียน|จอง|โอน|ชำระ|จ่าย|ผ่อน|บัตร')),
      ('ตัวอย่าง/ทดลองเรียน/รีวิว',re.compile(r'ตัวอย่าง|ทดลอง|คลิป|รีวิว|ผลงาน')),
-     ('เรื่องนักเรียนปัจจุบัน (ลิงก์/เลื่อน/เอกสาร)',re.compile(r'ลิ้ง|ลิงก์|ลิงค์|เข้าไม่ได้|รหัสผ่าน|ขาดเรียน|ลาเรียน|เลื่อน|การบ้าน|ใบเสร็จ|ไม่ได้รับ')),
+     ('เรื่องนักเรียนปัจจุบัน (ลิงก์/เลื่อน/เอกสาร)',re.compile(r'ลิ้ง|ลิงก์|ลิงค์|เข้าไม่ได้|รหัสผ่าน|ขาดเรียน|(?<!เว)ลาเรียน|เลื่อน|การบ้าน|ใบเสร็จ|ไม่ได้รับ')),
      ('ทักทาย/สนใจ (ยังไม่ระบุ)',re.compile(r'^(?:สนใจ|สอบถาม|สวัสดี|ขอข้อมูล|ขอรายละเอียด)\S{0,6}$'))]
 def intents(x):
     return [lab for lab,rx in INT if rx.search(x)] or ['อื่น ๆ']
@@ -26,13 +26,14 @@ def norm(x):
     s=re.sub(r'[\s\.\?!,~😊🙏❤️👍🥰💕🏻]+',' ',s).strip().lower()
     return s
 faq=collections.Counter(); faqq=collections.Counter()
+fqi=collections.Counter(); fqex=collections.defaultdict(collections.Counter); oth=collections.Counter()
 QW=re.compile(r'ไหม|มั้ย|มั๊ย|ไหน|อะไร|เท่าไ|ยังไง|อย่างไร|กี่|หรือเปล่า|หรือป่าว|ได้ไหม|\?|ไหร')
 for l in open('firstmsgs.jsonl'):
     ch,tid,entry,paid,msgs=json.loads(l)
     T=TH.get((ch,tid))
     if not T or not T['islead'] or not msgs: continue
     nthr[ch]+=1
-    s5=set(); s10=set()
+    s5=set(); s10=set(); sq=set()
     for k,x in enumerate(msgs[:10]):
         ii=intents(x)
         for lab in ii:
@@ -43,7 +44,14 @@ for l in open('firstmsgs.jsonl'):
         if 2<=len(n)<=60:
             faq[(ch,n)]+=1
             if QW.search(x): faqq[(ch,n)]+=1
+        if QW.search(x):                      # a question: count each topic once per chat
+            for lab in ii:
+                if lab not in sq: fqi[(ch,lab)]+=1; sq.add(lab)
+                if 2<=len(n)<=60: fqex[(ch,lab)][n]+=1
     for lab in intents(msgs[0]): first1[(ch,lab)]+=1
+    if intents(msgs[0])==['อื่น ๆ']:
+        n=norm(msgs[0])
+        if 2<=len(n)<=60: oth[(ch,n)]+=1
     for lab in s5: it5[(ch,lab)]+=1
     for lab in s10: it10[(ch,lab)]+=1; itpaid[(ch,lab)]+=paid
 R['n_threads_typed']=dict(nthr)
@@ -52,6 +60,9 @@ R['int_first']={'%s|%s'%k:v for k,v in first1.items()}; R['int_msgs']={'%s|%s'%k
 R['int_paid']={'%s|%s'%k:v for k,v in itpaid.items()}
 R['faq_top']={ch:[(k[1],v) for k,v in faqq.most_common(6000) if k[0]==ch][:40] for ch in ('FB','LINE','IG')}
 R['faq_any_top']={ch:[(k[1],v) for k,v in faq.most_common(6000) if k[0]==ch][:40] for ch in ('FB','LINE','IG')}
+R['faq_intent']={'%s|%s'%k:v for k,v in fqi.items()}
+R['faq_intent_ex']={'%s|%s'%k:[e for e in v.most_common(8) if e[1]>=3] for k,v in fqex.items()}
+R['other_first']={ch:[(k[1],v) for k,v in oth.most_common(3000) if k[0]==ch][:40] for ch in ('FB','LINE')}
 P=json.load(open('purchases.json'))
 paid=[p for p in P['paid'] if p['items']]
 def kind(p):

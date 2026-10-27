@@ -1,13 +1,14 @@
 # -*- coding: utf-8 -*-
 # Small masked samples for checking the rules by eye (written to the PRIVATE vault only, never printed)
 import json, random, sqlite3, collections
+from products import card_start
 random.seed(2026)
 con=sqlite3.connect('chat.db'); c=con.cursor()
 TH=json.load(open('th.json')); roles=json.load(open('roles.json'))
 P=json.load(open('purchases.json'))
 cards={(x[0],x[1],x[2]):x[3] for x in json.load(open('cards.json'))}
 def body(p):
-    t=cards.get((p['ch'],p['tid'],p['t']),'').replace('\\n','\n'); k=t.find('สรุปรายละเอียด')
+    t=cards.get((p['ch'],p['tid'],p['t']),'').replace('\\n','\n'); k=card_start(t)
     t=t[k:] if k>=0 else t
     q=t.find('โอนชำระ')
     return (t[:q] if q>0 else t)[:900]

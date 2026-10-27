@@ -32,11 +32,20 @@ APP=[('ถามระดับชั้น/เป้าหมายก่อน
      ('ส่งตัวอย่าง/ทดลองเรียน',TRIAL)]
 PROB=[('ราคา/ขอส่วนลด',re.compile(r'แพง|ลดได้|ลดหน่อย|ลดให้|ส่วนลด|ผ่อน|ถูกกว่า|ลดราคา')),
       ('เวลาไม่ตรง/ไม่ว่าง/เต็ม',re.compile(r'ไม่ว่าง|เวลาไม่ตรง|ไม่สะดวก|ชนกับ|เวลาชน|ติดเรียน|ติดสอบ|เรียนไม่ทัน|ไม่ทันแล้ว|เต็มแล้ว')),
-      ('ลังเล/ขอคิดก่อน',re.compile(r'ขอคิด|ปรึกษา(?:ก่อน|ลูก|น้อง|พ่อ|แม่|ที่บ้าน|กับ)|ไว้ก่อน|ยังไม่แน่ใจ|เดี๋ยว(?:แจ้ง|ทัก|บอก|ตัดสินใจ)|ขอดูก่อน|ถามน้องก่อน|ถามลูกก่อน')),
-      ('ทวงคำตอบ/รอนาน',re.compile(r'ยังไม่ได้คำตอบ|รอนาน|ไม่ตอบ|ตอบด้วย|มีใครอยู่ไหม|อยู่ไหม(?:คะ|ครับ)|แอดมิน(?:คะ|ครับ)\s*$')),
+      # "ไว้ก่อน" alone also hits "ลงคอร์สไว้ก่อนสอบ" -> only explicit put-off phrases
+      ('ลังเล/ขอคิดก่อน',re.compile(r'ขอคิด|ขอปรึกษา|ปรึกษา(?:ก่อน|ลูก|น้อง|พ่อ|แม่|ที่บ้าน|กับ|คุณ)|ขอ(?:ดู|ไว้)ก่อน|ไว้ก่อนนะ|ยังไม่แน่ใจ|(?:เดี๋ยว|เด๋ว|เดะ)\s*(?:แจ้ง|ทัก|บอก|ตัดสินใจ|ปรึกษา|ถาม|สอบถาม|คุย)|ถาม(?:น้อง|ลูก)ก่อน|ขอถาม(?:น้อง|ลูก)')),
+      # "อยู่ไหมคะ" alone also hits "ยังว่างอยู่ไหมคะ" -> only nudges aimed at the admin
+      ('ทวงคำตอบ/รอนาน',re.compile(r'ยังไม่ได้คำตอบ|รอนาน|ทำไมไม่ตอบ|ไม่ตอบเลย|ไม่มีคนตอบ|ช่วยตอบ|ตอบด้วย|(?:มีใคร|มีคน|แอดมิน)อยู่ไหม|^\s*แอดมิน(?:คะ|ครับ|ค่ะ)?\s*$|^\s*(?:ฮัลโหล|hello)\s*$',re.I)),
       ('เข้าเรียน/ลิงก์/เอกสาร มีปัญหา',re.compile(r'เข้าไม่ได้|ไม่ได้รับ(?:ลิ้ง|ลิงก์|ลิงค์|อีเมล|เมล)|รหัสผ่าน|เปิดไม่ได้|ดูไม่ได้|เอกสาร(?:ไม่|ยัง)|ไฟล์(?:ไม่|ยัง)|ย้อนหลังไม่')),
       ('การโอน/สลิป/ใบเสร็จ',re.compile(r'โอนไม่ได้|โอนผิด|สลิป(?:ไม่|ผิด|ยัง)|ใบเสร็จ|ใบกำกับ|บัตรเครดิต|ผ่อนชำระ|คืนเงิน')),
-      ('ขอเลื่อน/ลา/เปลี่ยนกลุ่ม',re.compile(r'เลื่อน|ลาเรียน|ขอลา|เปลี่ยนกลุ่ม|ย้ายกลุ่ม|ขาดเรียน'))]
+      # "ลาเรียน" is inside "เวลาเรียน" -> lookbehind
+      ('ขอเลื่อน/ลา/เปลี่ยนกลุ่ม',re.compile(r'เลื่อน|(?<!เว)ลาเรียน|ขอลา|เปลี่ยนกลุ่ม|ย้ายกลุ่ม|ขาดเรียน'))]
+# customer reactions that say our last message did not land
+NEG=[('ไม่สนใจ/ให้หยุดส่ง',re.compile(r'ไม่สนใจ|ไม่ต้อง(?:ส่ง|ทัก|ตาม)|หยุดส่ง|เลิกส่ง|สแปม|spam',re.I)),
+     ('ตอบไม่ตรง/ต้องถามซ้ำ',re.compile(r'ตอบไม่ตรง|ไม่ตรงคำถาม|ไม่ได้ถาม|ที่ถาม(?:คือ|ไป)|ถามไปแล้ว|ถามอีกที|ถามใหม่|ไม่ตอบคำถาม|ยังไม่ได้ตอบ')),
+     ('อยากคุยกับคน/ไม่อยากคุยกับบอท',re.compile(r'คุยกับ(?:คน|แอดมิน|เจ้าหน้าที่)|ขอคุยกับ|แอดมินตัวจริง|เป็นบอท|ใช่บอท|บอทตอบ|ข้อความอัตโนมัติ|ระบบอัตโนมัติ')),
+     ('ไม่เข้าใจ/ยาวไป',re.compile(r'ยาวไป|อ่านไม่ไหว|ไม่เข้าใจ|งง(?:ค่ะ|ครับ|มาก|นิด|อะ|อ่ะ|เลย)'))]
+CARDISH=re.compile(r'รหัสคอร์ส|สรุปรายละเอียด|ยอดชำระ|คงเหลือชำระ|โอนชำระ|〔บัญชีBioPalm〕|ชื่อบัญชี')
 END={'FB':int((dt.datetime(2026,10,27)-T0).total_seconds()//60),'IG':int((dt.datetime(2026,10,27)-T0).total_seconds()//60),'LINE':int((dt.datetime(2026,10,21)-T0).total_seconds()//60)}
 con=sqlite3.connect('chat.db')
 waits=collections.Counter(); tn=collections.Counter(); tr=collections.Counter(); lastk=collections.Counter(); lastk_all=0
@@ -45,6 +54,8 @@ bund=collections.defaultdict(collections.Counter); bundn=collections.Counter()
 rec=collections.defaultdict(lambda:[0,0]); recq=collections.Counter()
 prob=collections.defaultdict(lambda:[0,0]); probex=collections.defaultdict(list)
 pricesrc=collections.Counter()
+lastA=collections.Counter(); lastA_all=collections.Counter()
+neg=collections.defaultdict(lambda:[0,0]); negex=collections.defaultdict(list); negprev=collections.defaultdict(collections.Counter)
 def process(ch,th):
     global lastk_all
     tid=th[0][0]; T=TH.get((ch,tid))
@@ -79,11 +90,16 @@ def process(ch,th):
         if T['scen'] in ('S3','S4','S5') and T['ended_by'] in ('H','B'):
             lo=next((x for _,t,r,x in reversed(th) if r in ('H','B') and not ATT.match(x) and len(x.strip())>=8),None)
             if lo: lastk[(ch,tkey(lo))]+=1; lastk_all+=1
+        # scenario A: only the bot ever answered and the customer did not buy
+        if not T['paid'] and T['n_h']==0:
+            lo=next((x for _,t,r,x in reversed(th) if r=='B' and not ATT.match(x) and len(x.strip())>=8),None)
+            if lo: lastA[(ch,tkey(lo))]+=1; lastA_all[ch]+=1
     if T['paid'] and T['first_real_t'] is not None:
         d=(T['paid_t']-T['first_real_t'])/1440
         g='≤1 วัน' if d<=1 else ('1–7 วัน' if d<=7 else '>7 วัน')
         pre=[(t,r,x) for _,t,r,x in th if t<=T['paid_t']]
-        ours=[x for t,r,x in pre if r in ('H','B')]; hum=[x for t,r,x in pre if r=='H']
+        # leave out the payment card itself (it always has a schedule and often a discount line)
+        ours=[x for t,r,x in pre if r in ('H','B') and not CARDISH.search(x)]; hum=[x for t,r,x in pre if r=='H']
         f=fastf[(ch,g)]; fastn[(ch,g)]+=1
         f['ส่งตัวอย่าง/ทดลองเรียน']+=int((T['sample_t'] is not None and T['sample_t']<=T['paid_t']) or any(TRIAL.search(x) for x in ours))
         f['บอกโปร/ส่วนลด']+=int(any(PROMO.search(x) for x in ours))
@@ -97,7 +113,7 @@ def process(ch,th):
         fams={(it['fam'],it['tape']) for it in p['items']}
         kind='หลายคน' if p['n_students']>=2 else ('หลายคอร์ส' if len(fams)>=2 else 'คอร์สเดียว')
         pre=[(t,r,x) for _,t,r,x in th if t<p['t']]
-        ours=[x for t,r,x in pre if r in ('H','B')]
+        ours=[x for t,r,x in pre if r in ('H','B') and not CARDISH.search(x)]
         cf=set()
         for t,r,x in pre:
             if r=='C' and real(x): cf|={family(x)}-{'OTHER'}
@@ -122,6 +138,13 @@ def process(ch,th):
         if hit:
             z=prob[(ch,lab)]; z[0]+=1; z[1]+=T['paid']
             if len(probex[(ch,lab)])<40: probex[(ch,lab)].append(hit[:90])
+    for lab,rx in NEG:
+        j=next((j for j,(t,r,x) in enumerate(seq) if r=='C' and real(x) and rx.search(x)),None)
+        if j is None: continue
+        z=neg[(ch,lab)]; z[0]+=1; z[1]+=T['paid']
+        if len(negex[(ch,lab)])<40: negex[(ch,lab)].append(seq[j][2][:90])
+        pv=next(((r,x) for t,r,x in reversed(seq[:j]) if r in ('H','B') and not ATT.match(x) and len(x.strip())>=8),None)
+        if pv: negprev[(ch,lab)][('คน' if pv[0]=='H' else 'บอท')+' · '+tkey(pv[1])]+=1
 for ch in ('FB','LINE','IG'):
     cur=con.cursor(); cur.execute("SELECT tid,t,role2,txt FROM msg WHERE ch=? ORDER BY tid,t,seq",(ch,))
     buf=[]; last=None
@@ -146,5 +169,8 @@ R['fast']={'%s|%s'%k:dict(v) for k,v in fastf.items()}; R['fast_n']={'%s|%s'%k:v
 R['bundle_feat']={'%s|%s'%k:dict(v) for k,v in bund.items()}; R['bundle_n']={'%s|%s'%k:v for k,v in bundn.items()}
 R['rec']={'%s|%s'%k:[v[0],v[1]] for k,v in rec.items()}; R['rec_q']={'%s|%s'%k:v for k,v in recq.items()}
 R['prob']={'%s|%s'%k:v for k,v in prob.items()}; R['prob_ex']={'%s|%s'%k:v for k,v in probex.items()}
+R['lastA']=[(k[0],k[1],v) for k,v in lastA.most_common(60)]; R['lastA_total']=dict(lastA_all)
+R['neg']={'%s|%s'%k:v for k,v in neg.items()}; R['neg_ex']={'%s|%s'%k:v for k,v in negex.items()}
+R['neg_prev']={'%s|%s'%k:v.most_common(8) for k,v in negprev.items()}
 json.dump(R,open('res2.json','w'),ensure_ascii=False)
 print('templates>=40',len(R['templates']),'last-before-silence total',lastk_all)

@@ -78,6 +78,12 @@ for r in TH:
         n=r['n_creal']; k=str(n) if n<=4 else '5+'
         sb[(r['ch'],r['scen'],k,'ลูกค้าเงียบ' if r['ended_by'] in ('H','B') else 'แอดมินยังไม่ตอบ')]+=1
 R['stuck']={'|'.join(k):v for k,v in sb.items()}
+# scenario A (only the bot ever answered) vs B (a person answered), finished leads only
+bo=collections.Counter()
+for r in TH:
+    if r['islead'] and not r['ongoing']:
+        bo[(r['ch'],'บอทอย่างเดียว' if r['n_h']==0 else 'มีคนตอบ','พิมพ์เอง' if r['n_creal']>0 else 'กดปุ่มอย่างเดียว',r['paid'])]+=1
+R['botonly']={'%s|%s|%s|%d'%k:v for k,v in bo.items()}
 ep=collections.Counter((r['ch'],r['entry'],r['paid']) for r in TH if r['islead'])
 R['entry_paid']={'%s|%s|%d'%k:v for k,v in ep.items()}
 json.dump(R,open('res1.json','w'),ensure_ascii=False)

@@ -43,7 +43,13 @@ S['last_before_silence']=R2['last_before_silence'][:30]; S['last_total']=R2['las
 S['fast']=R2['fast']; S['fast_n']=R2['fast_n']
 S['bundle_feat']=R2['bundle_feat']; S['bundle_n']=R2['bundle_n']
 S['rec']=R2['rec']; S['rec_q']=R2['rec_q']
-S['prob']=R2['prob']; S['prob_ex']={k:v[:4] for k,v in R2['prob_ex'].items()}
+S['prob']=R2['prob']; S['prob_ex']={k:v[:6] for k,v in R2['prob_ex'].items()}
+S['botonly']=R1['botonly']
+S['lastA']=R2['lastA'][:30]; S['lastA_total']=R2['lastA_total']
+S['neg']=R2['neg']; S['neg_ex']={k:v[:6] for k,v in R2['neg_ex'].items()}; S['neg_prev']=R2['neg_prev']
+S['faq_intent']=R3['faq_intent']; S['faq_intent_ex']=R3['faq_intent_ex']
+S['other_first']={ch:[e for e in v if e[1]>=3][:30] for ch,v in R3['other_first'].items()}
+S['tmpl']['LINE_B_low']=pick('LINE','บอท',True,8)
 for k in ('n_threads_typed','int5','int10','int_first','int_paid','prod','prod_partners','prod_month','prod_days','kinds','kinds_month','combos','archetypes','disc_by_kind','kind_n'):
     S[k]=R3[k]
 S['faq_top']={ch:R3['faq_top'][ch][:30] for ch in R3['faq_top']}
@@ -69,7 +75,8 @@ for p in P['paid']:
 S['val_line_notes']=dict(compared=tot,exact=agree,partial=part,no_note=none)
 amt_ok=sum(1 for p in P['paid'] if p['items'] and p['total'] and abs(p['paid_amt']-p['total'])<=1)
 S['val_amount']=dict(match=amt_ok,of=sum(1 for p in P['paid'] if p['items']))
-S['purch_counts']=dict(with_card=sum(1 for p in P['paid'] if p['items']),orphan=sum(1 for p in P['paid'] if not p['items']),unpaid_cards=len(P['unpaid']))
+S['purch_counts']=dict(with_card=sum(1 for p in P['paid'] if p['items']),orphan=sum(1 for p in P['paid'] if not p['items']),unpaid_cards=len(P['unpaid']),
+                       revised_card_in_window=sum(1 for p in P['paid'] if p['items'] and p.get('n_hdr',0)>=2))
 S['roles_count']=dict(collections.Counter(v for v in json.load(open('roles.json')).values()))
 json.dump(S,open('summary.json','w'),ensure_ascii=False,separators=(',',':'))
 print('summary bytes',len(json.dumps(S,ensure_ascii=False)))
