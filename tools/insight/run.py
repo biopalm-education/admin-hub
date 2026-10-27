@@ -1,9 +1,11 @@
 # -*- coding: utf-8 -*-
-"""Insight แชท (Biopalm) — อ่านชีต FB / LINE / IG Chat Log ทั้งปี แล้ววิเคราะห์ (ผปค/นักเรียน, scenario, ความเร็วตอบ,
+"""Insight แชท (Biopalm) — อ่านแชท FB / LINE / IG ทั้งปีจากข้อมูลแดชบอร์ด admin-hub (data/*.json ถอดด้วย secret ADMIN_SECRET
+ของ repo เอง) + โน้ตลงทะเบียน LINE จากชีต แล้ววิเคราะห์ (ผปค/นักเรียน, scenario, ความเร็วตอบ,
 ข้อความกับผลลัพธ์, bundle, คำถามที่พบบ่อย) แล้วเขียนผลสรุปลง vault private (.vault/insight/)
 
 รันใน GitHub Actions (.github/workflows/obsidian-insight.yml) — repo admin-hub เป็น public:
-  * อ่านชีตอย่างเดียว ผ่าน Composio (tools/meta_ads/composio_shim.py ตัวเดิม · secret COMPOSIO_API_KEY เดิม)
+  * ข้อมูลแชท: data/*.json ใน repo นี้ ถอดรหัสในเครื่อง runner ด้วย ADMIN_SECRET (secret เดิมของงาน refresh-dashboard)
+  * โน้ตลงทะเบียน LINE: อ่านชีตอย่างเดียว ผ่าน Composio (tools/meta_ads/composio_shim.py ตัวเดิม · secret COMPOSIO_API_KEY เดิม)
   * เขียนเฉพาะ repo private biopalm-insight ผ่าน Composio GitHub (บัญชีเดียวกับ obsidian-vault)
   * log พิมพ์แค่ชื่อขั้น / สถานะ / จำนวน — ไม่พิมพ์ชื่อหรือข้อความลูกค้า ไม่พิมพ์ข้อความ error ดิบ ไม่อัปโหลด artifact
   * ข้อมูลดิบอยู่แค่ในเครื่อง runner ชั่วคราว (ลบเมื่อจบงาน)
@@ -184,13 +186,8 @@ def pick_sheets():
 
 
 def wanted(key, tab):
-    if key.startswith('fb'):
-        return tab.startswith('ข้อความ') or tab == 'สรุปรายแชท'
-    if key.startswith('line'):
-        return tab.startswith('ข้อความ') or tab.startswith('โน้ตลงทะเบียน') or tab.startswith('สรุปรายแชท')
-    if key.startswith('ig'):
-        return tab.startswith('ข้อความดิบ') or tab.startswith('สรุปรายแชท')
-    return False
+    # แชทมาจากข้อมูลแดชบอร์ดแล้ว — จากชีตเอาแค่โน้ตลงทะเบียน LINE (รหัสคอร์ส G)
+    return key.startswith('line') and tab.startswith('โน้ตลงทะเบียน')
 
 
 def pull():
@@ -202,6 +199,8 @@ def pull():
                                                     sum(1 for k in sheets if k.startswith('ig'))))
     jobs = []
     for key, sid in sorted(sheets.items()):
+        if not key.startswith('line'):
+            continue
         for tab, nrows, ncols in tabs_of(sid):
             if wanted(key, tab):
                 jobs.append((key, sid, tab, nrows, ncols))
@@ -223,7 +222,7 @@ def pull():
         len(jobs), sum(n), STAT['calls'], STAT['shrink'], STAT['quota_waits']))
 
 
-STEPS = ['mk_rules.py', 'build_db.py', 'relabel.py', 'ex_cards.py', 'purchases.py', 'features.py', 'roles.py',
+STEPS = ['mk_rules.py', 'build_db_hub.py', 'ex_cards.py', 'purchases.py', 'features.py', 'roles.py',
          'an1.py', 'an2.py', 'an3.py', 'summarize.py', 'samples.py']
 
 
@@ -276,7 +275,10 @@ def main():
     stamp = time.strftime('%Y-%m-%d %H:%M', time.gmtime(time.time() + 7 * 3600))
     ok = False
     try:
-        pull()
+        try:
+            pull()
+        except Exception as e:                 # notes are optional (validation only)
+            say('อ่านโน้ตลงทะเบียน LINE จากชีตไม่ได้ (%s) — ข้ามขั้นตรวจเทียบโน้ต' % type(e).__name__)
         ok = run_steps()
     except Exception as e:
         tb = traceback.extract_tb(e.__traceback__)
