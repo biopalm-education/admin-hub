@@ -43,10 +43,10 @@ S['last_before_silence']=R2['last_before_silence'][:30]; S['last_total']=R2['las
 S['fast']=R2['fast']; S['fast_n']=R2['fast_n']
 S['bundle_feat']=R2['bundle_feat']; S['bundle_n']=R2['bundle_n']
 S['rec']=R2['rec']; S['rec_q']=R2['rec_q']
-S['prob']=R2['prob']; S['prob_ex']={k:v[:6] for k,v in R2['prob_ex'].items()}
+S['prob']=R2['prob']   # raw customer snippets (prob_ex / neg_ex) stay out: they can carry names typed by customers
 S['botonly']=R1['botonly']
 S['lastA']=R2['lastA'][:30]; S['lastA_total']=R2['lastA_total']
-S['neg']=R2['neg']; S['neg_ex']={k:v[:6] for k,v in R2['neg_ex'].items()}; S['neg_prev']=R2['neg_prev']
+S['neg']=R2['neg']; S['neg_prev']=R2['neg_prev']
 S['faq_intent']=R3['faq_intent']; S['faq_intent_ex']=R3['faq_intent_ex']
 S['other_first']={ch:[e for e in v if e[1]>=3][:30] for ch,v in R3['other_first'].items()}
 S['tmpl']['LINE_B_low']=pick('LINE','บอท',True,8)
