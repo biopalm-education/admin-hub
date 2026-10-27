@@ -488,7 +488,9 @@ def post_note(r, stamp):
         'saved', 'profile_visits', 'follows', 'avg_watch_s', 'skip_rate', 'shortcode'))) + '\n---\n'
     cap = str(r['caption'] or '').strip()
     cap = cap if len(cap) <= 400 else cap[:400].rstrip() + '…'
-    capq = '\n'.join('> ' + ln for ln in cap.splitlines() if ln.strip()) or '> (ไม่มีข้อความ)'
+    # บรรทัดแคปชันที่ขึ้นต้น "# " กลายเป็นหัวข้อใน Obsidian → ใส่ \ ให้เป็นตัวอักษรธรรมดา
+    capq = '\n'.join('> ' + re.sub(r'^(\s*)#', r'\1\\#', ln) if re.match(r'\s*#{1,6}\s', ln) else '> ' + ln
+                     for ln in cap.splitlines() if ln.strip()) or '> (ไม่มีข้อความ)'
     lab_reach = 'คนดูไม่ซ้ำ' if r['platform'] == 'FB' else 'Reach'
     lab_like = 'Reaction' if r['platform'] == 'FB' else 'ไลก์'
     rows = [('ยอดดู', fmt_n(r['views'])), (lab_reach, fmt_n(r['reach'])), (lab_like, fmt_n(r['likes'])), ('คอมเมนต์', fmt_n(r['comments'])),
