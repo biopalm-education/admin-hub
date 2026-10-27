@@ -31,7 +31,7 @@ SINCE = os.environ.get('SINCE') or '2026-01-01'
 DRY = (os.environ.get('DRY_RUN') or '').strip().lower() in ('1', 'true', 'yes')
 WORKERS = int(os.environ.get('WORKERS') or 3)
 T0 = time.time()
-STATS = {'calls': 0, 'shrink': 0, 'fb_ins_fail': 0, 'ig_ins_fail': 0, 'ig_ins_partial': 0}
+STATS = {'calls': 0, 'shrink': 0, 'fb_ins_fail': 0, 'ig_ins_fail': 0, 'ig_ins_partial': 0, 'fb_no_caption': 0}
 TH_M = ['', 'ม.ค.', 'ก.พ.', 'มี.ค.', 'เม.ย.', 'พ.ค.', 'มิ.ย.', 'ก.ค.', 'ส.ค.', 'ก.ย.', 'ต.ค.', 'พ.ย.', 'ธ.ค.']
 
 
@@ -130,6 +130,51 @@ def paged(slug, base, limit, stop_before=None):
     return out
 
 
+def fb_posts(page, start):
+    """โพสต์เพจ FB ตั้งแต่ start (ใหม่ → เก่า)
+    FACEBOOK_GET_PAGE_POSTS ไม่มีช่อง 'after' — Composio ตัดทิ้งเงียบ ๆ แล้วคืนหน้าแรกซ้ำ (รอบแรกจึงได้แค่ 12 โพสต์)
+    → ไล่ย้อนด้วย until = เวลาโพสต์เก่าสุดของหน้าก่อน · until รวมวินาทีนั้นด้วย จึงกรอง ID ซ้ำออก"""
+    out, seen, limit, until, lite = [], set(), 10, None, False
+    for _ in range(1000):                                  # กันวนไม่จบ
+        args = {'page_id': page, 'fields': FB_FIELDS_LITE if lite else FB_FIELDS, 'since': str(since_ts()), 'limit': limit}
+        if until is not None:
+            args['until'] = str(until)
+        try:
+            d = call('FACEBOOK_GET_PAGE_POSTS', args)
+        except CallError as e:
+            if 'TOO_LARGE' in str(e) and limit > 1:       # แคปชันยาว คำตอบเกินขนาดที่ Composio ส่งกลับ
+                limit = max(1, limit // 2)
+                STATS['shrink'] += 1
+                continue
+            if 'TOO_LARGE' in str(e) and not lite:         # โพสต์เดียวยังใหญ่เกิน → เอาหน้านี้แบบไม่มีแคปชัน
+                lite = True
+                continue
+            raise
+        items = [x for x in rows_of(d) if isinstance(x, dict) and x.get('id')]
+        ts = [t for t in (to_bkk(x.get('created_time')) for x in items) if t]
+        new = [x for x in items if x['id'] not in seen]
+        for x in new:
+            seen.add(x['id'])
+            if lite:
+                x['_no_caption'] = True
+                STATS['fb_no_caption'] += 1
+        out.extend(new)
+        if lite:
+            lite = False
+        elif limit < 10:
+            limit = min(10, limit * 2)                     # ผ่านหน้าหนักแล้ว ค่อยขยายหน้ากลับ
+        if not ts or min(ts) < start:
+            break
+        oldest = int(min(ts).timestamp())
+        stuck = until is not None and oldest >= until       # ทั้งหน้าอยู่วินาทีเดียวกับ until เดิม
+        if not new and not stuck:
+            break                                          # ไม่มีโพสต์ใหม่แล้ว
+        until = oldest - 1 if stuck else oldest            # stuck → ถอยอีก 1 วินาทีไม่ให้วนซ้ำ
+    else:
+        raise CallError('FB: หน้าเกิน 1000 รอบ')
+    return out
+
+
 def find_page():
     d = call('FACEBOOK_LIST_MANAGED_PAGES', {'fields': 'id,name', 'limit': 50})
     for p in rows_of(d):
@@ -140,6 +185,7 @@ def find_page():
 
 FB_FIELDS = ('id,created_time,status_type,permalink_url,message,from{id},attachments{media_type,url},'
              'reactions.summary(true).limit(0),comments.summary(true).limit(0),shares')
+FB_FIELDS_LITE = FB_FIELDS.replace('message,', '')
 
 
 def fb_format(p):
@@ -256,7 +302,7 @@ def build_fb(posts, page_id, ins):
         f = fb_format(p)
         out.append(dict(platform='FB', posted=t.strftime('%Y-%m-%d %H:%M'), month=t.strftime('%Y-%m'), format=f, group=group_of(f),
                         post_id=p['id'], key=p['id'].split('_')[-1], link=p.get('permalink_url') or '',
-                        caption=str(p.get('message') or ''), views=views, reach=uniq, likes=rx, comments=cm, shares=sh, saved=None,
+                        caption='(แคปชันยาวเกินกว่าที่ดึงได้ — เปิดลิงก์โพสต์)' if p.get('_no_caption') else str(p.get('message') or ''), views=views, reach=uniq, likes=rx, comments=cm, shares=sh, saved=None,
                         interactions=inter, rate=pct(inter, uniq), profile_visits=None, follows=None,
                         avg_watch_s=None, watch_total_h=None, skip_rate=None))
     return out
@@ -542,8 +588,8 @@ def main():
     if not SID:
         sys.exit('ไม่พบชีตที่ตรงกับ hash')
     start = dt.datetime.fromisoformat(SINCE).replace(tzinfo=BKK)
-    fbp = paged('FACEBOOK_GET_PAGE_POSTS', {'page_id': page, 'fields': FB_FIELDS, 'since': str(since_ts())}, 50, start)
-    log('FB โพสต์ %d' % len(fbp))
+    fbp = fb_posts(page, start)
+    log('FB โพสต์ %d · ไม่มีแคปชัน %d' % (len(fbp), STATS['fb_no_caption']))
     igm = paged('INSTAGRAM_GET_IG_USER_MEDIA', {'ig_user_id': 'me', 'since': since_ts(),
                                                 'fields': 'id,caption,media_type,media_product_type,permalink,shortcode,timestamp,like_count,comments_count'},
                 50, start)
