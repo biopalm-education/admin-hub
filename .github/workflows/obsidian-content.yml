@@ -1,0 +1,57 @@
+name: obsidian-content
+
+# insight คอนเทนต์ออร์แกนิก Facebook Page + Instagram ทุกโพสต์ตั้งแต่ 1 ม.ค. 2026
+# → ชีต "Biopalm Content Insight — FB/IG 2026" (ข้อมูลดิบ) + vault private biopalm-insight โฟลเดอร์ Content/ (1 โพสต์ = 1 โน้ต)
+# ผ่าน Composio MCP ตัวเดิม (secret COMPOSIO_API_KEY) · ไม่แตะงานอื่น (คนละ concurrency group)
+# repo นี้ public: log บอกแค่ขั้นตอนและจำนวน — ไม่พิมพ์ ID ข้อความโพสต์ หรือตัวเลข insight
+# รอบอัตโนมัติ: ทุกวันจันทร์ ~06:23 น. เวลาไทย · กด Run workflow เองได้
+
+on:
+  schedule:
+    - cron: '23 23 * * 0'
+  workflow_dispatch:
+    inputs:
+      since:
+        description: 'โพสต์ตั้งแต่วันที่ (YYYY-MM-DD เวลาไทย) เว้นว่าง = 2026-01-01'
+        required: false
+        default: ''
+      dry_run:
+        description: 'ดึงอย่างเดียว ไม่เขียนชีตและ vault'
+        type: boolean
+        default: false
+  push:
+    branches: [main]
+    paths:
+      - 'tools/content/**'
+      - '.github/workflows/obsidian-content.yml'
+
+concurrency:
+  group: obsidian-content
+  cancel-in-progress: false
+
+permissions:
+  contents: read
+
+jobs:
+  content:
+    runs-on: ubuntu-latest
+    timeout-minutes: 60
+    steps:
+      - uses: actions/checkout@v5
+
+      - uses: actions/setup-python@v6
+        with:
+          python-version: '3.11'
+
+      - name: ติดตั้ง dependency
+        run: pip install --quiet --disable-pip-version-check requests
+
+      - name: ดึง insight โพสต์ FB/IG แล้วเขียนลงชีตและ vault
+        env:
+          COMPOSIO_API_KEY: ${{ secrets.COMPOSIO_API_KEY }}
+          COMPOSIO_MCP_URL: ${{ vars.COMPOSIO_MCP_URL }}
+          MCP_PARALLEL: '3'
+          WORKERS: '3'
+          SINCE: ${{ inputs.since }}
+          DRY_RUN: ${{ inputs.dry_run && '1' || '' }}
+        run: python tools/content/pull.py

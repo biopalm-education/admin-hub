@@ -1,0 +1,16 @@
+# insight คอนเทนต์ออร์แกนิก FB / IG
+
+`pull.py` ดึงทุกโพสต์ของเพจ Facebook และ Instagram ตั้งแต่ 1 ม.ค. 2026 (ปรับด้วย `SINCE`) พร้อมตัวเลขรายโพสต์
+
+| ช่องทาง | ตัวเลข |
+|---|---|
+| FB | ยอดดู (post_media_view) · คนดูไม่ซ้ำ · reaction · คอมเมนต์ · แชร์ |
+| IG | ยอดดู · reach · ไลก์ · คอมเมนต์ · เซฟ · แชร์ · interaction รวม · เข้าโปรไฟล์ · ฟอลโลว์ใหม่ · Reel: เวลาดูเฉลี่ย / เวลาดูรวม / อัตราปัดทิ้ง |
+
+ผลลัพธ์ (เขียนทับทุกรอบ)
+- ชีต **Biopalm Content Insight — FB/IG 2026** แท็บ คำอธิบาย / FB โพสต์ / IG โพสต์ / สรุปรายเดือน
+- vault private `biopalm-insight`: `Content/<FB|IG>/<เดือน>/<วันที่> <ช่องทาง> <ประเภท> <ID>.md`, `Content/สรุปคอนเทนต์.md`, `.vault/content/posts.json`
+
+รัน: GitHub Actions `obsidian-content` — ทุกวันจันทร์อัตโนมัติ หรือกด Run workflow (ใส่ `since` ได้ / ติ๊ก dry_run เพื่อลองดึงอย่างเดียว)
+
+ข้อจำกัด: FB วิดีโอยังไม่มีเวลาดู (Composio ไม่มีเครื่องมือ video_insights) · Stories ย้อนหลังไม่ได้ · ID เพจและชีตไม่เขียนในไฟล์ (เทียบ hash) เพราะ repo นี้ public
