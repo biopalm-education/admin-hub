@@ -223,7 +223,11 @@ def pull():
 
 
 STEPS = ['mk_rules.py', 'build_db_hub.py', 'ex_cards.py', 'purchases.py', 'features.py', 'roles.py',
-         'an1.py', 'an2.py', 'an3.py', 'summarize.py', 'samples.py']
+         'an1.py', 'an2.py', 'an3.py', 'summarize.py']
+# masked chat samples for checking the rules by eye: only when asked (Run workflow -> samples), never on push
+SAMPLES = os.environ.get('SAMPLES') == '1'
+if SAMPLES:
+    STEPS.append('samples.py')
 
 
 def run_steps():
@@ -286,7 +290,7 @@ def main():
         say('ล้มเหลว: %s ที่ %s' % (type(e).__name__, where))
         LOG.append(traceback.format_exc()[-4000:])
     files = {'.vault/insight/run_log.txt': 'รอบ %s · %s · %.0f วินาที\n\n' % (stamp, 'สำเร็จ' if ok else 'ไม่สำเร็จ', time.time() - t0) + '\n'.join(LOG)}
-    for name in ('summary.json', 'samples.json'):
+    for name in ('summary.json', 'samples.json') if SAMPLES else ('summary.json',):
         p = os.path.join(WORK, name)
         if ok and os.path.exists(p):
             files['.vault/insight/' + name] = open(p, encoding='utf-8').read()

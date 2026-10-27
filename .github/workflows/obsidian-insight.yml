@@ -13,6 +13,10 @@ on:
         description: 'คำนวณอย่างเดียว ไม่เขียนลง vault'
         type: boolean
         default: false
+      samples:
+        description: 'เขียนตัวอย่างแชท (ปิดชื่อ/เบอร์แล้ว) ไว้ตรวจกฎด้วยตา ที่ .vault/insight/samples.json'
+        type: boolean
+        default: false
   push:
     branches: [main]
     paths:
@@ -47,4 +51,5 @@ jobs:
           COMPOSIO_MCP_URL: ${{ vars.COMPOSIO_MCP_URL }}
           MCP_PARALLEL: '3'
           DRY_RUN: ${{ inputs.dry_run && '1' || '' }}
+          SAMPLES: ${{ inputs.samples && '1' || '' }}
         run: python tools/insight/run.py
