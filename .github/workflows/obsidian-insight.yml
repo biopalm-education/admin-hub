@@ -1,0 +1,48 @@
+name: obsidian-insight
+
+# วิเคราะห์แชท FB / LINE / IG ทั้งปี (ผปค/นักเรียน · scenario · ความเร็วตอบ · ข้อความกับผลลัพธ์ · bundle · คำถามที่พบบ่อย)
+# อ่านชีตอย่างเดียว ผ่าน Composio ตัวเดิม (secret COMPOSIO_API_KEY เดิม) แล้วเขียนผลลง vault private: .vault/insight/
+# repo นี้ public: log พิมพ์แค่ชื่อขั้น/จำนวน ห้ามพิมพ์ชื่อหรือข้อความลูกค้า · ไม่อัปโหลด artifact
+# ไม่แตะ refresh-dashboard / obsidian-vault (คนละ concurrency group) · ยังไม่ตั้งเวลา — กด Run workflow เอง
+
+on:
+  workflow_dispatch:
+    inputs:
+      dry_run:
+        description: 'คำนวณอย่างเดียว ไม่เขียนลง vault'
+        type: boolean
+        default: false
+  push:
+    branches: [main]
+    paths:
+      - 'tools/insight/**'
+      - '.github/workflows/obsidian-insight.yml'
+
+concurrency:
+  group: obsidian-insight
+  cancel-in-progress: true
+
+permissions:
+  contents: read
+
+jobs:
+  insight:
+    runs-on: ubuntu-latest
+    timeout-minutes: 150
+    steps:
+      - uses: actions/checkout@v5
+
+      - uses: actions/setup-python@v6
+        with:
+          python-version: '3.11'
+
+      - name: ติดตั้ง dependency
+        run: pip install --quiet --disable-pip-version-check requests
+
+      - name: วิเคราะห์แชทแล้วเขียนผลลง vault
+        env:
+          COMPOSIO_API_KEY: ${{ secrets.COMPOSIO_API_KEY }}
+          COMPOSIO_MCP_URL: ${{ vars.COMPOSIO_MCP_URL }}
+          MCP_PARALLEL: '3'
+          DRY_RUN: ${{ inputs.dry_run && '1' || '' }}
+        run: python tools/insight/run.py
