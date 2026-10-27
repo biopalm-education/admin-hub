@@ -22,6 +22,7 @@ sys.path.insert(0, os.path.join(HERE, '..', 'meta_ads'))
 import composio_shim as S
 
 PAGE_HASH = '73025ff6d1ad9be87ec1ef93b274a8ce62bfbbcb64343d40d49c01cb5b7cceb1'
+ACT_HASH = '08d8b72a01af222cdd8bdf0a1693ca700448249f2ba096b0b185c5c57d97a098'   # บัญชีโฆษณาเดียวกับ meta_ads/export.py
 SHEET_HASH = '1083f419af879f018fb3894f00949c682e04f9a96db4519f2a39ac0b657ae59f'
 SHEET_QUERY = 'Biopalm Content Insight'
 VAULT_REPO = os.environ.get('VAULT_REPO') or 'biopalm-education/biopalm-insight'
@@ -31,7 +32,8 @@ SINCE = os.environ.get('SINCE') or '2026-01-01'
 DRY = (os.environ.get('DRY_RUN') or '').strip().lower() in ('1', 'true', 'yes')
 WORKERS = int(os.environ.get('WORKERS') or 3)
 T0 = time.time()
-STATS = {'calls': 0, 'shrink': 0, 'fb_ins_fail': 0, 'ig_ins_fail': 0, 'ig_ins_partial': 0, 'fb_no_caption': 0}
+STATS = {'calls': 0, 'shrink': 0, 'fb_ins_fail': 0, 'ig_ins_fail': 0, 'ig_ins_partial': 0, 'fb_no_caption': 0,
+         'ads': 0, 'ad_creative_fail': 0}
 TH_M = ['', 'ม.ค.', 'ก.พ.', 'มี.ค.', 'เม.ย.', 'พ.ค.', 'มิ.ย.', 'ก.ค.', 'ส.ค.', 'ก.ย.', 'ต.ค.', 'พ.ย.', 'ธ.ค.']
 
 
@@ -173,6 +175,139 @@ def fb_posts(page, start):
     else:
         raise CallError('FB: หน้าเกิน 1000 รอบ')
     return out
+
+
+# ---------------------------------------------------------------- โพสต์ไหนถูกนำไปทำแอด / boost
+AD_STATUS = ['ACTIVE', 'PAUSED', 'DELETED', 'PENDING_REVIEW', 'DISAPPROVED', 'PREAPPROVED', 'PENDING_BILLING_INFO',
+             'CAMPAIGN_PAUSED', 'ARCHIVED', 'ADSET_PAUSED', 'IN_PROCESS', 'WITH_ISSUES']
+
+
+def month_spans():
+    out, d = [], dt.date.fromisoformat(SINCE)
+    end = dt.datetime.now(BKK).date()
+    while d <= end:
+        nxt = (d.replace(day=28) + dt.timedelta(days=4)).replace(day=1)
+        out.append((d.isoformat(), min(nxt - dt.timedelta(days=1), end).isoformat()))
+        d = nxt
+    return out
+
+
+def ad_spend_month(act, since, until):
+    """ค่าแอดต่อโฆษณาใน 1 เดือน (Meta ไม่ให้ดึงทั้งปีในคำขอเดียว: too many rows)"""
+    out, after, limit, filt = {}, None, 100, True
+    for _ in range(200):
+        args = {'object_id': act, 'level': 'ad', 'fields': ['ad_id', 'spend'], 'limit': limit,
+                'time_range': {'since': since, 'until': until}}
+        if filt:   # รวมโฆษณาที่ลบ/เก็บถาวรแล้ว (ค่าเริ่มของ Meta ไม่นับ)
+            args['filtering'] = [{'field': 'ad.effective_status', 'operator': 'IN', 'value': AD_STATUS}]
+        if after:
+            args['after'] = after
+        try:
+            d = call('METAADS_GET_INSIGHTS', args, tries=3)
+        except CallError as e:
+            if 'TOO_LARGE' in str(e) and limit > 10:
+                limit //= 2
+                continue
+            if 'effective_status' in str(e) and filt:
+                filt = False
+                continue
+            raise
+        for r in rows_of(d):
+            if isinstance(r, dict) and r.get('ad_id'):
+                out[r['ad_id']] = out.get(r['ad_id'], 0.0) + float(r.get('spend') or 0)
+        nxt = after_of(d)
+        if not nxt or nxt == after:
+            break
+        after = nxt
+    return out
+
+
+def ad_creatives(ad_ids):
+    """ad_id → (FB story id, IG media id) ที่โฆษณานั้นใช้"""
+    fields = ['id', 'creative{effective_object_story_id,effective_instagram_media_id}']
+
+    def one(b):
+        try:
+            d = call('METAADS_GET_MULTIPLE_OBJECTS', {'object_ids': b, 'fields': fields}, tries=3)
+        except CallError:
+            if len(b) == 1:
+                STATS['ad_creative_fail'] += 1
+                return {}
+            h = len(b) // 2                                 # ก้อนพลาด → แบ่งครึ่ง
+            r = one(b[:h])
+            r.update(one(b[h:]))
+            return r
+        res = d.get('results') if isinstance(d, dict) and isinstance(d.get('results'), dict) else d
+        out = {}
+        if isinstance(res, dict):
+            for k, v in res.items():
+                if not isinstance(v, dict):
+                    continue
+                cr = v.get('creative') if isinstance(v.get('creative'), dict) else {}
+                out[str(k)] = (cr.get('effective_object_story_id'), cr.get('effective_instagram_media_id'))
+        return out
+    out = {}
+    batches = [ad_ids[i:i + 25] for i in range(0, len(ad_ids), 25)]
+    with ThreadPoolExecutor(WORKERS) as ex:
+        for part in ex.map(one, batches):
+            out.update(part)
+    return out
+
+
+def ads_by_post():
+    """{FB post id / IG media id: {'ads': จำนวนโฆษณา, 'spend': ค่าแอดรวมตั้งแต่ SINCE}} · ดึงไม่ได้ → None (งานหลักไปต่อ)"""
+    try:
+        d = call('METAADS_GET_AD_ACCOUNTS', {'limit': 100, 'fields': 'id,name'})
+        act = next((a['id'] for a in rows_of(d) if isinstance(a, dict) and sha(a.get('id', '')) == ACT_HASH), None)
+        if not act:
+            log('ไม่พบบัญชีโฆษณาที่ตรงกับ hash — ข้ามป้าย "ทำแอด"')
+            return None
+        spend = {}
+        for s, e in month_spans():
+            for k, v in ad_spend_month(act, s, e).items():
+                spend[k] = spend.get(k, 0.0) + v
+        spend = {k: v for k, v in spend.items() if v > 0}
+        STATS['ads'] = len(spend)
+        cre = ad_creatives(sorted(spend))
+    except CallError as e:
+        log('ดึงข้อมูลแอดไม่ได้ (%s) — ข้ามป้าย "ทำแอด" รอบนี้' % _safe(e))
+        return None
+    out = {}
+    for ad, (story, igm) in cre.items():
+        for k in {x for x in (story, igm) if x}:
+            o = out.setdefault(str(k), {'ads': 0, 'spend': 0.0})
+            o['ads'] += 1
+            o['spend'] += spend.get(ad, 0.0)
+    log('แอดที่มีค่าใช้จ่าย %d · อ่าน creative ได้ %d · พลาด %d' % (len(spend), len(cre), STATS['ad_creative_fail']))
+    return out
+
+
+def annotate_ads(rows, adm):
+    """ใส่ ads (จำนวนโฆษณาที่ใช้โพสต์นี้) และ ad_spend (บาท) · adm None = รอบนี้ไม่รู้ → None"""
+    for r in rows:
+        if adm is None:
+            r['ads'] = r['ad_spend'] = None
+            continue
+        keys = fb_ad_keys({'id': r['post_id'], 'permalink_url': r['link']}) if r['platform'] == 'FB' else [r['post_id']]
+        hit = [adm[k] for k in dict.fromkeys(keys) if k in adm]
+        r['ads'] = sum(h['ads'] for h in hit)
+        r['ad_spend'] = int(round(sum(h['spend'] for h in hit)))
+    return rows
+
+
+def organic(rows):
+    """โพสต์ที่ไม่เคยนำไปทำแอด (ถ้ารอบนี้ไม่รู้ข้อมูลแอด = ทุกโพสต์)"""
+    return [r for r in rows if not r.get('ads')]
+
+
+def fb_ad_keys(p):
+    """ID ที่โฆษณาอาจใช้อ้างโพสต์ FB: post id เต็ม + (Reel/วิดีโอ) page_videoId"""
+    keys = [p['id']]
+    page = p['id'].split('_')[0]
+    m = re.search(r'/(?:reel|videos)/(\d+)', p.get('permalink_url') or '')
+    if m:
+        keys.append('%s_%s' % (page, m.group(1)))
+    return keys
 
 
 def find_page():
@@ -397,12 +532,14 @@ def write_tab(tab, rows):
 
 FB_COLS = [('วันที่โพสต์ (เวลาไทย)', 'posted'), ('เดือน', 'month'), ('ภาพนิ่ง/วิดีโอ', 'group'), ('ประเภท', 'format'), ('Post ID', 'post_id'),
            ('ลิงก์', 'link'), ('ข้อความโพสต์ (ตัดสั้น)', 'cap'), ('ยอดดู', 'views'), ('คนดูไม่ซ้ำ', 'reach'), ('Reaction', 'likes'),
-           ('คอมเมนต์', 'comments'), ('แชร์', 'shares'), ('Interaction รวม', 'interactions'), ('Interaction ต่อคนดู (%)', 'rate')]
+           ('คอมเมนต์', 'comments'), ('แชร์', 'shares'), ('Interaction รวม', 'interactions'), ('Interaction ต่อคนดู (%)', 'rate'),
+           ('โฆษณาที่ใช้โพสต์นี้ (ตัว)', 'ads'), ('ค่าแอดที่ใช้โพสต์นี้ (บาท)', 'ad_spend')]
 IG_COLS = [('วันที่โพสต์ (เวลาไทย)', 'posted'), ('เดือน', 'month'), ('ภาพนิ่ง/วิดีโอ', 'group'), ('ประเภท', 'format'), ('Media ID', 'post_id'),
            ('Shortcode (ท้ายลิงก์)', 'key'), ('ลิงก์', 'link'), ('แคปชัน (ตัดสั้น)', 'cap'), ('ยอดดู', 'views'), ('Reach', 'reach'),
            ('ไลก์', 'likes'), ('คอมเมนต์', 'comments'), ('เซฟ', 'saved'), ('แชร์', 'shares'), ('Interaction รวม', 'interactions'),
            ('Interaction ต่อ reach (%)', 'rate'), ('เข้าโปรไฟล์', 'profile_visits'), ('ฟอลโลว์ใหม่', 'follows'),
-           ('Reel ดูเฉลี่ย (วินาที)', 'avg_watch_s'), ('Reel เวลาดูรวม (ชม.)', 'watch_total_h'), ('Reel ปัดทิ้งใน 3 วิ (%)', 'skip_rate')]
+           ('Reel ดูเฉลี่ย (วินาที)', 'avg_watch_s'), ('Reel เวลาดูรวม (ชม.)', 'watch_total_h'), ('Reel ปัดทิ้งใน 3 วิ (%)', 'skip_rate'),
+           ('โฆษณาที่ใช้โพสต์นี้ (ตัว)', 'ads'), ('ค่าแอดที่ใช้โพสต์นี้ (บาท)', 'ad_spend')]
 
 
 def table_rows(rows, cols):
@@ -419,16 +556,20 @@ def med(xs):
 
 
 def monthly_rows(allrows):
-    out = [['ช่องทาง', 'เดือน', 'ภาพนิ่ง/วิดีโอ', 'จำนวนโพสต์', 'ยอดดูรวม', 'ยอดดูมัธยฐานต่อโพสต์', 'Interaction รวม', 'Interaction มัธยฐานต่อโพสต์']]
+    out = [['ช่องทาง', 'เดือน', 'ภาพนิ่ง/วิดีโอ', 'จำนวนโพสต์', 'ยอดดูรวม', 'ยอดดูมัธยฐานต่อโพสต์', 'Interaction รวม', 'Interaction มัธยฐานต่อโพสต์',
+            'โพสต์ที่นำไปทำแอด', 'ยอดดูมัธยฐาน เฉพาะโพสต์ไม่ทำแอด']]
     keys = sorted({(r['platform'], r['month'], r['group']) for r in allrows})
     for k in keys:
         rs = [r for r in allrows if (r['platform'], r['month'], r['group']) == k]
+        known = all(r.get('ads') is not None for r in rs)
         out.append(list(k) + [len(rs), sum(r['views'] or 0 for r in rs), med([r['views'] for r in rs]),
-                              sum(r['interactions'] or 0 for r in rs), med([r['interactions'] for r in rs])])
+                              sum(r['interactions'] or 0 for r in rs), med([r['interactions'] for r in rs]),
+                              sum(1 for r in rs if r.get('ads')) if known else None,
+                              med([r['views'] for r in organic(rs)]) if known else None])
     return out
 
 
-def about_rows(stamp, nfb, nig):
+def about_rows(stamp, nfb, nig, ads_ok=True):
     return [['Biopalm Content Insight — FB/IG'],
             ['ดึงล่าสุด', stamp],
             ['ช่วงโพสต์', 'ตั้งแต่ %s (เวลาไทย) ถึงวันที่ดึง' % SINCE],
@@ -437,7 +578,11 @@ def about_rows(stamp, nfb, nig):
             ['ใน Obsidian', 'vault Biopalm-Insight → Content/ (1 โพสต์ = 1 โน้ต ชื่อไฟล์มี ID) + Content/สรุปคอนเทนต์'],
             [''],
             ['คำ', 'ความหมาย'],
-            ['ยอดดู', 'FB: post_media_view = จำนวนครั้งที่โพสต์แสดงบนจอ · IG: views = จำนวนครั้งที่เล่น/แสดง (ตัวเลขชุดใหม่ของ Meta แทน impressions ที่เลิกใช้)'],
+            ['ยอดดู', 'FB: post_media_view = จำนวนครั้งที่โพสต์แสดงบนจอ · IG: views = จำนวนครั้งที่เล่น/แสดง (ตัวเลขชุดใหม่ของ Meta แทน impressions ที่เลิกใช้) · '
+                      'ถ้าโพสต์ถูกนำไปทำแอด ยอดนี้รวมยอดจากแอดด้วย (แยกส่วนไม่ได้)'],
+            ['โฆษณาที่ใช้โพสต์นี้ / ค่าแอด', ('จำนวนโฆษณาที่ใช้โพสต์นี้โดยตรง (กด Boost หรือเลือกโพสต์เดิมในตัวจัดการโฆษณา) และค่าแอดรวมของโฆษณาเหล่านั้นตั้งแต่ %s · '
+                                             '0 = ไม่เคยทำแอด = ออร์แกนิกล้วน' % SINCE) if ads_ok else
+             'รอบนี้ดึงข้อมูลแอดไม่ได้ — ช่องว่างทั้งคอลัมน์ (ไม่ใช่ 0)'],
             ['คนดูไม่ซ้ำ / Reach', 'จำนวนบัญชีที่เห็นโพสต์อย่างน้อย 1 ครั้ง (ค่าประมาณจาก Meta)'],
             ['Interaction รวม', 'FB: reaction + คอมเมนต์ + แชร์ · IG: ไลก์ + เซฟ + คอมเมนต์ + แชร์ (ตัวเลขของ IG เอง)'],
             ['Interaction ต่อคนดู / ต่อ reach', 'Interaction รวม ÷ คนดูไม่ซ้ำ (หรือ reach) × 100'],
@@ -483,9 +628,16 @@ def post_note(r, stamp):
     props += [('link', r['link']), ('views', r['views']), ('reach', r['reach']), ('likes', r['likes']), ('comments', r['comments']),
               ('shares', r['shares']), ('saved', r['saved']), ('interactions', r['interactions']), ('interaction_rate', r['rate']),
               ('profile_visits', r['profile_visits']), ('follows', r['follows']), ('avg_watch_s', r['avg_watch_s']),
-              ('skip_rate', r['skip_rate']), ('pulled', stamp)]
+              ('skip_rate', r['skip_rate']), ('ads', r.get('ads')), ('ad_spend', r.get('ad_spend')), ('pulled', stamp)]
     fm = '---\n' + '\n'.join('%s: %s' % (k, yv(v)) for k, v in props if not (v is None and k in (
-        'saved', 'profile_visits', 'follows', 'avg_watch_s', 'skip_rate', 'shortcode'))) + '\n---\n'
+        'saved', 'profile_visits', 'follows', 'avg_watch_s', 'skip_rate', 'shortcode', 'ads', 'ad_spend'))) + '\n---\n'
+    if r.get('ads') is None:
+        adline = 'ทำแอด: รอบนี้ไม่ได้ตรวจ (ดึงข้อมูลแอดไม่ได้)'
+    elif r['ads']:
+        adline = ('**นำไปทำแอดแล้ว** %d โฆษณา · ค่าแอดรวม %s บาท (ตั้งแต่ %s) — ยอดดู/คนดูด้านล่างรวมส่วนที่มาจากแอดด้วย ไม่ใช่ออร์แกนิกล้วน'
+                  % (r['ads'], fmt_n(r['ad_spend']), date_th(SINCE)))
+    else:
+        adline = 'ไม่เคยนำไปทำแอด (ตั้งแต่ %s) — ตัวเลขด้านล่างเป็นออร์แกนิกล้วน' % date_th(SINCE)
     cap = str(r['caption'] or '').strip()
     cap = cap if len(cap) <= 400 else cap[:400].rstrip() + '…'
     # บรรทัดแคปชันที่ขึ้นต้น "# " กลายเป็นหัวข้อใน Obsidian → ใส่ \ ให้เป็นตัวอักษรธรรมดา
@@ -506,7 +658,7 @@ def post_note(r, stamp):
                  ('ปัดทิ้งใน 3 วินาทีแรก', ('%.1f%%' % r['skip_rate']) if r['skip_rate'] is not None else '–')]
     body = ['# %s · %s · %s' % (r['platform'], r['format'], date_th(r['posted'])), '',
             '[เปิดโพสต์](%s) · ID `%s`%s' % (r['link'], r['post_id'], (' · shortcode `%s`' % r['key']) if r['platform'] == 'IG' else ''), '',
-            capq, '', '| ตัวเลข (สะสมถึง %s) | ค่า |' % stamp[:10], '|---|---:|'] + ['| %s | %s |' % x for x in rows] + [
+            capq, '', adline, '', '| ตัวเลข (สะสมถึง %s) | ค่า |' % stamp[:10], '|---|---:|'] + ['| %s | %s |' % x for x in rows] + [
             '', 'เดือนนี้: [[%s]] · ภาพรวม: [[สรุปคอนเทนต์]]' % r['month'],
             '', '_โน้ตนี้ระบบเขียนทับทุกสัปดาห์ — จดความคิดใน `บันทึกของฉัน/` แล้วลิงก์มาที่โน้ตนี้_']
     return fm + '\n'.join(body) + '\n'
@@ -514,45 +666,69 @@ def post_note(r, stamp):
 
 def summary_note(fb, ig, stamp):
     allr = fb + ig
+    known = all(r.get('ads') is not None for r in allr)
+    ofb, oig = organic(fb), organic(ig)
     L = ['---\ntype: content-summary\nupdated: %s\nsince: %s\n---\n' % (stamp, SINCE), '# สรุปคอนเทนต์ FB / IG (ออร์แกนิก)\n',
          'ข้อมูลโพสต์ตั้งแต่ %s ถึง %s · อัปเดตอัตโนมัติทุกสัปดาห์ (ระบบเขียนทับไฟล์นี้) · ตัวเลขดิบทุกโพสต์อยู่ในชีต "Biopalm Content Insight — FB/IG 2026"\n' % (date_th(SINCE), date_th(stamp)),
-         'ค้นโพสต์: กด Ctrl/Cmd+O แล้วพิมพ์ ID (FB = ตัวเลขท้าย ID · IG = shortcode ท้ายลิงก์ instagram.com/p/…) · ตารางเรียง/กรองได้: `Bases/คอนเทนต์.base`\n',
-         '## ภาพรวมแยกประเภท', '',
-         '| ช่องทาง | ประเภท | โพสต์ | ยอดดูมัธยฐาน | คนดูไม่ซ้ำ/Reach มัธยฐาน | Interaction มัธยฐาน | Interaction ต่อคนดู มัธยฐาน |',
-         '|---|---|---:|---:|---:|---:|---:|']
-    for pf, rs0 in (('FB', fb), ('IG', ig)):
-        for f in sorted({r['format'] for r in rs0}, key=lambda f: -sum(1 for r in rs0 if r['format'] == f)):
+         'ค้นโพสต์: กด Ctrl/Cmd+O แล้วพิมพ์ ID (FB = ตัวเลขท้าย ID · IG = shortcode ท้ายลิงก์ instagram.com/p/…) · ตารางเรียง/กรองได้: `Bases/คอนเทนต์.base`\n']
+    if known:
+        L += ['> [!note] โพสต์ที่นำไปทำแอด\n> FB %d จาก %d โพสต์ · IG %d จาก %d โพสต์ ถูกนำไปทำแอด (Boost หรือเลือกโพสต์เดิมเป็นแอด) — ยอดดูของโพสต์เหล่านี้รวมส่วนที่มาจากแอด '
+              'แยกออกไม่ได้ **ตาราง "ภาพรวม" และ "โพสต์ที่ดีที่สุด" ด้านล่างจึงนับเฉพาะโพสต์ที่ไม่เคยทำแอด (ออร์แกนิกล้วน)** ส่วนโพสต์ที่ทำแอดดูได้ในหัวข้อ "โพสต์ที่นำไปทำแอด"\n'
+              % (len(fb) - len(ofb), len(fb), len(ig) - len(oig), len(ig))]
+    else:
+        L += ['> [!warning] รอบนี้ดึงข้อมูลแอดไม่ได้\n> ตัวเลขด้านล่างนับทุกโพสต์ รวมโพสต์ที่อาจถูกนำไปทำแอด (ยอดดูรวมส่วนที่มาจากแอด) — รอบถัดไประบบจะลองใหม่\n']
+    L += ['## ภาพรวมแยกประเภท%s' % (' (ออร์แกนิกล้วน)' if known else ''), '',
+          '| ช่องทาง | ประเภท | โพสต์ | ยอดดูมัธยฐาน | คนดูไม่ซ้ำ/Reach มัธยฐาน | Interaction มัธยฐาน | Interaction ต่อคนดู มัธยฐาน |%s' % (' ทำแอด (ไม่นับ) |' if known else ''),
+          '|---|---|---:|---:|---:|---:|---:|%s' % ('---:|' if known else '')]
+    for pf, rs0, all0 in (('FB', ofb, fb), ('IG', oig, ig)):
+        for f in sorted({r['format'] for r in all0}, key=lambda f: -sum(1 for r in all0 if r['format'] == f)):
             rs = [r for r in rs0 if r['format'] == f]
-            L.append('| %s | %s | %d | %s | %s | %s | %s |' % (pf, f, len(rs), fmt_n(med([r['views'] for r in rs])), fmt_n(med([r['reach'] for r in rs])),
-                                                         fmt_n(med([r['interactions'] for r in rs])),
-                                                         ('%.2f%%' % med([r['rate'] for r in rs])) if med([r['rate'] for r in rs]) is not None else '–'))
+            mr = med([r['rate'] for r in rs])
+            L.append('| %s | %s | %d | %s | %s | %s | %s |%s' % (
+                pf, f, len(rs), fmt_n(med([r['views'] for r in rs])), fmt_n(med([r['reach'] for r in rs])),
+                fmt_n(med([r['interactions'] for r in rs])), ('%.2f%%' % mr) if mr is not None else '–',
+                (' %d |' % sum(1 for r in all0 if r['format'] == f and r.get('ads'))) if known else ''))
     L += ['', 'ใช้ค่ามัธยฐาน (โพสต์ตรงกลาง) แทนค่าเฉลี่ย เพราะโพสต์ไม่กี่ตัวที่ยอดพุ่งจะดึงค่าเฉลี่ยจนเพี้ยน · โพสต์ที่เพิ่งลงยังสะสมยอดไม่ครบ\n']
-    reels = [r for r in ig if r['format'] == 'Reel']
+    reels = [r for r in oig if r['format'] == 'Reel']
     if reels:
-        L += ['**IG Reel:** %d ตัว · ดูเฉลี่ยมัธยฐาน %s วินาที · ปัดทิ้งใน 3 วินาทีแรกมัธยฐาน %s%%\n' % (
-            len(reels), fmt_n(med([r['avg_watch_s'] for r in reels]), 1), fmt_n(med([r['skip_rate'] for r in reels]), 1))]
-    L += ['## รายเดือน', '', '| เดือน | FB โพสต์ | FB ยอดดูรวม | IG โพสต์ | IG ยอดดูรวม | แชท/แอดเดือนนี้ |', '|---|---:|---:|---:|---:|---|']
+        L += ['**IG Reel%s:** %d ตัว · ดูเฉลี่ยมัธยฐาน %s วินาที · ปัดทิ้งใน 3 วินาทีแรกมัธยฐาน %s%%\n' % (
+            ' (ออร์แกนิกล้วน)' if known else '', len(reels), fmt_n(med([r['avg_watch_s'] for r in reels]), 1), fmt_n(med([r['skip_rate'] for r in reels]), 1))]
+    L += ['## รายเดือน', '', '| เดือน | FB โพสต์ | FB ทำแอด | FB ยอดดูรวม | FB ยอดดูมัธยฐาน (ไม่ทำแอด) | IG โพสต์ | IG ทำแอด | IG ยอดดูรวม | แชท/แอดเดือนนี้ |',
+          '|---|---:|---:|---:|---:|---:|---:|---:|---|']
     for m in sorted({r['month'] for r in allr}):
         f = [r for r in fb if r['month'] == m]; g = [r for r in ig if r['month'] == m]
-        L.append('| %s | %d | %s | %d | %s | [[%s]] |' % ('%s %s' % (TH_M[int(m[5:])], m[:4]), len(f), fmt_n(sum(r['views'] or 0 for r in f)),
-                                                           len(g), fmt_n(sum(r['views'] or 0 for r in g)), m))
-    L += ['', 'คอลัมน์สุดท้ายลิงก์ไปโน้ตเดือนใน `Monthly/` (ค่าแอด Meta + แชท FB/LINE เดือนเดียวกัน) — ดูคู่กับ [[1.2 ช่วงเวลาที่ลูกค้าทัก]]\n']
+        L.append('| %s | %d | %s | %s | %s | %d | %s | %s | [[%s]] |' % (
+            '%s %s' % (TH_M[int(m[5:])], m[:4]), len(f), (str(sum(1 for r in f if r.get('ads')))) if known else '–',
+            fmt_n(sum(r['views'] or 0 for r in f)), fmt_n(med([r['views'] for r in organic(f)])) if known else '–',
+            len(g), (str(sum(1 for r in g if r.get('ads')))) if known else '–', fmt_n(sum(r['views'] or 0 for r in g)), m))
+    L += ['', '"ยอดดูรวม" รวมโพสต์ที่ทำแอดด้วย (ยอดจากแอดปนอยู่) · คอลัมน์สุดท้ายลิงก์ไปโน้ตเดือนใน `Monthly/` (ค่าแอด Meta + แชท FB/LINE เดือนเดียวกัน) — ดูคู่กับ [[1.2 ช่วงเวลาที่ลูกค้าทัก]]\n']
 
-    def top(rs, key, n, title, fmtv):
+    def top(rs, key, n, title, fmtv, extra=None):
         rs = [r for r in rs if r.get(key) is not None]
         rs.sort(key=lambda r: -r[key])
-        out = ['### ' + title, '', '| # | วันที่ | ประเภท | ค่า | โพสต์ |', '|---:|---|---|---:|---|']
+        head = '| # | วันที่ | ประเภท | ค่า |%s โพสต์ |' % (' %s |' % extra[0] if extra else '')
+        out = ['### ' + title, '', head, '|---:|---|---|---:|%s---|' % ('---:|' if extra else '')]
         for i, r in enumerate(rs[:n], 1):
-            out.append('| %d | %s | %s | %s | [[%s\\|%s]] |' % (i, r['posted'][:10], r['format'], fmtv(r[key]), note_name(r),
-                                                               first_line(r['caption'], 60).replace('|', '/').replace('[', '(').replace(']', ')') or r['key']))
+            out.append('| %d | %s | %s | %s |%s [[%s\\|%s]] |' % (
+                i, r['posted'][:10], r['format'], fmtv(r[key]), (' %s |' % extra[1](r)) if extra else '', note_name(r),
+                first_line(r['caption'], 60).replace('|', '/').replace('[', '(').replace(']', ')') or r['key']))
         return out + ['']
-    L += ['## โพสต์ที่ดีที่สุด', '']
-    L += top(fb, 'views', 15, 'FB ยอดดูสูงสุด', fmt_n)
-    L += top(ig, 'views', 15, 'IG ยอดดูสูงสุด', fmt_n)
-    L += top([dict(r, ss=(r['saved'] or 0) + (r['shares'] or 0)) for r in ig], 'ss', 10, 'IG เซฟ + แชร์สูงสุด (คอนเทนต์ที่คนเก็บไว้/ส่งต่อ)', fmt_n)
-    L += top([r for r in fb if (r['reach'] or 0) >= 500], 'rate', 10, 'FB Interaction ต่อคนดูสูงสุด (คนดู 500 ขึ้นไป)', lambda v: '%.2f%%' % v)
-    L += top([r for r in ig if (r['reach'] or 0) >= 500], 'rate', 10, 'IG Interaction ต่อ reach สูงสุด (reach 500 ขึ้นไป)', lambda v: '%.2f%%' % v)
+    org = ' — ออร์แกนิกล้วน' if known else ''
+    L += ['## โพสต์ที่ดีที่สุด%s' % org, '']
+    L += top(ofb, 'views', 15, 'FB ยอดดูสูงสุด', fmt_n)
+    L += top(oig, 'views', 15, 'IG ยอดดูสูงสุด', fmt_n)
+    L += top([dict(r, ss=(r['saved'] or 0) + (r['shares'] or 0)) for r in oig], 'ss', 10, 'IG เซฟ + แชร์สูงสุด (คอนเทนต์ที่คนเก็บไว้/ส่งต่อ)', fmt_n)
+    L += top([r for r in ofb if (r['reach'] or 0) >= 500], 'rate', 10, 'FB Interaction ต่อคนดูสูงสุด (คนดู 500 ขึ้นไป)', lambda v: '%.2f%%' % v)
+    L += top([r for r in oig if (r['reach'] or 0) >= 500], 'rate', 10, 'IG Interaction ต่อ reach สูงสุด (reach 500 ขึ้นไป)', lambda v: '%.2f%%' % v)
+    if known:
+        ads = [r for r in allr if r.get('ads')]
+        L += ['## โพสต์ที่นำไปทำแอด', '',
+              'ยอดดูของโพสต์กลุ่มนี้รวมส่วนที่มาจากแอด — ใช้ดูว่าโพสต์ไหนถูกเลือกไปยิงแอด ไม่ใช่เทียบความแรงแบบออร์แกนิก · ผลแชท/ปิดการขายของแอดดูที่ `Ads/`\n']
+        L += top(ads, 'ad_spend', 15, 'ค่าแอดสูงสุด (%d โพสต์)' % len(ads), lambda v: '%s บาท' % fmt_n(v),
+                 ('ยอดดูรวม', lambda r: fmt_n(r['views'])))
     L += ['## ข้อจำกัด', '- FB วิดีโอ/Reel: มีแค่ยอดดูและคนดูไม่ซ้ำ ยังไม่มีเวลาดูหรือยอดดู 3 วินาที (ดึงผ่านเครื่องมือที่มีไม่ได้)',
+          '- "ทำแอด" = มีโฆษณาที่ใช้โพสต์นั้นโดยตรงและมีค่าใช้จ่ายตั้งแต่ %s · แอดที่สร้างภาพ/ข้อความใหม่ในตัวจัดการโฆษณา (ไม่ได้ใช้โพสต์บนเพจ) ไม่ปนกับตัวเลขโพสต์ · '
+          'ตัวเลขโพสต์ที่ทำแอดแยกส่วนออร์แกนิก/จากแอดไม่ได้ (เครื่องมือให้แค่ยอดรวม)' % date_th(SINCE),
           '- Stories ย้อนหลังไม่ได้ (API ให้เฉพาะสตอรี่ที่ยังขึ้นอยู่ 24 ชม.)',
           '- ตัวเลขเป็นยอดสะสมถึงวันที่ดึง เทียบโพสต์ใหม่กับโพสต์เก่าต้องระวัง · ช่อง "–" = Meta ไม่ส่งตัวเลขนั้นมา (ไม่ใช่ 0)',
           '- ยังเชื่อมโพสต์กับแชทรายห้องไม่ได้ — ถ้าใส่ลิงก์ m.me/ig.me พร้อม `?ref=` ในโพสต์ จะนับได้ว่าแชทมาจากโพสต์ไหน (ดู [[02 แผนงาน]])']
@@ -604,13 +780,20 @@ def main():
     log('IG insight ครบ · ไม่ได้ %d · ได้บางตัว %d' % (STATS['ig_ins_fail'], STATS['ig_ins_partial']))
     fb = sorted(build_fb(fbp, page, fins), key=lambda r: r['posted'], reverse=True)
     ig = sorted(build_ig(igm, iins), key=lambda r: r['posted'], reverse=True)
+    adm = ads_by_post()
+    annotate_ads(fb, adm)
+    annotate_ads(ig, adm)
+    if adm is not None:
+        fa = [r for r in fb if r['ads']]
+        log('โพสต์ที่นำไปทำแอด FB %d (Reel/วิดีโอ %d) · IG %d' % (len(fa), sum(1 for r in fa if r['group'] == 'วิดีโอ'),
+                                                            sum(1 for r in ig if r['ads'])))
     log('แถวที่ใช้ FB %d · IG %d · คำขอทั้งหมด %d · ลดขนาดหน้า %d' % (len(fb), len(ig), STATS['calls'], STATS['shrink']))
     if not fb and not ig:
         sys.exit('ไม่ได้โพสต์เลย — ไม่เขียนทับของเดิม')
     if DRY:
         log('DRY_RUN: ไม่เขียนชีตและ vault')
         return
-    write_tab('คำอธิบาย', about_rows(stamp, len(fb), len(ig)))
+    write_tab('คำอธิบาย', about_rows(stamp, len(fb), len(ig), adm is not None))
     write_tab('FB โพสต์', table_rows(fb, FB_COLS))
     write_tab('IG โพสต์', table_rows(ig, IG_COLS))
     write_tab('สรุปรายเดือน', monthly_rows(fb + ig))
