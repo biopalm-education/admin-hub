@@ -397,17 +397,26 @@ def send():
           built, 'วันจันทร์' if kind == 'mon' else 'วันศุกร์', D['lab'], len(D['msgs']), len(D['one'])))
     if dry:
         print('ทดลอง — ไม่ส่ง (ดูข้อความได้ที่หน้า Tracking)'); return
-    token, to = (os.environ.get('LINE_NOTICE_TOKEN') or '').strip(), (os.environ.get('LINE_NOTICE_TO') or '').strip()
-    if not token or not to:
+    token = (os.environ.get('LINE_NOTICE_TOKEN') or '').strip()
+    # LINE_NOTICE_TO (กลุ่มเดิม) + LINE_NOTICE_TO_2 (กลุ่มใหม่) · ใส่หลาย ID คั่นด้วย , ก็ได้ · ซ้ำกันส่งครั้งเดียว
+    tos = []
+    g = (os.environ.get('GROUP') or 'all').strip() if not auto else 'all'      # manual run may pick one group
+    for k in {'1': ('LINE_NOTICE_TO',), '2': ('LINE_NOTICE_TO_2',)}.get(g, ('LINE_NOTICE_TO', 'LINE_NOTICE_TO_2')):
+        for x in (os.environ.get(k) or '').replace('\n', ',').split(','):
+            x = x.strip()
+            if x and x not in [t for _, t in tos]: tos.append(('1' if k == 'LINE_NOTICE_TO' else '2', x))
+    if not token or not tos:
         print('ยังไม่ได้ตั้ง LINE_NOTICE_TOKEN / LINE_NOTICE_TO — ไม่ส่ง'); return
-    # automatic runs: one key per day and kind, so a second refresh on the same day is refused by LINE (409) instead of
-    # sending twice · a manual test run gets a fresh key
-    rk = str(uuid.uuid5(uuid.NAMESPACE_URL, 'biopalm-tracking/%s/%s/%s' % (today.isoformat(), kind, to))) if auto else str(uuid.uuid4())
-    code, err = push(token, to, texts, rk)
-    if code == 200: print('ส่งเข้า LINE กลุ่มแล้ว (%d บับเบิล)' % len(texts))
-    elif code == 409: print('วันนี้ส่งข้อความแบบนี้ไปแล้ว — ไม่ส่งซ้ำ')
-    else: raise SystemExit('ส่งไม่สำเร็จ HTTP %s %s' % (code, err))
-
+    # automatic runs: one key per day, kind and group, so a second refresh on the same day is refused by LINE (409)
+    # instead of sending twice · a manual test run gets a fresh key · log shows group number only, never the id
+    bad = []
+    for n, to in tos:
+        rk = str(uuid.uuid5(uuid.NAMESPACE_URL, 'biopalm-tracking/%s/%s/%s' % (today.isoformat(), kind, to))) if auto else str(uuid.uuid4())
+        code, err = push(token, to, texts, rk)
+        if code == 200: print('กลุ่มที่ %s: ส่งแล้ว (%d บับเบิล)' % (n, len(texts)))
+        elif code == 409: print('กลุ่มที่ %s: วันนี้ส่งข้อความแบบนี้ไปแล้ว — ไม่ส่งซ้ำ' % n)
+        else: print('กลุ่มที่ %s: ส่งไม่สำเร็จ HTTP %s %s' % (n, code, err)); bad.append(n)
+    if bad: raise SystemExit('ส่งไม่สำเร็จ %d จาก %d กลุ่ม' % (len(bad), len(tos)))
 
 if __name__ == '__main__':
     cmd = sys.argv[1] if len(sys.argv) > 1 else 'show'
