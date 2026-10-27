@@ -41,6 +41,6 @@ byr=collections.defaultdict(list)
 for k,v in roles.items():
     ch,tid=k.split('|',1)
     if ch=='FB' and fm.get(tid): byr[v].append(tid)
-S['roles']={k:[[m[:90] for m in fm[t][:4]] for t in random.sample(v,min(10,len(v)))] for k,v in byr.items()}
+S['roles']={k:[[m[:90] for m in fm[t][:6]] for t in random.sample(v,min(25,len(v)))] for k,v in byr.items()}
 json.dump(S,open('samples.json','w'),ensure_ascii=False)
 print('samples ok',{k:len(v) for k,v in S.items()})
