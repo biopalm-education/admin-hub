@@ -11,6 +11,7 @@ name: line-notice
 #   ADMIN_SECRET       ตัวเดิม (ใช้ถอดรหัสข้อมูล)
 #   LINE_NOTICE_TOKEN  Channel access token (long-lived) ของ LINE OA สำหรับแจ้งเตือน
 #   LINE_NOTICE_TO     group ID ของ LINE กลุ่ม (ขึ้นต้นด้วย C)
+#   LINE_NOTICE_TO_2   group ID กลุ่มที่ 2 (ไม่ตั้ง = ส่งกลุ่มเดียว) · ข้อความเดียวกัน วันเวลาเดียวกัน
 # ยังไม่ตั้ง LINE_NOTICE_TOKEN / LINE_NOTICE_TO = ไม่ส่ง
 # log ไม่พิมพ์เนื้อหาข้อความ (repo เป็น public ใครก็เปิด log ได้) — ดูข้อความได้ที่หน้า Tracking
 
@@ -29,6 +30,11 @@ on:
         description: 'ส่งเข้า LINE กลุ่มจริง (ไม่ติ๊ก = เช็กว่าสร้างข้อความได้ ไม่ส่ง · ดูข้อความที่หน้า Tracking)'
         type: boolean
         default: false
+      group:
+        description: 'ส่งเข้ากลุ่มไหน (เฉพาะตอนกดรันเอง · รอบอัตโนมัติส่งทุกกลุ่มเสมอ)'
+        type: choice
+        options: [all, '1', '2']
+        default: all
 
 concurrency:
   group: line-notice
@@ -59,6 +65,8 @@ jobs:
           ADMIN_SECRET: ${{ secrets.ADMIN_SECRET }}
           LINE_NOTICE_TOKEN: ${{ secrets.LINE_NOTICE_TOKEN }}
           LINE_NOTICE_TO: ${{ secrets.LINE_NOTICE_TO }}
+          LINE_NOTICE_TO_2: ${{ secrets.LINE_NOTICE_TO_2 }}
           KIND: ${{ inputs.kind || 'auto' }}
+          GROUP: ${{ inputs.group || 'all' }}
           SEND: ${{ (github.event_name == 'workflow_run' || inputs.send) && '1' || '' }}
         run: python3 tools/before_after/notice.py send
