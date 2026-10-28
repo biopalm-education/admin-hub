@@ -1075,12 +1075,25 @@ CPF = [('FB', 'fb'), ('IG', 'ig'), ('TikTok', 'tiktok'), ('YouTube', 'youtube')]
 def load_content():
     """สรุปคอนเทนต์รายเดือน FB/IG/TikTok/YouTube + ค่าแอด TikTok / Google Ads รายเดือน · ไม่มี/อ่านไม่ได้ → {}"""
     fp = os.path.join(VAULT, *CONTENT_JSON.split('/'))
-    if not os.path.exists(fp):
-        return {}
     try:
-        return json.load(open(fp, encoding='utf-8'))
-    except Exception:
-        warn('อ่าน %s ไม่ได้ — โน้ตรายเดือนรอบนี้ไม่มีส่วนคอนเทนต์' % CONTENT_JSON)
+        if os.path.exists(fp):                                       # โหมด git (clone อยู่แล้ว)
+            return json.load(open(fp, encoding='utf-8'))
+        if MODE != 'api':
+            return {}
+        # ไฟล์ใหญ่เกินคำตอบ Composio (~10k token) → อ่านรายชื่อโฟลเดอร์ (เล็ก) แล้วโหลดจาก download_url
+        d = gh('GITHUB_GET_REPOSITORY_CONTENT', {'path': CONTENT_JSON.rsplit('/', 1)[0], 'ref': BRANCH})
+        lst = d.get('content') if isinstance(d, dict) else d
+        url = next((x.get('download_url') for x in (lst if isinstance(lst, list) else [])
+                    if isinstance(x, dict) and x.get('name') == CONTENT_JSON.rsplit('/', 1)[1]), None)
+        if not url:
+            return {}
+        import requests
+        r = requests.get(url, timeout=120)
+        if r.status_code != 200:
+            raise ToolError('HTTP %d' % r.status_code)
+        return r.json()
+    except Exception as e:
+        warn('อ่าน %s ไม่ได้ (%s) — โน้ตรายเดือนรอบนี้ไม่มีส่วนคอนเทนต์' % (CONTENT_JSON, type(e).__name__))
         return {}
 
 
@@ -1328,7 +1341,7 @@ PREFETCH_FAILED = set()
 
 def api_prefetch(tree):
     """ดึงไฟล์ที่ผู้ใช้แก้ได้ (Config, Topics) + สถิติแชทสะสม ลงโฟลเดอร์ชั่วคราว ให้โค้ดส่วนอื่นอ่านเหมือนโหมด git"""
-    want = [p for p in tree if p in ('Config/คำ sentiment.md', CONTENT_JSON) or (p.startswith('Topics/') and p.endswith('.md'))
+    want = [p for p in tree if p == 'Config/คำ sentiment.md' or (p.startswith('Topics/') and p.endswith('.md'))
             or (p.startswith(STATE_DIR + '/') and p.endswith('.json'))]
     for p in want:
         try:
