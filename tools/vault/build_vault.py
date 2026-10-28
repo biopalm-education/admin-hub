@@ -8,6 +8,7 @@
   * log พิมพ์แค่จำนวน/สถานะ ห้ามพิมพ์ชื่อหรือข้อความลูกค้า ห้ามพิมพ์คำตอบดิบจาก GitHub (มี token ในลิงก์)
 
 ระบบเขียนทับทุกรอบ: Ads/  Monthly/  Sources/  Chats/FB/<เดือนที่ประมวลผล>/  .vault/  "05 สถานะระบบ.md"
+โน้ต Monthly/ มีส่วนคอนเทนต์ FB/IG/TikTok/YouTube + ค่าแอด TikTok/Google Ads จาก .vault/content/monthly.json (งาน obsidian-content เขียน · ที่นี่อ่านอย่างเดียว)
 สร้างให้ครั้งแรกถ้ายังไม่มี (แล้วไม่แตะอีก): Config/, Topics/, Templates/, Bases/, บันทึกของฉัน/
 ไม่แตะเลย: เอกสาร 00-04 และไฟล์อื่นที่ผู้ใช้สร้าง
 """
@@ -1067,9 +1068,56 @@ def write_ads(camps, ads, wg, am, cm, last3, chat_tot):
             'FROM "Ads/Campaigns"', 'WHERE %s = "%s"' % (prop, name), 'SORT spend DESC', '```']))
 
 
-def write_months(M, fbov, line, ig, state):
+CONTENT_JSON = '.vault/content/monthly.json'      # เขียนโดยงาน obsidian-content (tools/content/pull.py) ทุกวันจันทร์
+CPF = [('FB', 'fb'), ('IG', 'ig'), ('TikTok', 'tiktok'), ('YouTube', 'youtube')]
+
+
+def load_content():
+    """สรุปคอนเทนต์รายเดือน FB/IG/TikTok/YouTube + ค่าแอด TikTok / Google Ads รายเดือน · ไม่มี/อ่านไม่ได้ → {}"""
+    fp = os.path.join(VAULT, *CONTENT_JSON.split('/'))
+    if not os.path.exists(fp):
+        return {}
+    try:
+        return json.load(open(fp, encoding='utf-8'))
+    except Exception:
+        warn('อ่าน %s ไม่ได้ — โน้ตรายเดือนรอบนี้ไม่มีส่วนคอนเทนต์' % CONTENT_JSON)
+        return {}
+
+
+def content_section(m, content):
+    """ส่วน "คอนเทนต์ที่ลงเดือนนี้" ในโน้ต Monthly · ลิงก์ไปโน้ตโพสต์ใน Content/"""
+    cm = (content.get('months') or {}).get(m) or {}
+    sp = content.get('ad_spend') or {}
+    out = []
+    bits = []
+    for pf, lab in (('TikTok', 'TikTok Ads'), ('YouTube', 'Google Ads แอดวิดีโอ YouTube')):
+        v = (sp.get(pf) or {}).get(m)
+        if v:
+            bits.append('**%s** ใช้จ่าย %s บาท · ยอดดูจากแอด %s' % (lab, fmt(v.get('spend')), fmt(v.get('views'))))
+    if bits:
+        out += [''] + [' · '.join(bits)]
+    if not cm:
+        return out
+    out += ['', '## คอนเทนต์ที่ลงเดือนนี้', '',
+            '| ช่องทาง | โพสต์ | ทำแอด | ยอดดูรวม | ยอดดูมัธยฐาน (ไม่ทำแอด) | ออร์แกนิกยอดดูสูงสุด |', '|---|---:|---:|---:|---:|---|']
+    for pf, _ in CPF:
+        c = cm.get(pf)
+        if not c:
+            continue
+        top = ' · '.join('[[%s\\|%s]] %s' % (t['note'], t.get('title') or t.get('format'), fmt(t.get('views'))) for t in (c.get('top') or [])[:2])
+        out.append('| %s | %s | %s | %s | %s | %s |' % (
+            pf, fmt(c.get('posts')), '-' if c.get('ads') is None else fmt(c.get('ads')), fmt(c.get('views')),
+            fmt(c.get('views_organic_median')), top or '-'))
+    stale = content.get('stale') or {}
+    out += ['', '_ตัวเลขคอนเทนต์สะสมถึง %s (อัปเดตทุกวันจันทร์ — งาน obsidian-content) · "ยอดดูรวม" รวมยอดจากแอด · ดูทั้งหมดที่ [[สรุปคอนเทนต์]]%s_' % (
+        content.get('pulled') or '-', (' · ⚠️ ' + ' · '.join('%s ใช้ข้อมูล %s' % kv for kv in sorted(stale.items()))) if stale else '')]
+    return out
+
+
+def write_months(M, fbov, line, ig, state, content=None):
+    content = content or {}
     acct = {str(r.get('เดือน (เริ่ม)'))[:7]: r for r in M['acct']}
-    months = sorted(set(acct) | set(fbov) | set(state.get('months', {})))
+    months = sorted(set(acct) | set(fbov) | set(state.get('months', {})) | set(content.get('months') or {}))
     for m in months:
         y, mo = int(m[:4]), int(m[5:7])
         a = acct.get(m) or {}
@@ -1099,6 +1147,13 @@ def write_months(M, fbov, line, ig, state):
                   close_pct_admin=pct(src('admin_followup', 'closed') or 0, src('admin_followup', 'leads') or 0),
                   sent_end_ads=src('ads', 's_end'), sent_end_organic=src('organic', 's_end'),
                   sent_end_admin=src('admin_followup', 's_end'))
+        cm = (content.get('months') or {}).get(m) or {}
+        csp = content.get('ad_spend') or {}
+        for pf, k in CPF:
+            fm['%s_posts' % k] = (cm.get(pf) or {}).get('posts')
+            fm['%s_post_views' % k] = (cm.get(pf) or {}).get('views')
+        fm['tiktok_ad_spend'] = ((csp.get('TikTok') or {}).get(m) or {}).get('spend')
+        fm['youtube_ad_spend'] = ((csp.get('YouTube') or {}).get(m) or {}).get('spend')
         body = ['# เดือน %s %d' % (TH_ABBR[mo], y), '']
         if s:
             body.append('**Meta Ads** ใช้จ่าย %s บาท · เริ่มแชท %s · บาท/แชท %s · ปิด (ป้าย Meta) %s · บาท/การปิด %s' % (
@@ -1120,6 +1175,7 @@ def write_months(M, fbov, line, ig, state):
                 tot = sum(mt.values())
                 body += ['', 'จับคู่แชทโฆษณากับตัวโฆษณา: ' + ' · '.join(
                     '%s %d (%s%%)' % (k, v, pct(v, tot)) for k, v in sorted(mt.items(), key=lambda x: (-x[1], x[0])))]
+        body += content_section(m, content)
         body += ['', '## โน้ตของฉันเดือนนี้', '- (จดสิ่งที่เกิดขึ้น เช่น เปลี่ยนครีเอทีฟ เปิดคอร์สใหม่ ช่วงสอบ)']
         put('Monthly/%s.md' % m, front(fm) + '\n' + '\n'.join(body))
 
@@ -1272,7 +1328,7 @@ PREFETCH_FAILED = set()
 
 def api_prefetch(tree):
     """ดึงไฟล์ที่ผู้ใช้แก้ได้ (Config, Topics) + สถิติแชทสะสม ลงโฟลเดอร์ชั่วคราว ให้โค้ดส่วนอื่นอ่านเหมือนโหมด git"""
-    want = [p for p in tree if p == 'Config/คำ sentiment.md' or (p.startswith('Topics/') and p.endswith('.md'))
+    want = [p for p in tree if p in ('Config/คำ sentiment.md', CONTENT_JSON) or (p.startswith('Topics/') and p.endswith('.md'))
             or (p.startswith(STATE_DIR + '/') and p.endswith('.json'))]
     for p in want:
         try:
@@ -1454,7 +1510,11 @@ def main():
 
     chat_tot = ad_chat_totals(state)
     write_ads(camps, ads, wg, am, cm, last3, chat_tot)
-    write_months(M, fbov, line, ig, state)
+    content = load_content()
+    if content:
+        STATUS['steps'].append('คอนเทนต์รายเดือน (FB/IG/TikTok/YouTube) จากงาน obsidian-content รอบ %s · %d เดือน' % (
+            content.get('pulled') or '-', len(content.get('months') or {})))
+    write_months(M, fbov, line, ig, state, content)
     write_sources(files)
     for rel, text in seed_files().items():
         if MODE == 'api':

@@ -255,6 +255,28 @@ def tiktok_ads(adv, rows):
     return True
 
 
+def tiktok_month_spend(adv):
+    """ค่าแอด TikTok ทั้งบัญชีรายเดือน (ตั้งแต่ SINCE) → {เดือน: {'spend', 'views'}} · views = ยอดเล่นวิดีโอจากแอด"""
+    out = {}
+    for s, e in P.month_spans():
+        a = {'report_type': 'BASIC', 'data_level': 'AUCTION_ADVERTISER', 'advertiser_id': str(adv), 'dimensions': ['advertiser_id'],
+             'metrics': ['spend', 'video_play_actions'], 'start_date': s, 'end_date': e, 'page_size': 10}
+        d = P.call('TIKTOK_ADS_GET_REPORT_INTEGRATED', a, tries=3)
+        rows = (d.get('rows') if isinstance(d, dict) else None) or ((d.get('data') or {}).get('rows') if isinstance(d, dict) else None) or []
+        sp = sum(float((r.get('metrics') or {}).get('spend') or 0) for r in rows if isinstance(r, dict))
+        vw = sum(_int((r.get('metrics') or {}).get('video_play_actions')) or 0 for r in rows if isinstance(r, dict))
+        if sp or vw:
+            out[s[:7]] = {'spend': int(round(sp)), 'views': vw}
+    return out
+
+
+def _month_spend(st, fn, label):
+    try:
+        st['month_spend'] = fn()
+    except Exception as e:
+        P.log('%s: ดึงค่าแอดรายเดือนไม่ได้ (%s)' % (label, type(e).__name__))
+
+
 def tiktok(cfg):
     """→ (rows, state)"""
     st = {'ok': False, 'ads_ok': False, 'stale': None, 'account': {}}
@@ -267,8 +289,12 @@ def tiktok(cfg):
         st['why'] = 'เรียก TikTok ไม่สำเร็จ (ถ้าซ้ำหลายรอบ: เชื่อม Composio tiktok ใหม่)'
         P.log('TikTok: ดึงคลิปไม่ได้ (%s %s) — ใช้ตัวเลขรอบก่อน' % (type(e).__name__, P._safe(e)[:120]))
         rows, st['stale'] = prev_rows('TikTok')
+        if cfg.get('tiktok_advertiser_id'):
+            _month_spend(st, lambda: tiktok_month_spend(cfg['tiktok_advertiser_id']), 'TikTok')
         return rows, st
     st['account'] = tiktok_account()
+    if cfg.get('tiktok_advertiser_id'):
+        _month_spend(st, lambda: tiktok_month_spend(cfg['tiktok_advertiser_id']), 'TikTok')
     st['ads_ok'] = tiktok_ads(cfg.get('tiktok_advertiser_id'), rows)
     if not st['ads_ok']:
         for r in rows:
@@ -411,15 +437,15 @@ GAQL = ("SELECT video.id, ad_group_ad.ad.id, metrics.cost_micros, metrics.impres
         "FROM video WHERE segments.date BETWEEN '%s' AND '%s' AND metrics.impressions > 0")
 
 
-def _gaql_span(s, e, acc):
+def _gaql_span(s, e, acc, macc):
     try:
         d = P.call('GOOGLEADS_SEARCH_STREAM_GAQL', {'query': GAQL % (s, e)}, tries=3)
     except P.CallError as err:
         a, b = dt.date.fromisoformat(s), dt.date.fromisoformat(e)
         if 'TOO_LARGE' in str(err) and b > a:                 # คำตอบใหญ่เกิน → แบ่งครึ่งช่วงวันที่
             mid = a + (b - a) // 2
-            _gaql_span(s, mid.isoformat(), acc)
-            _gaql_span((mid + dt.timedelta(days=1)).isoformat(), e, acc)
+            _gaql_span(s, mid.isoformat(), acc, macc)
+            _gaql_span((mid + dt.timedelta(days=1)).isoformat(), e, acc, macc)
             return
         raise
     for x in (d.get('results') if isinstance(d, dict) else None) or []:
@@ -435,18 +461,24 @@ def _gaql_span(s, e, acc):
         o['spend'] += cost
         o['impr'] += imp
         o['views'] += _int(m.get('videoTrueviewViews')) or 0
+        mo = macc.setdefault(s[:7], {'spend': 0.0, 'views': 0})            # ทั้งบัญชี (รวมคลิปที่ลงก่อน SINCE)
+        mo['spend'] += cost
+        mo['views'] += _int(m.get('videoTrueviewViews')) or 0
         for i, k in enumerate(('videoQuartileP25Rate', 'videoQuartileP50Rate', 'videoQuartileP75Rate', 'videoQuartileP100Rate')):
             o['q'][i] += float(m.get(k) or 0) * imp
 
 
-def youtube_ads(rows):
-    """ค่าแอด Google Ads รายคลิปตั้งแต่ SINCE + อัตราดูถึง 25/50/75/100% (ของผู้ชมแอด) · คืน True ถ้ารู้ข้อมูลแอด"""
-    acc = {}
-    try:
-        for s, e in P.month_spans():
-            _gaql_span(s, e, acc)
-    except Exception as e:
-        P.log('YouTube: ดึง Google Ads ไม่ได้ (%s %s) — ข้ามป้าย "ทำแอด"' % (type(e).__name__, P._safe(e)))
+def gads_collect():
+    """Google Ads แอดวิดีโอ รายเดือนตั้งแต่ SINCE → (รายคลิป, รายเดือนทั้งบัญชี)"""
+    acc, macc = {}, {}
+    for s, e in P.month_spans():
+        _gaql_span(s, e, acc, macc)
+    return acc, {m: {'spend': int(round(v['spend'])), 'views': v['views']} for m, v in sorted(macc.items()) if v['spend'] or v['views']}
+
+
+def youtube_ads(rows, acc):
+    """ค่าแอด Google Ads รายคลิปตั้งแต่ SINCE + อัตราดูถึง 25/50/75/100% (ของผู้ชมแอด) · acc None = ดึงไม่ได้ · คืน True ถ้ารู้ข้อมูลแอด"""
+    if acc is None:
         for r in rows:
             r.update(ads=None, ad_spend=None, ad_views=None, ad_p25=None, ad_p50=None, ad_p75=None, ad_p100=None)
         return False
@@ -467,6 +499,11 @@ def youtube_ads(rows):
 def youtube(cfg):
     """→ (rows, state)"""
     st = {'ok': False, 'ads_ok': False, 'stale': None, 'account': {}}
+    acc = None
+    try:
+        acc, st['month_spend'] = gads_collect()                 # ไม่ใช้โควตา YouTube — ได้แม้ดึงรายการคลิปไม่ได้
+    except Exception as e:
+        P.log('YouTube: ดึง Google Ads ไม่ได้ (%s %s) — ข้ามป้าย "ทำแอด"' % (type(e).__name__, P._safe(e)))
     cid = cfg.get('youtube_channel_id')
     if not cid:
         P.log('YouTube: ไม่มี youtube_channel_id ใน config — ข้าม')
@@ -485,7 +522,7 @@ def youtube(cfg):
         P.log('YouTube: ดึงข้อมูลช่องไม่ได้ (%s%s) — ใช้ตัวเลขรอบก่อน' % (type(e).__name__, ' · quotaExceeded' if quota else ''))
         rows, st['stale'] = prev_rows('YouTube')
         return rows, st
-    st['ads_ok'] = youtube_ads(rows)
+    st['ads_ok'] = youtube_ads(rows, acc)
     for r in rows:
         r['organic_views_est'] = max(0, (r['views'] or 0) - (r.get('ad_views') or 0)) if r.get('views') is not None and r.get('ads') is not None else None
     return rows, st

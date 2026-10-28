@@ -19,6 +19,7 @@
 ผลลัพธ์ (เขียนทับทุกรอบ)
 - ชีต **Biopalm Content Insight — FB/IG/TikTok/YouTube 2026** แท็บ คำอธิบาย / FB โพสต์ / IG โพสต์ / TikTok โพสต์ / YouTube วิดีโอ / สรุปรายเดือน
 - vault private `biopalm-insight`: `Content/<FB|IG|TikTok|YouTube>/<เดือน>/<วันที่> <ช่องทาง> <ประเภท> <ID>.md`, `Content/สรุปคอนเทนต์.md`, `.vault/content/posts.json`
+- `.vault/content/monthly.json` สรุปรายเดือนแบบย่อ (จำนวนโพสต์ · ยอดดู · ทำแอด · 3 โพสต์ออร์แกนิกยอดดูสูงสุด) + ค่าแอด TikTok / Google Ads รายเดือนทั้งบัญชี → งาน `obsidian-vault` อ่านไปใส่โน้ต `Monthly/` ทุกเช้า
 - โพสต์เดียวกันที่ลงหลายช่องทาง (แคปชัน/ชื่อคลิปขึ้นต้นเหมือนกัน วันที่ห่าง ≤ 60 วัน) ลิงก์หากันในโน้ต + ตารางเทียบในสรุป
 
 รัน: GitHub Actions `obsidian-content` — ทุกวันจันทร์อัตโนมัติ หรือกด Run workflow (ใส่ `since` ได้ / ติ๊ก dry_run เพื่อลองดึงอย่างเดียว)

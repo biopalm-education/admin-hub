@@ -891,6 +891,26 @@ def summary_note(rows_by, stamp, states, groups):
     return '\n'.join(L) + '\n'
 
 
+def month_content(rows_by, stamp, states):
+    """สรุปคอนเทนต์รายเดือนแบบย่อ → .vault/content/monthly.json · งาน obsidian-vault อ่านไปใส่โน้ต Monthly/ ทุกเช้า"""
+    months = {}
+    for pf in PLAT:
+        for m in sorted({r['month'] for r in rows_by[pf]}):
+            rs = [r for r in rows_by[pf] if r['month'] == m]
+            known = all(r.get('ads') is not None for r in rs)
+            org = organic(rs)
+            top = sorted([r for r in org if r.get('views') is not None], key=lambda r: -r['views'])[:3]
+            months.setdefault(m, {})[pf] = {
+                'posts': len(rs), 'ads': sum(1 for r in rs if r.get('ads')) if known else None,
+                'views': sum(r['views'] or 0 for r in rs), 'views_organic_median': med([r['views'] for r in org]),
+                'interactions': sum(r['interactions'] or 0 for r in rs),
+                'top': [{'note': note_name(r), 'format': r['format'], 'views': r['views'],
+                         'title': first_line(r.get('title') or r['caption'], 50).replace('|', '/').replace('[', '(').replace(']', ')')} for r in top]}
+    return {'pulled': stamp, 'since': SINCE, 'months': months,
+            'ad_spend': {p: (states.get(p) or {}).get('month_spend') for p in ('TikTok', 'YouTube') if (states.get(p) or {}).get('month_spend')},
+            'stale': {p: (states.get(p) or {}).get('stale') or 'ยังไม่มีข้อมูล' for p in ('TikTok', 'YouTube') if not (states.get(p) or {}).get('ok')}}
+
+
 def commit(files, label):
     items = sorted(files.items())
     n = (len(items) + 59) // 60
@@ -975,6 +995,7 @@ def main():
     files['.vault/content/posts.json'] = json.dumps({'pulled': stamp, 'since': SINCE, 'posts': clean,
                                                      'accounts': {p: states[p].get('account') or {} for p in states}},
                                                     ensure_ascii=False, separators=(',', ':'))
+    files['.vault/content/monthly.json'] = json.dumps(month_content(rows_by, stamp, states), ensure_ascii=False, separators=(',', ':'))
     commit(files, 'content: insight โพสต์ FB/IG/TikTok/YouTube %s' % stamp)
     log('เสร็จ')
 
