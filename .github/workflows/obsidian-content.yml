@@ -1,7 +1,8 @@
 name: obsidian-content
 
-# insight คอนเทนต์ออร์แกนิก Facebook Page + Instagram ทุกโพสต์ตั้งแต่ 1 ม.ค. 2026
-# → ชีต "Biopalm Content Insight — FB/IG 2026" (ข้อมูลดิบ) + vault private biopalm-insight โฟลเดอร์ Content/ (1 โพสต์ = 1 โน้ต)
+# insight คอนเทนต์ออร์แกนิก Facebook Page + Instagram + TikTok + YouTube ทุกโพสต์ตั้งแต่ 1 ม.ค. 2026
+# → ชีต "Biopalm Content Insight — FB/IG/TikTok/YouTube 2026" (ข้อมูลดิบ) + vault private biopalm-insight โฟลเดอร์ Content/ (1 โพสต์ = 1 โน้ต)
+# TikTok/YouTube ดึงไม่ได้รอบไหน (เช่น โควตา YouTube ของ Composio เต็ม) → ใช้ตัวเลขรอบก่อน งาน FB/IG ไปต่อ
 # ผ่าน Composio MCP ตัวเดิม (secret COMPOSIO_API_KEY) · ไม่แตะงานอื่น (คนละ concurrency group)
 # repo นี้ public: log บอกแค่ขั้นตอนและจำนวน — ไม่พิมพ์ ID ข้อความโพสต์ หรือตัวเลข insight
 # รอบอัตโนมัติ: ทุกวันจันทร์ ~06:23 น. เวลาไทย · กด Run workflow เองได้
@@ -46,10 +47,11 @@ jobs:
       - name: ติดตั้ง dependency
         run: pip install --quiet --disable-pip-version-check requests
 
-      - name: ดึง insight โพสต์ FB/IG แล้วเขียนลงชีตและ vault
+      - name: ดึง insight โพสต์ FB/IG/TikTok/YouTube แล้วเขียนลงชีตและ vault
         env:
           COMPOSIO_API_KEY: ${{ secrets.COMPOSIO_API_KEY }}
           COMPOSIO_MCP_URL: ${{ vars.COMPOSIO_MCP_URL }}
+          YT_API_KEY: ${{ secrets.YT_API_KEY }}   # ไม่บังคับ: มี → YouTube ใช้ key ของเราเอง · ไม่มี → ผ่าน Composio
           MCP_PARALLEL: '3'
           WORKERS: '3'
           SINCE: ${{ inputs.since }}

@@ -1,13 +1,14 @@
 # -*- coding: utf-8 -*-
-"""Insight คอนเทนต์ออร์แกนิก Facebook Page + Instagram (Biopalm) → Google Sheet + vault Obsidian (Content/)
+"""Insight คอนเทนต์ออร์แกนิก Facebook Page + Instagram + TikTok + YouTube (Biopalm) → Google Sheet + vault Obsidian (Content/)
 
 ทุกโพสต์ตั้งแต่ SINCE (ค่าเริ่ม 1 ม.ค. 2026 เวลาไทย): ภาพเดี่ยว / อัลบั้ม / วิดีโอ / Reel / ข้อความ-ลิงก์
   FB : ยอดดู (post_media_view) · คนดูไม่ซ้ำ · reaction · คอมเมนต์ · แชร์
   IG : ยอดดู · reach · ไลก์ · คอมเมนต์ · เซฟ · แชร์ · interaction รวม · เข้าโปรไฟล์ · ฟอลโลว์ใหม่
        Reel เพิ่ม: เวลาดูเฉลี่ย · เวลาดูรวม · อัตราปัดทิ้งใน 3 วินาทีแรก
+  TikTok / YouTube: ดู video.py (ยอดดู · ไลก์ · คอมเมนต์ · แชร์ · ความยาว · ค่าแอด TikTok Ads / Google Ads)
 ผลลัพธ์
-  * ชีต "Biopalm Content Insight — FB/IG 2026" (ข้อมูลดิบ เขียนทับทั้งแท็บทุกรอบ)
-  * vault private biopalm-insight: Content/<FB|IG>/<เดือน>/<วันที่> <ช่องทาง> <ประเภท> <ID>.md (1 โพสต์ = 1 โน้ต)
+  * ชีต "Biopalm Content Insight — FB/IG/TikTok/YouTube 2026" (ข้อมูลดิบ เขียนทับทั้งแท็บทุกรอบ)
+  * vault private biopalm-insight: Content/<FB|IG|TikTok|YouTube>/<เดือน>/<วันที่> <ช่องทาง> <ประเภท> <ID>.md (1 โพสต์ = 1 โน้ต)
     + Content/สรุปคอนเทนต์.md + .vault/content/posts.json
 
 รันใน GitHub Actions (.github/workflows/obsidian-content.yml) ผ่าน Composio MCP ตัวเดียวกับงานอื่น (secret COMPOSIO_API_KEY)
@@ -20,11 +21,14 @@ from zoneinfo import ZoneInfo
 HERE = os.path.dirname(os.path.abspath(__file__))
 sys.path.insert(0, os.path.join(HERE, '..', 'meta_ads'))
 import composio_shim as S
+import video as V
 
 PAGE_HASH = '73025ff6d1ad9be87ec1ef93b274a8ce62bfbbcb64343d40d49c01cb5b7cceb1'
 ACT_HASH = '08d8b72a01af222cdd8bdf0a1693ca700448249f2ba096b0b185c5c57d97a098'   # บัญชีโฆษณาเดียวกับ meta_ads/export.py
 SHEET_HASH = '1083f419af879f018fb3894f00949c682e04f9a96db4519f2a39ac0b657ae59f'
 SHEET_QUERY = 'Biopalm Content Insight'
+SHEET_TITLE = 'Biopalm Content Insight — FB/IG/TikTok/YouTube 2026'
+PLAT = ['FB', 'IG', 'TikTok', 'YouTube']
 VAULT_REPO = os.environ.get('VAULT_REPO') or 'biopalm-education/biopalm-insight'
 OWNER, REPO = VAULT_REPO.split('/')
 BKK = ZoneInfo('Asia/Bangkok')
@@ -348,7 +352,7 @@ def ig_format(m):
 
 
 def group_of(f):
-    return 'ภาพนิ่ง' if f in ('ภาพเดี่ยว', 'อัลบั้ม') else ('วิดีโอ' if f in ('Reel', 'วิดีโอ') else 'อื่น ๆ')
+    return 'ภาพนิ่ง' if f in ('ภาพเดี่ยว', 'อัลบั้ม', 'ภาพสไลด์') else ('วิดีโอ' if f in ('Reel', 'วิดีโอ', 'Shorts', 'วิดีโอยาว', 'ไลฟ์') else 'อื่น ๆ')
 
 
 # ---------------------------------------------------------------- insight
@@ -540,6 +544,15 @@ IG_COLS = [('วันที่โพสต์ (เวลาไทย)', 'posted
            ('Interaction ต่อ reach (%)', 'rate'), ('เข้าโปรไฟล์', 'profile_visits'), ('ฟอลโลว์ใหม่', 'follows'),
            ('Reel ดูเฉลี่ย (วินาที)', 'avg_watch_s'), ('Reel เวลาดูรวม (ชม.)', 'watch_total_h'), ('Reel ปัดทิ้งใน 3 วิ (%)', 'skip_rate'),
            ('โฆษณาที่ใช้โพสต์นี้ (ตัว)', 'ads'), ('ค่าแอดที่ใช้โพสต์นี้ (บาท)', 'ad_spend')]
+TT_COLS = [('วันที่โพสต์ (เวลาไทย)', 'posted'), ('เดือน', 'month'), ('ประเภท', 'format'), ('ความยาว (วินาที)', 'duration_s'), ('Video ID', 'post_id'),
+           ('ลิงก์', 'link'), ('แคปชัน (ตัดสั้น)', 'cap'), ('ยอดดู', 'views'), ('ไลก์', 'likes'), ('คอมเมนต์', 'comments'), ('แชร์', 'shares'),
+           ('Interaction รวม', 'interactions'), ('Interaction ต่อยอดดู (%)', 'rate'), ('โฆษณาที่ใช้คลิปนี้ (ตัว)', 'ads'), ('ค่าแอด (บาท)', 'ad_spend'),
+           ('ยอดดูจากแอด', 'ad_views'), ('ยอดดูที่ไม่ใช่แอด (ประมาณ)', 'organic_views_est')]
+YT_COLS = [('วันที่เผยแพร่ (เวลาไทย)', 'posted'), ('เดือน', 'month'), ('ประเภท', 'format'), ('ความยาว (วินาที)', 'duration_s'), ('Video ID', 'post_id'),
+           ('ลิงก์', 'link'), ('ชื่อคลิป', 'title'), ('ยอดดู', 'views'), ('ไลก์', 'likes'), ('คอมเมนต์', 'comments'),
+           ('Interaction รวม', 'interactions'), ('Interaction ต่อยอดดู (%)', 'rate'), ('โฆษณา Google Ads ที่ใช้คลิปนี้ (ตัว)', 'ads'),
+           ('ค่าแอด (บาท)', 'ad_spend'), ('ยอดดูจากแอด', 'ad_views'), ('ยอดดูที่ไม่ใช่แอด (ประมาณ)', 'organic_views_est'),
+           ('ผู้ชมแอดดูถึง 25% (%)', 'ad_p25'), ('ผู้ชมแอดดูถึง 50% (%)', 'ad_p50'), ('ผู้ชมแอดดูถึง 75% (%)', 'ad_p75'), ('ผู้ชมแอดดูจบ 100% (%)', 'ad_p100')]
 
 
 def table_rows(rows, cols):
@@ -569,27 +582,52 @@ def monthly_rows(allrows):
     return out
 
 
-def about_rows(stamp, nfb, nig, ads_ok=True):
-    return [['Biopalm Content Insight — FB/IG'],
-            ['ดึงล่าสุด', stamp],
-            ['ช่วงโพสต์', 'ตั้งแต่ %s (เวลาไทย) ถึงวันที่ดึง' % SINCE],
-            ['จำนวนโพสต์', 'FB %d · IG %d' % (nfb, nig)],
-            ['อัปเดต', 'อัตโนมัติทุกสัปดาห์ (GitHub Actions: admin-hub → obsidian-content) เขียนทับทั้งแท็บทุกรอบ — อย่าพิมพ์ข้อมูลเองในแท็บเหล่านี้'],
-            ['ใน Obsidian', 'vault Biopalm-Insight → Content/ (1 โพสต์ = 1 โน้ต ชื่อไฟล์มี ID) + Content/สรุปคอนเทนต์'],
-            [''],
+def about_rows(stamp, rows_by, states, ads_ok=True):
+    def status(p):
+        st = states.get(p) or {}
+        if st.get('ok'):
+            return 'ดึงสำเร็จรอบนี้ · %d คลิป%s' % (len(rows_by[p]), '' if st.get('ads_ok') else ' · ข้อมูลแอดรอบนี้ดึงไม่ได้ (ช่องแอดว่าง)')
+        why = (' (%s)' % st['why']) if st.get('why') else ''
+        if rows_by[p]:
+            return 'รอบนี้ดึงไม่ได้%s — แท็บของช่องทางนี้ยังเป็นข้อมูลรอบ %s' % (why, st.get('stale') or 'ก่อน')
+        return 'ยังไม่มีข้อมูล — ดึงไม่ได้%s · รอบถัดไประบบจะลองใหม่' % why
+    tta, yta = (states.get('TikTok') or {}).get('account') or {}, (states.get('YouTube') or {}).get('account') or {}
+    out = [['Biopalm Content Insight — FB / IG / TikTok / YouTube'],
+           ['ดึงล่าสุด', stamp],
+           ['ช่วงโพสต์', 'ตั้งแต่ %s (เวลาไทย) ถึงวันที่ดึง' % SINCE],
+           ['จำนวนโพสต์', ' · '.join('%s %d' % (p, len(rows_by[p])) for p in PLAT)],
+           ['TikTok', status('TikTok')],
+           ['YouTube', status('YouTube')],
+           ['อัปเดต', 'อัตโนมัติทุกสัปดาห์ (GitHub Actions: admin-hub → obsidian-content) เขียนทับทั้งแท็บทุกรอบ — อย่าพิมพ์ข้อมูลเองในแท็บเหล่านี้'],
+           ['ใน Obsidian', 'vault Biopalm-Insight → Content/<ช่องทาง>/ (1 โพสต์ = 1 โน้ต ชื่อไฟล์มี ID) + Content/สรุปคอนเทนต์']]
+    if tta:
+        out.append(['บัญชี TikTok (ณ วันที่ดึง)', 'ผู้ติดตาม %s · ไลก์รวมทั้งบัญชี %s · คลิปทั้งหมด %s' % (
+            fmt_n(tta.get('followers')), fmt_n(tta.get('likes_total')), fmt_n(tta.get('videos_total')))])
+    if yta:
+        out.append(['ช่อง YouTube (ณ วันที่ดึง)', 'ผู้ติดตาม %s · ยอดดูรวมทั้งช่อง %s · คลิปสาธารณะทั้งหมด %s' % (
+            fmt_n(yta.get('subscribers')), fmt_n(yta.get('views_total')), fmt_n(yta.get('videos_total')))])
+    out += [[''],
             ['คำ', 'ความหมาย'],
             ['ยอดดู', 'FB: post_media_view = จำนวนครั้งที่โพสต์แสดงบนจอ · IG: views = จำนวนครั้งที่เล่น/แสดง (ตัวเลขชุดใหม่ของ Meta แทน impressions ที่เลิกใช้) · '
-                      'ถ้าโพสต์ถูกนำไปทำแอด ยอดนี้รวมยอดจากแอดด้วย (แยกส่วนไม่ได้)'],
-            ['โฆษณาที่ใช้โพสต์นี้ / ค่าแอด', ('จำนวนโฆษณาที่ใช้โพสต์นี้โดยตรง (กด Boost หรือเลือกโพสต์เดิมในตัวจัดการโฆษณา) และค่าแอดรวมของโฆษณาเหล่านั้นตั้งแต่ %s · '
-                                             '0 = ไม่เคยทำแอด = ออร์แกนิกล้วน' % SINCE) if ads_ok else
-             'รอบนี้ดึงข้อมูลแอดไม่ได้ — ช่องว่างทั้งคอลัมน์ (ไม่ใช่ 0)'],
-            ['คนดูไม่ซ้ำ / Reach', 'จำนวนบัญชีที่เห็นโพสต์อย่างน้อย 1 ครั้ง (ค่าประมาณจาก Meta)'],
-            ['Interaction รวม', 'FB: reaction + คอมเมนต์ + แชร์ · IG: ไลก์ + เซฟ + คอมเมนต์ + แชร์ (ตัวเลขของ IG เอง)'],
-            ['Interaction ต่อคนดู / ต่อ reach', 'Interaction รวม ÷ คนดูไม่ซ้ำ (หรือ reach) × 100'],
-            ['ภาพนิ่ง / วิดีโอ', 'ภาพนิ่ง = ภาพเดี่ยว + อัลบั้ม · วิดีโอ = Reel + วิดีโอ · อื่น ๆ = ข้อความ/ลิงก์/แชร์ต่อ'],
+                      'TikTok: view_count ของคลิป · YouTube: ยอดดูสาธารณะของคลิป · '
+                      'ถ้าโพสต์ถูกนำไปทำแอด ยอดนี้รวมยอดจากแอดด้วย — นิยาม "ยอดดู" แต่ละแพลตฟอร์มไม่เหมือนกัน เทียบข้ามช่องทางตรง ๆ ไม่ได้'],
+            ['โฆษณาที่ใช้โพสต์นี้ / ค่าแอด', ('จำนวนโฆษณาที่ใช้โพสต์นี้โดยตรงและค่าแอดรวมตั้งแต่ %s · FB/IG: Meta Ads (Boost หรือเลือกโพสต์เดิม) · '
+                                             'TikTok: TikTok Ads Manager (Spark Ads — จับคู่จากชื่อแอดที่ขึ้นต้นด้วยแคปชันคลิป) · YouTube: Google Ads · '
+                                             '0 = ไม่เคยทำแอด = ออร์แกนิกล้วน · ช่องว่าง = รอบนี้ดึงข้อมูลแอดไม่ได้ (ไม่ใช่ 0)' % SINCE) if ads_ok else
+             'FB/IG: รอบนี้ดึงข้อมูลแอด Meta ไม่ได้ — ช่องว่างทั้งคอลัมน์ (ไม่ใช่ 0)'],
+            ['ยอดดูจากแอด / ยอดดูที่ไม่ใช่แอด (ประมาณ)', 'TikTok: video_play_actions ของแอด · YouTube: TrueView views ของ Google Ads · '
+                                                     'ยอดดูที่ไม่ใช่แอด = ยอดดูคลิป − ยอดดูจากแอด (ประมาณ เพราะแพลตฟอร์มนับไม่ตรงกัน 100%)'],
+            ['ผู้ชมแอดดูถึง 25/50/75/100%', 'YouTube เท่านั้น: สัดส่วนการแสดงแอดที่ผู้ชมดูถึงจุดนั้น (จาก Google Ads) — ไม่ใช่ผู้ชมออร์แกนิก'],
+            ['คนดูไม่ซ้ำ / Reach', 'FB/IG: จำนวนบัญชีที่เห็นโพสต์อย่างน้อย 1 ครั้ง (ค่าประมาณจาก Meta) · TikTok/YouTube: API ไม่ให้ตัวเลขนี้'],
+            ['Interaction รวม', 'FB: reaction + คอมเมนต์ + แชร์ · IG: ไลก์ + เซฟ + คอมเมนต์ + แชร์ (ตัวเลขของ IG เอง) · TikTok: ไลก์ + คอมเมนต์ + แชร์ · YouTube: ไลก์ + คอมเมนต์'],
+            ['Interaction ต่อคนดู / reach / ยอดดู', 'Interaction รวม ÷ (FB คนดูไม่ซ้ำ · IG reach · TikTok/YouTube ยอดดู) × 100'],
+            ['ภาพนิ่ง / วิดีโอ', 'ภาพนิ่ง = ภาพเดี่ยว + อัลบั้ม (+ ภาพสไลด์ TikTok) · วิดีโอ = Reel + วิดีโอ + TikTok + YouTube · อื่น ๆ = ข้อความ/ลิงก์/แชร์ต่อ'],
+            ['Shorts / วิดีโอยาว', 'YouTube API ไม่บอกตรง ๆ ว่าเป็น Shorts: ระบบเปิดลิงก์ youtube.com/shorts/<ID> ตรวจ (เปิดไม่ได้ → เดาจากความยาว ≤ 3 นาที)'],
             ['Reel ปัดทิ้งใน 3 วิ', 'สัดส่วนการเล่นที่ถูกปัดผ่านภายใน 3 วินาทีแรก (ยิ่งต่ำยิ่งดี)'],
-            ['ข้อจำกัด', 'FB วิดีโอ: ยังไม่มีเวลาดู/ยอดดู 3 วินาที (ดึงผ่านเครื่องมือที่มีไม่ได้) · Stories ย้อนหลังไม่ได้ · ตัวเลขเป็นยอดสะสมถึงวันที่ดึง โพสต์ใหม่จะยังเพิ่มอีก'],
-            ['ช่องว่าง', 'ช่องว่าง = Meta ไม่ส่งตัวเลขนั้นให้โพสต์นั้น (ไม่ใช่ 0)']]
+            ['ข้อจำกัด', 'FB วิดีโอ: ยังไม่มีเวลาดู · TikTok: API ให้แค่ยอดดู/ไลก์/คอมเมนต์/แชร์ (ไม่มี reach เวลาดู ดูจบ — ดูใน TikTok Studio) และเฉพาะคลิปสาธารณะ · '
+                         'YouTube: ช่องคอนเทนต์อยู่คนละอีเมล จึงได้แค่ตัวเลขสาธารณะ (ไม่มีเวลาดู/ซับใหม่รายคลิป) · Stories ย้อนหลังไม่ได้ · ตัวเลขเป็นยอดสะสมถึงวันที่ดึง โพสต์ใหม่จะยังเพิ่มอีก'],
+            ['ช่องว่าง', 'ช่องว่าง = แพลตฟอร์มไม่ส่งตัวเลขนั้นให้โพสต์นั้น (ไม่ใช่ 0)']]
+    return out
 
 
 # ---------------------------------------------------------------- vault
@@ -620,22 +658,43 @@ def note_path(r):
     return 'Content/%s/%s/%s.md' % (r['platform'], r['month'], note_name(r))
 
 
-def post_note(r, stamp):
-    props = [('type', 'content'), ('platform', r['platform']), ('format', r['format']), ('group', r['group']), ('posted', r['posted']),
+LAB = {'FB': ('คนดูไม่ซ้ำ', 'Reaction'), 'IG': ('Reach', 'ไลก์'), 'TikTok': (None, 'ไลก์'), 'YouTube': (None, 'ไลก์')}
+AD_SRC = {'FB': 'Meta Ads', 'IG': 'Meta Ads', 'TikTok': 'TikTok Ads', 'YouTube': 'Google Ads'}
+
+
+def fmt_dur(s):
+    if s is None:
+        return '–'
+    return '%d:%02d นาที' % divmod(int(s), 60) if s >= 60 else '%d วินาที' % s
+
+
+def post_note(r, stamp, others=()):
+    pf = r['platform']
+    props = [('type', 'content'), ('platform', pf), ('format', r['format']), ('group', r['group']), ('posted', r['posted']),
              ('month', r['month']), ('post_id', r['post_id'])]
-    if r['platform'] == 'IG':
+    if pf == 'IG':
         props.append(('shortcode', r['key']))
+    if pf == 'YouTube':
+        props.append(('title', r.get('title')))
     props += [('link', r['link']), ('views', r['views']), ('reach', r['reach']), ('likes', r['likes']), ('comments', r['comments']),
               ('shares', r['shares']), ('saved', r['saved']), ('interactions', r['interactions']), ('interaction_rate', r['rate']),
               ('profile_visits', r['profile_visits']), ('follows', r['follows']), ('avg_watch_s', r['avg_watch_s']),
-              ('skip_rate', r['skip_rate']), ('ads', r.get('ads')), ('ad_spend', r.get('ad_spend')), ('pulled', stamp)]
-    fm = '---\n' + '\n'.join('%s: %s' % (k, yv(v)) for k, v in props if not (v is None and k in (
-        'saved', 'profile_visits', 'follows', 'avg_watch_s', 'skip_rate', 'shortcode', 'ads', 'ad_spend'))) + '\n---\n'
+              ('skip_rate', r['skip_rate']), ('duration_s', r.get('duration_s')), ('ads', r.get('ads')), ('ad_spend', r.get('ad_spend')),
+              ('ad_views', r.get('ad_views')), ('organic_views_est', r.get('organic_views_est')), ('ad_p100', r.get('ad_p100')), ('pulled', stamp)]
+    opt = {'saved', 'profile_visits', 'follows', 'avg_watch_s', 'skip_rate', 'shortcode', 'ads', 'ad_spend', 'duration_s', 'ad_views',
+           'organic_views_est', 'ad_p100', 'title'}
+    if pf in ('TikTok', 'YouTube'):
+        opt |= {'reach', 'shares'}
+    fm = '---\n' + '\n'.join('%s: %s' % (k, yv(v)) for k, v in props if not (v is None and k in opt)) + '\n---\n'
     if r.get('ads') is None:
         adline = 'ทำแอด: รอบนี้ไม่ได้ตรวจ (ดึงข้อมูลแอดไม่ได้)'
     elif r['ads']:
-        adline = ('**นำไปทำแอดแล้ว** %d โฆษณา · ค่าแอดรวม %s บาท (ตั้งแต่ %s) — ยอดดู/คนดูด้านล่างรวมส่วนที่มาจากแอดด้วย ไม่ใช่ออร์แกนิกล้วน'
-                  % (r['ads'], fmt_n(r['ad_spend']), date_th(SINCE)))
+        adline = ('**นำไปทำแอดแล้ว** (%s) %d โฆษณา · ค่าแอดรวม %s บาท (ตั้งแต่ %s) — ยอดดู/คนดูด้านล่างรวมส่วนที่มาจากแอดด้วย ไม่ใช่ออร์แกนิกล้วน'
+                  % (AD_SRC[pf], r['ads'], fmt_n(r['ad_spend']), date_th(SINCE)))
+        if r.get('ad_views') is not None and pf in ('TikTok', 'YouTube'):
+            adline += '\n\nยอดดูจากแอด %s → ยอดดูที่ไม่ใช่แอด ≈ %s (ประมาณ)' % (fmt_n(r['ad_views']), fmt_n(r.get('organic_views_est')))
+        if pf == 'YouTube' and r.get('ad_p25') is not None:
+            adline += ' · ผู้ชมแอดดูถึง 25 / 50 / 75 / 100%%: %s / %s / %s / %s%%' % tuple(fmt_n(r.get(k), 1) for k in ('ad_p25', 'ad_p50', 'ad_p75', 'ad_p100'))
     else:
         adline = 'ไม่เคยนำไปทำแอด (ตั้งแต่ %s) — ตัวเลขด้านล่างเป็นออร์แกนิกล้วน' % date_th(SINCE)
     cap = str(r['caption'] or '').strip()
@@ -643,94 +702,191 @@ def post_note(r, stamp):
     # บรรทัดแคปชันที่ขึ้นต้น "# " กลายเป็นหัวข้อใน Obsidian → ใส่ \ ให้เป็นตัวอักษรธรรมดา
     capq = '\n'.join('> ' + re.sub(r'^(\s*)#', r'\1\\#', ln) if re.match(r'\s*#{1,6}\s', ln) else '> ' + ln
                      for ln in cap.splitlines() if ln.strip()) or '> (ไม่มีข้อความ)'
-    lab_reach = 'คนดูไม่ซ้ำ' if r['platform'] == 'FB' else 'Reach'
-    lab_like = 'Reaction' if r['platform'] == 'FB' else 'ไลก์'
-    rows = [('ยอดดู', fmt_n(r['views'])), (lab_reach, fmt_n(r['reach'])), (lab_like, fmt_n(r['likes'])), ('คอมเมนต์', fmt_n(r['comments'])),
-            ('แชร์', fmt_n(r['shares']))]
-    if r['platform'] == 'IG':
+    lab_reach, lab_like = LAB[pf]
+    rows = [('ยอดดู', fmt_n(r['views']))]
+    if lab_reach:
+        rows.append((lab_reach, fmt_n(r['reach'])))
+    rows += [(lab_like, fmt_n(r['likes'])), ('คอมเมนต์', fmt_n(r['comments']))]
+    if pf != 'YouTube':
+        rows.append(('แชร์', fmt_n(r['shares'])))
+    if pf == 'IG':
         rows += [('เซฟ', fmt_n(r['saved']))]
         if r['format'] in ('ภาพเดี่ยว', 'อัลบั้ม'):
             rows += [('เข้าโปรไฟล์', fmt_n(r['profile_visits'])), ('ฟอลโลว์ใหม่', fmt_n(r['follows']))]
-    rows += [('Interaction รวม', fmt_n(r['interactions'])), ('Interaction ต่อ %s' % lab_reach, ('%.2f%%' % r['rate']) if r['rate'] is not None else '–')]
-    if r['format'] == 'Reel' and r['platform'] == 'IG':
+    lab_rate = lab_reach or 'ยอดดู'
+    rows += [('Interaction รวม', fmt_n(r['interactions'])), ('Interaction ต่อ %s' % lab_rate, ('%.2f%%' % r['rate']) if r['rate'] is not None else '–')]
+    if r['format'] == 'Reel' and pf == 'IG':
         rows += [('ดูเฉลี่ย', ('%.1f วินาที' % r['avg_watch_s']) if r['avg_watch_s'] is not None else '–'),
                  ('เวลาดูรวม', ('%.1f ชม.' % r['watch_total_h']) if r['watch_total_h'] is not None else '–'),
                  ('ปัดทิ้งใน 3 วินาทีแรก', ('%.1f%%' % r['skip_rate']) if r['skip_rate'] is not None else '–')]
-    body = ['# %s · %s · %s' % (r['platform'], r['format'], date_th(r['posted'])), '',
-            '[เปิดโพสต์](%s) · ID `%s`%s' % (r['link'], r['post_id'], (' · shortcode `%s`' % r['key']) if r['platform'] == 'IG' else ''), '',
-            capq, '', adline, '', '| ตัวเลข (สะสมถึง %s) | ค่า |' % stamp[:10], '|---|---:|'] + ['| %s | %s |' % x for x in rows] + [
-            '', 'เดือนนี้: [[%s]] · ภาพรวม: [[สรุปคอนเทนต์]]' % r['month'],
-            '', '_โน้ตนี้ระบบเขียนทับทุกสัปดาห์ — จดความคิดใน `บันทึกของฉัน/` แล้วลิงก์มาที่โน้ตนี้_']
+    if pf in ('TikTok', 'YouTube'):
+        rows.append(('ความยาวคลิป', fmt_dur(r.get('duration_s'))))
+    ids = '[เปิดโพสต์](%s) · ID `%s`%s' % (r['link'], r['post_id'], (' · shortcode `%s`' % r['key']) if pf == 'IG' else '')
+    body = ['# %s · %s · %s' % (pf, r['format'], date_th(r['posted'])), '', ids, '', capq, '', adline, '',
+            '| ตัวเลข (สะสมถึง %s) | ค่า |' % stamp[:10], '|---|---:|'] + ['| %s | %s |' % x for x in rows]
+    if others:
+        body += ['', 'โพสต์เดียวกันในช่องทางอื่น: ' + ' · '.join(
+            '[[%s|%s]] (ยอดดู %s%s)' % (note_name(x), x['platform'], fmt_n(x['views']), ' · ทำแอด' if x.get('ads') else '')
+            for x in sorted(others, key=lambda x: PLAT.index(x['platform'])))]
+    body += ['', 'เดือนนี้: [[%s]] · ภาพรวม: [[สรุปคอนเทนต์]]' % r['month'],
+             '', '_โน้ตนี้ระบบเขียนทับทุกสัปดาห์ — จดความคิดใน `บันทึกของฉัน/` แล้วลิงก์มาที่โน้ตนี้_']
     return fm + '\n'.join(body) + '\n'
 
 
-def summary_note(fb, ig, stamp):
-    allr = fb + ig
-    known = all(r.get('ads') is not None for r in allr)
-    ofb, oig = organic(fb), organic(ig)
-    L = ['---\ntype: content-summary\nupdated: %s\nsince: %s\n---\n' % (stamp, SINCE), '# สรุปคอนเทนต์ FB / IG (ออร์แกนิก)\n',
-         'ข้อมูลโพสต์ตั้งแต่ %s ถึง %s · อัปเดตอัตโนมัติทุกสัปดาห์ (ระบบเขียนทับไฟล์นี้) · ตัวเลขดิบทุกโพสต์อยู่ในชีต "Biopalm Content Insight — FB/IG 2026"\n' % (date_th(SINCE), date_th(stamp)),
-         'ค้นโพสต์: กด Ctrl/Cmd+O แล้วพิมพ์ ID (FB = ตัวเลขท้าย ID · IG = shortcode ท้ายลิงก์ instagram.com/p/…) · ตารางเรียง/กรองได้: `Bases/คอนเทนต์.base`\n']
-    if known:
-        L += ['> [!note] โพสต์ที่นำไปทำแอด\n> FB %d จาก %d โพสต์ · IG %d จาก %d โพสต์ ถูกนำไปทำแอด (Boost หรือเลือกโพสต์เดิมเป็นแอด) — ยอดดูของโพสต์เหล่านี้รวมส่วนที่มาจากแอด '
-              'แยกออกไม่ได้ **ตาราง "ภาพรวม" และ "โพสต์ที่ดีที่สุด" ด้านล่างจึงนับเฉพาะโพสต์ที่ไม่เคยทำแอด (ออร์แกนิกล้วน)** ส่วนโพสต์ที่ทำแอดดูได้ในหัวข้อ "โพสต์ที่นำไปทำแอด"\n'
-              % (len(fb) - len(ofb), len(fb), len(ig) - len(oig), len(ig))]
-    else:
-        L += ['> [!warning] รอบนี้ดึงข้อมูลแอดไม่ได้\n> ตัวเลขด้านล่างนับทุกโพสต์ รวมโพสต์ที่อาจถูกนำไปทำแอด (ยอดดูรวมส่วนที่มาจากแอด) — รอบถัดไประบบจะลองใหม่\n']
-    L += ['## ภาพรวมแยกประเภท%s' % (' (ออร์แกนิกล้วน)' if known else ''), '',
-          '| ช่องทาง | ประเภท | โพสต์ | ยอดดูมัธยฐาน | คนดูไม่ซ้ำ/Reach มัธยฐาน | Interaction มัธยฐาน | Interaction ต่อคนดู มัธยฐาน |%s' % (' ทำแอด (ไม่นับ) |' if known else ''),
-          '|---|---|---:|---:|---:|---:|---:|%s' % ('---:|' if known else '')]
-    for pf, rs0, all0 in (('FB', ofb, fb), ('IG', oig, ig)):
+def summary_note(rows_by, stamp, states, groups):
+    fb, ig, tt, yt = (rows_by[p] for p in PLAT)
+    allr = fb + ig + tt + yt
+    kn = {p: bool(rows_by[p]) and all(r.get('ads') is not None for r in rows_by[p]) for p in PLAT}
+    org = {p: organic(rows_by[p]) for p in PLAT}
+    known = kn['FB'] and kn['IG']
+    ofb, oig = org['FB'], org['IG']
+    L = ['---\ntype: content-summary\nupdated: %s\nsince: %s\n---\n' % (stamp, SINCE), '# สรุปคอนเทนต์ FB / IG / TikTok / YouTube (ออร์แกนิก)\n',
+         'ข้อมูลโพสต์ตั้งแต่ %s ถึง %s · อัปเดตอัตโนมัติทุกสัปดาห์ (ระบบเขียนทับไฟล์นี้) · ตัวเลขดิบทุกโพสต์อยู่ในชีต "%s"\n' % (date_th(SINCE), date_th(stamp), SHEET_TITLE),
+         'ค้นโพสต์: กด Ctrl/Cmd+O แล้วพิมพ์ ID (FB = ตัวเลขท้าย ID · IG = shortcode ท้ายลิงก์ instagram.com/p/… · TikTok = เลขท้ายลิงก์ · YouTube = รหัส 11 ตัวท้ายลิงก์) · '
+         'ตารางเรียง/กรองได้: `Bases/คอนเทนต์.base`\n']
+    for p in ('TikTok', 'YouTube'):
+        st = states.get(p) or {}
+        if not st.get('ok'):
+            why = (' (%s)' % st['why']) if st.get('why') else ''
+            L += [('> [!warning] %s รอบนี้ดึงไม่ได้%s\n> ตัวเลข %s ในโน้ตนี้เป็นของรอบ %s — รอบถัดไประบบจะลองใหม่\n' % (p, why, p, st.get('stale') or 'ก่อน'))
+                  if rows_by[p] else ('> [!warning] ยังไม่มีข้อมูล %s%s\n> รอบถัดไประบบจะลองใหม่ — ดู [[02 แผนงาน]]\n' % (p, why))]
+    ad_bits = ['%s %d จาก %d' % (p, sum(1 for r in rows_by[p] if r.get('ads')), len(rows_by[p])) if kn[p] else '%s ไม่ได้ตรวจรอบนี้' % p
+               for p in PLAT if rows_by[p]]
+    L += ['> [!note] โพสต์ที่นำไปทำแอด\n> %s โพสต์ถูกนำไปทำแอด (FB/IG: Boost หรือเลือกโพสต์เดิมเป็นแอด · TikTok: Spark Ads · YouTube: Google Ads) — '
+          'ยอดดูของโพสต์เหล่านี้รวมส่วนที่มาจากแอด **ตาราง "ภาพรวม" และ "โพสต์ที่ดีที่สุด" จึงนับเฉพาะโพสต์ที่ไม่เคยทำแอด (ออร์แกนิกล้วน)** '
+          'ส่วนโพสต์ที่ทำแอดดูได้ในหัวข้อ "โพสต์ที่นำไปทำแอด"\n' % ' · '.join(ad_bits)]
+    tta, yta = (states.get('TikTok') or {}).get('account') or {}, (states.get('YouTube') or {}).get('account') or {}
+    if tta or yta:
+        L += ['## บัญชี (ณ วันที่ดึง)', '', '| ช่องทาง | ผู้ติดตาม | ยอดรวมทั้งบัญชี | คลิปทั้งหมด |', '|---|---:|---|---:|']
+        if tta:
+            L.append('| TikTok | %s | ไลก์รวม %s | %s |' % (fmt_n(tta.get('followers')), fmt_n(tta.get('likes_total')), fmt_n(tta.get('videos_total'))))
+        if yta:
+            L.append('| YouTube | %s | ยอดดูรวม %s | %s |' % (fmt_n(yta.get('subscribers')), fmt_n(yta.get('views_total')), fmt_n(yta.get('videos_total'))))
+        L.append('')
+    L += ['## ภาพรวมแยกประเภท (ออร์แกนิกล้วน)', '',
+          '| ช่องทาง | ประเภท | โพสต์ | ยอดดูมัธยฐาน | คนดูไม่ซ้ำ/Reach มัธยฐาน | Interaction มัธยฐาน | Interaction % มัธยฐาน | ทำแอด (ไม่นับ) |',
+          '|---|---|---:|---:|---:|---:|---:|---:|']
+    for pf in PLAT:
+        all0, rs0 = rows_by[pf], org[pf]
         for f in sorted({r['format'] for r in all0}, key=lambda f: -sum(1 for r in all0 if r['format'] == f)):
             rs = [r for r in rs0 if r['format'] == f]
             mr = med([r['rate'] for r in rs])
-            L.append('| %s | %s | %d | %s | %s | %s | %s |%s' % (
+            L.append('| %s | %s | %d | %s | %s | %s | %s | %s |' % (
                 pf, f, len(rs), fmt_n(med([r['views'] for r in rs])), fmt_n(med([r['reach'] for r in rs])),
                 fmt_n(med([r['interactions'] for r in rs])), ('%.2f%%' % mr) if mr is not None else '–',
-                (' %d |' % sum(1 for r in all0 if r['format'] == f and r.get('ads'))) if known else ''))
-    L += ['', 'ใช้ค่ามัธยฐาน (โพสต์ตรงกลาง) แทนค่าเฉลี่ย เพราะโพสต์ไม่กี่ตัวที่ยอดพุ่งจะดึงค่าเฉลี่ยจนเพี้ยน · โพสต์ที่เพิ่งลงยังสะสมยอดไม่ครบ\n']
+                str(sum(1 for r in all0 if r['format'] == f and r.get('ads'))) if kn[pf] else '–'))
+    L += ['', 'ใช้ค่ามัธยฐาน (โพสต์ตรงกลาง) แทนค่าเฉลี่ย เพราะโพสต์ไม่กี่ตัวที่ยอดพุ่งจะดึงค่าเฉลี่ยจนเพี้ยน · โพสต์ที่เพิ่งลงยังสะสมยอดไม่ครบ · '
+          'Interaction %: FB ต่อคนดูไม่ซ้ำ · IG ต่อ reach · TikTok/YouTube ต่อยอดดู (2 ช่องทางนี้ไม่มี reach) · นิยาม "ยอดดู" แต่ละแพลตฟอร์มต่างกัน เทียบข้ามช่องทางให้ดูแนวโน้ม ไม่ใช่ตัวเลขตรง ๆ\n']
     reels = [r for r in oig if r['format'] == 'Reel']
     if reels:
-        L += ['**IG Reel%s:** %d ตัว · ดูเฉลี่ยมัธยฐาน %s วินาที · ปัดทิ้งใน 3 วินาทีแรกมัธยฐาน %s%%\n' % (
-            ' (ออร์แกนิกล้วน)' if known else '', len(reels), fmt_n(med([r['avg_watch_s'] for r in reels]), 1), fmt_n(med([r['skip_rate'] for r in reels]), 1))]
-    L += ['## รายเดือน', '', '| เดือน | FB โพสต์ | FB ทำแอด | FB ยอดดูรวม | FB ยอดดูมัธยฐาน (ไม่ทำแอด) | IG โพสต์ | IG ทำแอด | IG ยอดดูรวม | แชท/แอดเดือนนี้ |',
+        L += ['**IG Reel (ออร์แกนิกล้วน):** %d ตัว · ดูเฉลี่ยมัธยฐาน %s วินาที · ปัดทิ้งใน 3 วินาทีแรกมัธยฐาน %s%%\n' % (
+            len(reels), fmt_n(med([r['avg_watch_s'] for r in reels]), 1), fmt_n(med([r['skip_rate'] for r in reels]), 1))]
+    buckets = [(0, 30, '≤ 30 วิ'), (31, 60, '31–60 วิ'), (61, 90, '61–90 วิ'), (91, 180, '91 วิ – 3 นาที'), (181, 10 ** 9, 'เกิน 3 นาที')]
+    vids = [('TikTok', [r for r in org['TikTok'] if r.get('duration_s')]), ('YouTube', [r for r in org['YouTube'] if r.get('duration_s')])]
+    if any(rs for _, rs in vids):
+        L += ['## ความยาวคลิปกับยอดดู (TikTok / YouTube · ออร์แกนิกล้วน)', '',
+              '| ช่องทาง | ความยาว | คลิป | ยอดดูมัธยฐาน | Interaction % มัธยฐาน |', '|---|---|---:|---:|---:|']
+        for pf, rs in vids:
+            for lo, hi, lab in buckets:
+                b = [r for r in rs if lo <= r['duration_s'] <= hi]
+                if b:
+                    mr = med([r['rate'] for r in b])
+                    L.append('| %s | %s | %d | %s | %s |' % (pf, lab, len(b), fmt_n(med([r['views'] for r in b])), ('%.2f%%' % mr) if mr is not None else '–'))
+        L += ['', 'กลุ่มที่มีคลิปน้อย (ต่ำกว่า ~5) อย่าเพิ่งสรุป\n']
+    L += ['## รายเดือน FB / IG', '', '| เดือน | FB โพสต์ | FB ทำแอด | FB ยอดดูรวม | FB ยอดดูมัธยฐาน (ไม่ทำแอด) | IG โพสต์ | IG ทำแอด | IG ยอดดูรวม | แชท/แอดเดือนนี้ |',
           '|---|---:|---:|---:|---:|---:|---:|---:|---|']
-    for m in sorted({r['month'] for r in allr}):
+    for m in sorted({r['month'] for r in fb + ig}):
         f = [r for r in fb if r['month'] == m]; g = [r for r in ig if r['month'] == m]
         L.append('| %s | %d | %s | %s | %s | %d | %s | %s | [[%s]] |' % (
             '%s %s' % (TH_M[int(m[5:])], m[:4]), len(f), (str(sum(1 for r in f if r.get('ads')))) if known else '–',
             fmt_n(sum(r['views'] or 0 for r in f)), fmt_n(med([r['views'] for r in organic(f)])) if known else '–',
             len(g), (str(sum(1 for r in g if r.get('ads')))) if known else '–', fmt_n(sum(r['views'] or 0 for r in g)), m))
     L += ['', '"ยอดดูรวม" รวมโพสต์ที่ทำแอดด้วย (ยอดจากแอดปนอยู่) · คอลัมน์สุดท้ายลิงก์ไปโน้ตเดือนใน `Monthly/` (ค่าแอด Meta + แชท FB/LINE เดือนเดียวกัน) — ดูคู่กับ [[1.2 ช่วงเวลาที่ลูกค้าทัก]]\n']
+    if tt or yt:
+        L += ['## รายเดือน TikTok / YouTube', '',
+              '| เดือน | TikTok คลิป | TikTok ทำแอด | TikTok ยอดดูรวม | TikTok ยอดดูมัธยฐาน (ไม่ทำแอด) | YouTube คลิป | YouTube ทำแอด | YouTube ยอดดูรวม | YouTube ยอดดูมัธยฐาน (ไม่ทำแอด) | แชท/แอดเดือนนี้ |',
+              '|---|---:|---:|---:|---:|---:|---:|---:|---:|---|']
+        for m in sorted({r['month'] for r in tt + yt}):
+            a = [r for r in tt if r['month'] == m]; b = [r for r in yt if r['month'] == m]
+            L.append('| %s | %d | %s | %s | %s | %d | %s | %s | %s | [[%s]] |' % (
+                '%s %s' % (TH_M[int(m[5:])], m[:4]),
+                len(a), str(sum(1 for r in a if r.get('ads'))) if kn['TikTok'] else '–', fmt_n(sum(r['views'] or 0 for r in a)),
+                fmt_n(med([r['views'] for r in organic(a)])),
+                len(b), str(sum(1 for r in b if r.get('ads'))) if kn['YouTube'] else '–', fmt_n(sum(r['views'] or 0 for r in b)),
+                fmt_n(med([r['views'] for r in organic(b)])), m))
+        L += ['', 'เดือนที่ไม่มีโน้ตใน `Monthly/` ลิงก์จะเป็นสีจาง (ยังไม่มีข้อมูลแอด Meta/แชทเดือนนั้น)\n']
 
-    def top(rs, key, n, title, fmtv, extra=None):
+    def top(rs, key, n, title, fmtv, extra=None, show_pf=False):
         rs = [r for r in rs if r.get(key) is not None]
         rs.sort(key=lambda r: -r[key])
-        head = '| # | วันที่ | ประเภท | ค่า |%s โพสต์ |' % (' %s |' % extra[0] if extra else '')
-        out = ['### ' + title, '', head, '|---:|---|---|---:|%s---|' % ('---:|' if extra else '')]
+        if not rs:
+            return []
+        head = '| # | วันที่ |%s ประเภท | ค่า |%s โพสต์ |' % (' ช่องทาง |' if show_pf else '', ' %s |' % extra[0] if extra else '')
+        out = ['### ' + title, '', head, '|---:|---|%s---|---:|%s---|' % ('---|' if show_pf else '', '---:|' if extra else '')]
         for i, r in enumerate(rs[:n], 1):
-            out.append('| %d | %s | %s | %s |%s [[%s\\|%s]] |' % (
-                i, r['posted'][:10], r['format'], fmtv(r[key]), (' %s |' % extra[1](r)) if extra else '', note_name(r),
-                first_line(r['caption'], 60).replace('|', '/').replace('[', '(').replace(']', ')') or r['key']))
+            out.append('| %d | %s |%s %s | %s |%s [[%s\\|%s]] |' % (
+                i, r['posted'][:10], (' %s |' % r['platform']) if show_pf else '', r['format'], fmtv(r[key]),
+                (' %s |' % extra[1](r)) if extra else '', note_name(r),
+                first_line(r.get('title') or r['caption'], 60).replace('|', '/').replace('[', '(').replace(']', ')') or r['key']))
         return out + ['']
-    org = ' — ออร์แกนิกล้วน' if known else ''
-    L += ['## โพสต์ที่ดีที่สุด%s' % org, '']
+    pct2 = lambda v: '%.2f%%' % v
+    L += ['## โพสต์ที่ดีที่สุด — ออร์แกนิกล้วน', '']
     L += top(ofb, 'views', 15, 'FB ยอดดูสูงสุด', fmt_n)
     L += top(oig, 'views', 15, 'IG ยอดดูสูงสุด', fmt_n)
+    L += top(org['TikTok'], 'views', 15, 'TikTok ยอดดูสูงสุด', fmt_n, ('ความยาว', lambda r: fmt_dur(r.get('duration_s'))))
+    L += top([r for r in org['YouTube'] if r['format'] == 'Shorts'], 'views', 10, 'YouTube Shorts ยอดดูสูงสุด', fmt_n)
+    L += top([r for r in org['YouTube'] if r['format'] != 'Shorts'], 'views', 10, 'YouTube วิดีโอยาว/ไลฟ์ ยอดดูสูงสุด', fmt_n,
+             ('ความยาว', lambda r: fmt_dur(r.get('duration_s'))))
     L += top([dict(r, ss=(r['saved'] or 0) + (r['shares'] or 0)) for r in oig], 'ss', 10, 'IG เซฟ + แชร์สูงสุด (คอนเทนต์ที่คนเก็บไว้/ส่งต่อ)', fmt_n)
-    L += top([r for r in ofb if (r['reach'] or 0) >= 500], 'rate', 10, 'FB Interaction ต่อคนดูสูงสุด (คนดู 500 ขึ้นไป)', lambda v: '%.2f%%' % v)
-    L += top([r for r in oig if (r['reach'] or 0) >= 500], 'rate', 10, 'IG Interaction ต่อ reach สูงสุด (reach 500 ขึ้นไป)', lambda v: '%.2f%%' % v)
-    if known:
-        ads = [r for r in allr if r.get('ads')]
+    L += top(org['TikTok'], 'shares', 10, 'TikTok แชร์สูงสุด (คอนเทนต์ที่คนส่งต่อ)', fmt_n, ('ยอดดู', lambda r: fmt_n(r['views'])))
+    L += top([r for r in ofb if (r['reach'] or 0) >= 500], 'rate', 10, 'FB Interaction ต่อคนดูสูงสุด (คนดู 500 ขึ้นไป)', pct2)
+    L += top([r for r in oig if (r['reach'] or 0) >= 500], 'rate', 10, 'IG Interaction ต่อ reach สูงสุด (reach 500 ขึ้นไป)', pct2)
+    L += top([r for r in org['TikTok'] if (r['views'] or 0) >= 1000], 'rate', 10, 'TikTok Interaction ต่อยอดดูสูงสุด (ยอดดู 1,000 ขึ้นไป)', pct2)
+    L += top([r for r in org['YouTube'] if (r['views'] or 0) >= 500], 'rate', 10, 'YouTube Interaction ต่อยอดดูสูงสุด (ยอดดู 500 ขึ้นไป)', pct2)
+    if groups:
+        gs = sorted(groups, key=lambda g: (-len(g), -sum(r['views'] or 0 for r in g)))   # ลงหลายช่องทางก่อน (FB+IG คู่กันเป็นปกติ)
+        win = {}
+        for g in gs:
+            if len(g) >= 3 and not any(r.get('ads') for r in g):
+                w = max(g, key=lambda r: r['views'] or 0)['platform']
+                win[w] = win.get(w, 0) + 1
+        L += ['## คลิป/โพสต์เดียวกันในหลายช่องทาง', '',
+              'จับคู่จากข้อความต้นแคปชัน/ชื่อคลิปที่ตรงกัน และวันที่โพสต์ห่างไม่เกิน 60 วัน — **%d เรื่อง** ลง 2 ช่องทางขึ้นไป (ลงครบ 4 ช่องทาง %d เรื่อง) · '
+              'ลง 3 ช่องทางขึ้นไป %d เรื่อง · ใช้ดูว่าเรื่องเดียวกันไปได้ดีที่ช่องทางไหน · ★ = โพสต์นั้นทำแอด (ยอดดูรวมแอด)\n' % (len(gs), sum(1 for g in gs if len(g) == 4), sum(1 for g in gs if len(g) >= 3))]
+        if win:
+            L += ['เรื่องที่ลง 3 ช่องทางขึ้นไปและไม่มีโพสต์ไหนทำแอด — ช่องทางที่ได้ยอดดูสูงสุด: ' +
+                  ' · '.join('%s %d เรื่อง' % (p, win[p]) for p in PLAT if p in win) + ' (นิยามยอดดูต่างกัน ดูเป็นแนวโน้ม)\n']
+        L += ['| เรื่อง | ' + ' | '.join(PLAT) + ' |', '|---|' + '---:|' * len(PLAT)]
+        for g in gs[:25]:
+            by = {r['platform']: r for r in g}
+            first = min(g, key=lambda r: r['posted'])
+            L.append('| %s | %s |' % (
+                first_line(first.get('title') or first['caption'], 50).replace('|', '/').replace('[', '(').replace(']', ')'),
+                ' | '.join(('[[%s\\|%s]]%s' % (note_name(by[p]), fmt_n(by[p]['views']), ' ★' if by[p].get('ads') else '')) if p in by else '–'
+                           for p in PLAT)))
+        L += ['', 'ตารางแสดง 25 เรื่อง เรียงตามจำนวนช่องทางที่ลง แล้วตามยอดดูรวม · แต่ละโน้ตโพสต์มีลิงก์ไปโพสต์เดียวกันในช่องทางอื่น (เห็นเป็นเส้นใน Graph)\n']
+    ads = [r for r in allr if r.get('ads')]
+    if ads:
         L += ['## โพสต์ที่นำไปทำแอด', '',
-              'ยอดดูของโพสต์กลุ่มนี้รวมส่วนที่มาจากแอด — ใช้ดูว่าโพสต์ไหนถูกเลือกไปยิงแอด ไม่ใช่เทียบความแรงแบบออร์แกนิก · ผลแชท/ปิดการขายของแอดดูที่ `Ads/`\n']
-        L += top(ads, 'ad_spend', 15, 'ค่าแอดสูงสุด (%d โพสต์)' % len(ads), lambda v: '%s บาท' % fmt_n(v),
-                 ('ยอดดูรวม', lambda r: fmt_n(r['views'])))
+              'ยอดดูของโพสต์กลุ่มนี้รวมส่วนที่มาจากแอด — ใช้ดูว่าโพสต์ไหนถูกเลือกไปยิงแอด ไม่ใช่เทียบความแรงแบบออร์แกนิก · '
+              'TikTok/YouTube มี "ยอดดูที่ไม่ใช่แอด (ประมาณ)" = ยอดดู − ยอดดูจากแอด · ผลแชท/ปิดการขายของแอด Meta ดูที่ `Ads/`\n']
+        L += top(ads, 'ad_spend', 25, 'ค่าแอดสูงสุด (%d โพสต์)' % len(ads), lambda v: '%s บาท' % fmt_n(v),
+                 ('ยอดดูรวม / ไม่ใช่แอด ≈', lambda r: fmt_n(r['views']) + ((' / ' + fmt_n(r.get('organic_views_est'))) if r.get('organic_views_est') is not None else '')),
+                 show_pf=True)
+        for p in ('TikTok', 'YouTube'):
+            a = [r for r in rows_by[p] if r.get('ads')]
+            if a:
+                av = sum(r.get('ad_views') or 0 for r in a); tv = sum(r['views'] or 0 for r in a)
+                L += ['**%s:** %d คลิปที่ทำแอด ค่าแอดรวม %s บาท · ยอดดูรวม %s ซึ่งมาจากแอด %s (%s)\n' % (
+                    p, len(a), fmt_n(sum(r['ad_spend'] or 0 for r in a)), fmt_n(tv), fmt_n(av), ('%.0f%%' % (100.0 * av / tv)) if tv else '–')]
     L += ['## ข้อจำกัด', '- FB วิดีโอ/Reel: มีแค่ยอดดูและคนดูไม่ซ้ำ ยังไม่มีเวลาดูหรือยอดดู 3 วินาที (ดึงผ่านเครื่องมือที่มีไม่ได้)',
+          '- TikTok: API ให้แค่ยอดดู/ไลก์/คอมเมนต์/แชร์ของคลิปสาธารณะ — ไม่มี reach เวลาดู ดูจบ แหล่งที่มา (ดูใน TikTok Studio) · ป้ายทำแอดนับเฉพาะแอดใน TikTok Ads Manager (ไม่รวม Promote ในแอป)',
+          '- YouTube: ช่องคอนเทนต์อยู่คนละอีเมล จึงได้แค่ตัวเลขสาธารณะ ไม่มีเวลาดู/ซับใหม่รายคลิป · อัตราดูถึง 25–100% มีเฉพาะผู้ชมแอด (Google Ads) · '
+          'ดึงผ่านโควตา YouTube ของ Composio ซึ่งใช้ร่วมกับคนอื่น บางรอบอาจเต็ม (ระบบใช้ตัวเลขรอบก่อนและเตือนด้านบน)',
           '- "ทำแอด" = มีโฆษณาที่ใช้โพสต์นั้นโดยตรงและมีค่าใช้จ่ายตั้งแต่ %s · แอดที่สร้างภาพ/ข้อความใหม่ในตัวจัดการโฆษณา (ไม่ได้ใช้โพสต์บนเพจ) ไม่ปนกับตัวเลขโพสต์ · '
-          'ตัวเลขโพสต์ที่ทำแอดแยกส่วนออร์แกนิก/จากแอดไม่ได้ (เครื่องมือให้แค่ยอดรวม)' % date_th(SINCE),
+          'ตัวเลขโพสต์ที่ทำแอดแยกส่วนออร์แกนิก/จากแอดไม่ได้ (FB/IG ให้แค่ยอดรวม · TikTok/YouTube ประมาณจากยอดดูของแอด)' % date_th(SINCE),
           '- Stories ย้อนหลังไม่ได้ (API ให้เฉพาะสตอรี่ที่ยังขึ้นอยู่ 24 ชม.)',
-          '- ตัวเลขเป็นยอดสะสมถึงวันที่ดึง เทียบโพสต์ใหม่กับโพสต์เก่าต้องระวัง · ช่อง "–" = Meta ไม่ส่งตัวเลขนั้นมา (ไม่ใช่ 0)',
+          '- ตัวเลขเป็นยอดสะสมถึงวันที่ดึง เทียบโพสต์ใหม่กับโพสต์เก่าต้องระวัง · ช่อง "–" = แพลตฟอร์มไม่ส่งตัวเลขนั้นมา (ไม่ใช่ 0)',
           '- ยังเชื่อมโพสต์กับแชทรายห้องไม่ได้ — ถ้าใส่ลิงก์ m.me/ig.me พร้อม `?ref=` ในโพสต์ จะนับได้ว่าแชทมาจากโพสต์ไหน (ดู [[02 แผนงาน]])']
     return '\n'.join(L) + '\n'
 
@@ -787,20 +943,39 @@ def main():
         fa = [r for r in fb if r['ads']]
         log('โพสต์ที่นำไปทำแอด FB %d (Reel/วิดีโอ %d) · IG %d' % (len(fa), sum(1 for r in fa if r['group'] == 'วิดีโอ'),
                                                             sum(1 for r in ig if r['ads'])))
-    log('แถวที่ใช้ FB %d · IG %d · คำขอทั้งหมด %d · ลดขนาดหน้า %d' % (len(fb), len(ig), STATS['calls'], STATS['shrink']))
+    V.init(sys.modules[__name__])
+    cfg = V.vault_config()
+    tt, tt_st = V.tiktok(cfg)
+    yt, yt_st = V.youtube(cfg)
+    states = {'TikTok': tt_st, 'YouTube': yt_st}
+    rows_by = {'FB': fb, 'IG': ig, 'TikTok': tt, 'YouTube': yt}
+    log('แถวที่ใช้ FB %d · IG %d · TikTok %d%s · YouTube %d%s · คำขอทั้งหมด %d · ลดขนาดหน้า %d' % (
+        len(fb), len(ig), len(tt), '' if tt_st['ok'] else ' (รอบก่อน)', len(yt), '' if yt_st['ok'] else ' (รอบก่อน)',
+        STATS['calls'], STATS['shrink']))
     if not fb and not ig:
         sys.exit('ไม่ได้โพสต์เลย — ไม่เขียนทับของเดิม')
+    allr = fb + ig + tt + yt
+    links, groups = V.crosspost(allr)
+    log('โพสต์เดียวกันหลายช่องทาง %d เรื่อง' % len(groups))
     if DRY:
         log('DRY_RUN: ไม่เขียนชีตและ vault')
         return
-    write_tab('คำอธิบาย', about_rows(stamp, len(fb), len(ig), adm is not None))
+    write_tab('คำอธิบาย', about_rows(stamp, rows_by, states, adm is not None))
     write_tab('FB โพสต์', table_rows(fb, FB_COLS))
     write_tab('IG โพสต์', table_rows(ig, IG_COLS))
-    write_tab('สรุปรายเดือน', monthly_rows(fb + ig))
-    files = {note_path(r): post_note(r, stamp) for r in fb + ig}
-    files['Content/สรุปคอนเทนต์.md'] = summary_note(fb, ig, stamp)
-    files['.vault/content/posts.json'] = json.dumps({'pulled': stamp, 'since': SINCE, 'posts': fb + ig}, ensure_ascii=False, separators=(',', ':'))
-    commit(files, 'content: insight โพสต์ FB/IG %s' % stamp)
+    if tt_st['ok']:
+        write_tab('TikTok โพสต์', table_rows(tt, TT_COLS))
+    if yt_st['ok']:
+        write_tab('YouTube วิดีโอ', table_rows(yt, YT_COLS))
+    write_tab('สรุปรายเดือน', monthly_rows(allr))
+    fresh = fb + ig + (tt if tt_st['ok'] else []) + (yt if yt_st['ok'] else [])   # ช่องทางที่ใช้ข้อมูลรอบก่อน → ไม่เขียนโน้ตทับ
+    files = {note_path(r): post_note(r, stamp, links.get(r['post_id'], ())) for r in fresh}
+    files['Content/สรุปคอนเทนต์.md'] = summary_note(rows_by, stamp, states, groups)
+    clean = [{k: v for k, v in r.items() if not k.startswith('_')} for r in allr]
+    files['.vault/content/posts.json'] = json.dumps({'pulled': stamp, 'since': SINCE, 'posts': clean,
+                                                     'accounts': {p: states[p].get('account') or {} for p in states}},
+                                                    ensure_ascii=False, separators=(',', ':'))
+    commit(files, 'content: insight โพสต์ FB/IG/TikTok/YouTube %s' % stamp)
     log('เสร็จ')
 
 
