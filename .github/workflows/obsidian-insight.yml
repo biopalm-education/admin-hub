@@ -4,9 +4,12 @@ name: obsidian-insight
 # แชทมาจากข้อมูลแดชบอร์ด (data/*.json ถอดด้วย ADMIN_SECRET เดิม) + โน้ตลงทะเบียน LINE จากชีต (Composio ตัวเดิม)
 # แล้วเขียนผลลง vault private: .vault/insight/
 # repo นี้ public: log พิมพ์แค่ชื่อขั้น/จำนวน ห้ามพิมพ์ชื่อหรือข้อความลูกค้า · ไม่อัปโหลด artifact
-# ไม่แตะ refresh-dashboard / obsidian-vault (คนละ concurrency group) · ยังไม่ตั้งเวลา — กด Run workflow เอง
+# ไม่แตะ refresh-dashboard / obsidian-vault (คนละ concurrency group)
+# ตั้งเวลา: ทุกจันทร์ 08:07 น. เวลาไทย (หลัง refresh 06:20 + obsidian-content 06:23 · ก่อน Weekly Pulse 11:37) · repo public จึงไม่กินโควตานาทีฟรี · กด Run workflow เองได้เหมือนเดิม
 
 on:
+  schedule:
+    - cron: '7 1 * * 1'          # 08:07 น. เวลาไทย ทุกวันจันทร์
   workflow_dispatch:
     inputs:
       dry_run:
