@@ -5,9 +5,13 @@ name: meta-ads-export
 # งานแยกจาก refresh-dashboard (คนละ concurrency group) · ใช้ secret COMPOSIO_API_KEY ตัวเดิม ไม่ต้องตั้งเพิ่ม
 # repo นี้ public: log บอกแค่ขั้นตอน จำนวนแถว และผลตรวจ ตรง/ไม่ตรง — ตัวเลขจริงอยู่ในชีตเท่านั้น
 # ความคืบหน้าดูได้ที่แท็บ แหล่งข้อมูล แถว "สถานะงาน meta-ads-export"
-# รันเมื่อแก้ไฟล์ใน tools/meta_ads/ หรือกด Run workflow เอง (ไม่มีรอบอัตโนมัติ)
+# รันอัตโนมัติทุกคืน 01:47 น. เวลาไทย (ข้อมูลถึงเมื่อวานตามวัน LA) · รันเมื่อแก้ไฟล์ใน tools/meta_ads/ · หรือกด Run workflow เอง
+# ต้องเสร็จก่อน refresh-dashboard 06:20 น. → obsidian-vault (อ่านแท็บ โฆษณารายวัน + ข้อความต้อนรับ ไปจับคู่แชทกับโฆษณา)
+#   รอบละ ~26 นาที · GitHub อาจเลื่อนรอบตั้งเวลาไปได้ 1-3 ชม. จึงตั้งไว้ตี 1 กว่า · repo public ไม่กินโควตานาทีฟรี
 
 on:
+  schedule:
+    - cron: '47 18 * * *'        # 01:47 น. เวลาไทย ทุกวัน (UTC 18:47 ของวันก่อน)
   push:
     branches: [main]
     paths:
@@ -20,7 +24,7 @@ on:
         required: false
         default: ''
       until:
-        description: 'วันจบ (YYYY-MM-DD เวลาบัญชี LA) เว้นว่าง = 2026-10-21'
+        description: 'วันจบ (YYYY-MM-DD เวลาบัญชี LA) เว้นว่าง = เมื่อวานตามวัน LA (ไม่เกิน 31 ธ.ค. ของปี since)'
         required: false
         default: ''
       only:

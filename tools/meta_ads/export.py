@@ -16,10 +16,17 @@ import composio_shim as S
 SHEET_HASH = 'f9f3b35957058228bafcf2655714bb7cb2f11f8b32c5d28e2a94e3b3afa60bb8'
 ACT_HASH = '08d8b72a01af222cdd8bdf0a1693ca700448249f2ba096b0b185c5c57d97a098'
 SHEET_QUERY = 'ข้อมูล Meta Ads'
-SINCE = os.environ.get('SINCE') or '2026-01-01'
-UNTIL = os.environ.get('UNTIL') or '2026-10-21'
-ONLY = set(x for x in (os.environ.get('ONLY') or '').split(',') if x)
 LA = ZoneInfo('America/Los_Angeles'); BKK = ZoneInfo('Asia/Bangkok')
+SINCE = os.environ.get('SINCE') or '2026-01-01'
+# ค่าเริ่ม UNTIL = เมื่อวานตามวันของบัญชี (LA) — วันนี้ของ LA ยังไม่ครบวัน · รอบอัตโนมัติ (cron) ไม่มี input จึงใช้ค่านี้
+YESTERDAY_LA = (dt.datetime.now(LA).date() - dt.timedelta(days=1)).isoformat()
+UNTIL = os.environ.get('UNTIL') or YESTERDAY_LA
+# ชีตนี้เป็นของปี SINCE · ถ้าวันจบข้ามปี (เช่น ม.ค. ปีหน้า) ให้หยุดที่ 31 ธ.ค. แล้วขึ้นเตือนในแถวสถานะ — วิธีขึ้นปีใหม่ดู README
+YEAR_END = SINCE[:4] + '-12-31'
+CLAMPED = UNTIL > YEAR_END
+if CLAMPED:
+    UNTIL = YEAR_END
+ONLY = set(x for x in (os.environ.get('ONLY') or '').split(',') if x)
 WORKERS = int(os.environ.get('WORKERS') or 4)
 T0 = time.time()
 SID = None; ACT = None
@@ -346,7 +353,7 @@ def build_daily(ad_d, ad_m):
                     n.get('campaign_id', ''), n.get('campaign_name', '')] + day_row(r))
     TABS['โฆษณารายวัน'] = dict(
         title='ผลของแต่ละโฆษณารายวัน %s ถึง %s (วันตามเวลาบัญชี LA)' % (SINCE, UNTIL),
-        note='1 วันของบัญชี (LA) เริ่ม 14:00 น. เวลาไทย (15:00 น. ช่วง 1 ม.ค.-7 มี.ค.) · เทียบกับแชท: เอาเวลาแชท (ไทย) ลบ 14 ชม. (ลบ 15 ชม. ก่อน 8 มี.ค.) จะได้วันที่ในคอลัมน์ A · ค่าเฉลี่ย (CPM, CTR, CPC ฯลฯ) คำนวณจากยอดในแถว · สถิติวิดีโอละเอียดอยู่แท็บ โฆษณารายเดือน',
+        note='1 วันของบัญชี (LA) เริ่ม 14:00 น. เวลาไทยช่วง 8 มี.ค.-1 พ.ย. 2026 และ 15:00 น. นอกช่วงนั้น (ก่อน 8 มี.ค. และตั้งแต่ 2 พ.ย.) · เทียบกับแชท: เอาเวลาแชท (ไทย) ลบ 14 ชม. (8 มี.ค.-1 พ.ย.) หรือ 15 ชม. (นอกช่วงนั้น) จะได้วันที่ในคอลัมน์ A · ค่าเฉลี่ย (CPM, CTR, CPC ฯลฯ) คำนวณจากยอดในแถว · สถิติวิดีโอละเอียดอยู่แท็บ โฆษณารายเดือน',
         header=['วันที่ (เวลาบัญชี LA)', 'Ad ID', 'ชื่อโฆษณา', 'Ad set ID', 'ชื่อชุดโฆษณา', 'Campaign ID', 'ชื่อแคมเปญ'] + D_COLS,
         rows=out)
     return out
@@ -501,7 +508,7 @@ def build_welcome(ads, ad_m):
     out.sort(key=lambda x: (-(x[13] or 0), x[0]))
     TABS['ข้อความต้อนรับแชทของโฆษณา'] = dict(
         title='ข้อความต้อนรับใน Messenger ของแต่ละโฆษณา (ตัวเชื่อมแชทกับโฆษณา)',
-        note='ใน FB chat log แชทที่มาจากโฆษณาจะมีข้อความระบบ "…ตอบกลับโฆษณา" ตามด้วยข้อความต้อนรับในคอลัมน์ J · ถ้าหลายโฆษณาใช้ข้อความเดียวกัน ให้แปลงเวลาแชทเป็นวันที่ LA (ลบ 14 ชม. / 15 ชม. ก่อน 8 มี.ค.) แล้วดูคอลัมน์ L-M และแท็บ "โฆษณารายวัน" ว่าวันนั้นโฆษณาไหนได้แชท',
+        note='ใน FB chat log แชทที่มาจากโฆษณาจะมีข้อความระบบ "…ตอบกลับโฆษณา" ตามด้วยข้อความต้อนรับในคอลัมน์ J · ถ้าหลายโฆษณาใช้ข้อความเดียวกัน ให้แปลงเวลาแชทเป็นวันที่ LA (ลบ 14 ชม. ช่วง 8 มี.ค.-1 พ.ย. / 15 ชม. นอกช่วงนั้น) แล้วดูคอลัมน์ L-M และแท็บ "โฆษณารายวัน" ว่าวันนั้นโฆษณาไหนได้แชท',
         header=['Ad ID', 'ชื่อโฆษณา', 'Ad set ID', 'ชื่อชุดโฆษณา', 'Campaign ID', 'ชื่อแคมเปญ', 'สถานะจริง', 'สร้างเมื่อ (เวลาไทย)',
                 'ปลายทาง', 'ข้อความต้อนรับ (ข้อความแรกที่ลูกค้าเห็นในแชท)', 'ปุ่มคำถาม / ตอบด่วน (→ คำตอบอัตโนมัติ)',
                 'วันแรกที่แสดงผล (เวลาบัญชี LA)', 'วันสุดท้ายที่แสดงผล (เวลาบัญชี LA)', 'เริ่มแชทรวมทั้งช่วง (7 วัน)', 'ข้อความต้อนรับ (JSON ดิบ)'],
@@ -704,9 +711,12 @@ OBS_LINES = [
     'เชื่อมกับ chat log ใน Obsidian',
     'Ad ID, Ad set ID และ Campaign ID ไม่ซ้ำกันและไม่เปลี่ยนแม้เปลี่ยนชื่อ ใช้เป็นชื่อโน้ตหรือ property ได้',
     'แชท FB ที่มาจากโฆษณาจะมีข้อความระบบ "…ตอบกลับโฆษณา" ตามด้วยข้อความต้อนรับ ใช้ข้อความนั้นจับคู่กับแท็บ "ข้อความต้อนรับแชทของโฆษณา"',
-    'วันที่ทุกแท็บโฆษณานับตามเวลาบัญชี (LA) ส่วน chat log เป็นเวลาไทย · แปลงเวลาแชทเป็นวันที่ LA: ลบ 14 ชม. (8 มี.ค.-31 ต.ค.) หรือ 15 ชม. (ก่อน 8 มี.ค.) เช่น แชท 13 ต.ค. 09:00 น. = วันที่ 12 ต.ค. ของบัญชี',
+    'วันที่ทุกแท็บโฆษณานับตามเวลาบัญชี (LA) ส่วน chat log เป็นเวลาไทย · แปลงเวลาแชทเป็นวันที่ LA: ลบ 14 ชม. (8 มี.ค.-1 พ.ย. 2026) หรือ 15 ชม. (ก่อน 8 มี.ค. และตั้งแต่ 2 พ.ย.) เช่น แชท 13 ต.ค. 09:00 น. = วันที่ 12 ต.ค. ของบัญชี',
     'ถ้าหลายโฆษณาใช้ข้อความต้อนรับเดียวกัน ให้ดูวันที่ LA ของแชท เทียบช่วงที่โฆษณาแสดงผล (แท็บข้อความต้อนรับ คอลัมน์ L-M) และแท็บ "โฆษณารายวัน" ว่าวันนั้นโฆษณาไหนได้แชท',
 ]
+
+
+AUTO_TABS = 'ชุดโฆษณารายเดือน, โฆษณารายเดือน, โฆษณารายวัน, ข้อความต้อนรับแชทของโฆษณา, ผลลัพธ์ทุกประเภทรายเดือน และ 4 แท็บ "แยกแคมเปญ"'
 
 
 def update_readme(pulled):
@@ -714,10 +724,18 @@ def update_readme(pulled):
     colv = [(r[0] if r else '') for r in vals]
     find = lambda p: next((i for i, v in enumerate(colv) if v.startswith(p)), None)
     i_title, i_pulled, i_src = find('ข้อมูล Meta Ads'), find('ดึงเมื่อ:'), find('แหล่งข้อมูล:')
+    i_range, i_la = find('ช่วงข้อมูล:'), find('วันที่ทุกแท็บโฆษณานับตามเวลาบัญชี')
     if i_title is not None:
         write('อ่านก่อน', [['ข้อมูล Meta Ads ม.ค.-ต.ค. 2026 ครบทุกระดับ: ทุกอย่างที่ดึงได้จากบัญชีโฆษณา แยกหมวดตามแท็บ']], i_title + 1)
-    if i_pulled is not None and 'รอบ 2' not in colv[i_pulled]:
-        write('อ่านก่อน', [[colv[i_pulled] + ' · แท็บที่เพิ่มรอบ 2 (รายเดือน/รายวันทุกระดับ) ดึงเมื่อ ' + pulled]], i_pulled + 1)
+    # ช่วงข้อมูล / ดึงเมื่อ: เขียนใหม่ทุกรอบ — แท็บรอบแรกหยุดที่ 21 ต.ค. ส่วนแท็บของงานนี้อัปเดตอัตโนมัติทุกคืน
+    if i_range is not None:
+        write('อ่านก่อน', [['ช่วงข้อมูล: %s = %s ถึง %s (วันของบัญชี LA · อัปเดตอัตโนมัติทุกคืนโดยงาน meta-ads-export)'
+                            ' · แท็บอื่น (รอบแรก) = 1 ม.ค. ถึง 21 ต.ค. 2026 ไม่อัปเดตแล้ว ใช้ดูค่าตั้ง/ประวัติการแก้ไข' % (AUTO_TABS, SINCE, UNTIL)]], i_range + 1)
+    if i_pulled is not None:
+        base = colv[i_pulled].split(' · แท็บที่เพิ่มรอบ 2')[0]
+        write('อ่านก่อน', [[base + ' · แท็บที่เพิ่มรอบ 2 (รายเดือน/รายวันทุกระดับ) ดึงล่าสุด ' + pulled]], i_pulled + 1)
+    if i_la is not None and '2 พ.ย.' not in colv[i_la]:
+        write('อ่านก่อน', [[OBS_LINES[4]]], i_la + 1)
     if i_src is not None and not any(v.startswith('ชุดโฆษณารายเดือน:') for v in colv):
         call('GOOGLESHEETS_INSERT_DIMENSION', {'spreadsheet_id': SID, 'insert_dimension': {
             'range': {'sheet_id': tabs()['อ่านก่อน']['id'], 'dimension': 'ROWS', 'start_index': i_src, 'end_index': i_src + len(NEW_TAB_LINES)},
@@ -747,7 +765,10 @@ def set_status(text):
 
 
 def update_sources(pulled, src_rows):
-    set_status('เสร็จแล้ว')
+    msg = 'เสร็จแล้ว · ข้อมูลถึง %s (วัน LA)' % UNTIL
+    if CLAMPED:
+        msg += ' · ⚠️ วันจบข้ามปีแล้ว หยุดไว้ที่ 31 ธ.ค. — ทำขั้น "ขึ้นปีใหม่" ใน tools/meta_ads/README.md'
+    set_status(msg)
     write('แหล่งข้อมูล', src_rows, _status_row + 1)
 
 
@@ -767,7 +788,7 @@ def main():
                 if sha(str(x.get('id') or x.get('spreadsheetId') or '')) == SHEET_HASH), None)
     if not SID:
         sys.exit('ไม่พบชีตที่ตรงกับ hash (ค้นเจอ %d ไฟล์)' % len(cands))
-    log('พบบัญชีโฆษณาและชีตแล้ว · ช่วง', SINCE, '-', UNTIL)
+    log('พบบัญชีโฆษณาและชีตแล้ว · ช่วง', SINCE, '-', UNTIL, '(วัน LA)' + (' · วันจบข้ามปี หยุดที่ 31 ธ.ค.' if CLAMPED else ''))
     set_status('กำลังดึงข้อมูลจาก Meta')
 
     M = months()

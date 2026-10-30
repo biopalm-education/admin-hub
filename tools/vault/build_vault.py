@@ -304,16 +304,18 @@ def load_meta():
         'ประเภทครีเอทีฟ', 'หัวข้อ (headline)', 'ปุ่ม CTA', 'ลิงก์ดูตัวอย่างโฆษณา', 'Quality ranking',
         SPEND, CHATS, 'ลีด', BUYS, PRIMARY], heavy=(PRIMARY,), chunk=300, heavy_chunk=40)
     _, M['welcome'] = read_table(sid, 'ข้อความต้อนรับแชทของโฆษณา', T, 'Ad ID', cols=[
-        'Ad ID', 'ปลายทาง', 'วันแรกที่แสดงผล (เวลาบัญชี LA)', 'วันสุดท้ายที่แสดงผล (เวลาบัญชี LA)', W_TEXT, W_BTN],
+        'Ad ID', 'ปลายทาง', 'วันแรกที่แสดงผล (เวลาบัญชี LA)', 'วันสุดท้ายที่แสดงผล (เวลาบัญชี LA)', W_TEXT, W_BTN,
+        'ชื่อโฆษณา', 'Ad set ID', 'ชื่อชุดโฆษณา', 'Campaign ID', 'ชื่อแคมเปญ', 'สถานะจริง', 'สร้างเมื่อ (เวลาไทย)'],
         heavy=(W_TEXT, W_BTN), chunk=600, heavy_chunk=150)
     _, M['cmon'] = read_table(sid, 'แคมเปญรายเดือน', T, 'เดือน (เริ่ม)', cols=[
         'เดือน (เริ่ม)', 'Campaign ID', SPEND, CHATS, BUYS], chunk=1000)
     _, M['amon'] = read_table(sid, 'โฆษณารายเดือน', T, 'เดือน (เริ่ม)', cols=[
-        'เดือน (เริ่ม)', 'Ad ID', SPEND, CHATS, BUYS], chunk=1500)
+        'เดือน (เริ่ม)', 'Ad ID', SPEND, CHATS, BUYS, 'Campaign ID', 'ชื่อแคมเปญ', 'ลีด', IMPR], chunk=1500)
     _, acct = read_table(sid, 'บัญชีโฆษณา', T, 'เดือน (เริ่ม)', cols=[
         'เดือน (เริ่ม)', SPEND, CHATS, 'ลีด', BUYS, CPM], head_scan=40, chunk=100)
     M['acct'] = [r for r in acct if re.match(r'^\d{4}-\d{2}-\d{2}$', str(r.get('เดือน (เริ่ม)') or '').strip())]
     M['daily'] = load_daily(sid, T)
+    fresh_meta(M)
     log('Meta: แคมเปญ %d · โฆษณา %d · ข้อความต้อนรับ %d · รายเดือน %d/%d · รายวัน %d แถว · คำขอ %d (ลดขนาด %d)' % (
         len(M['camps']), len(M['ads']), len(M['welcome']), len(M['cmon']), len(M['amon']), len(M['daily']),
         STATS['calls'], STATS['shrink']))
@@ -343,6 +345,94 @@ def load_daily(sid, T):
 
 
 SPEND, CHATS, BUYS = 'Spend (ยอดใช้จ่าย บาท)', 'เริ่มแชท (7 วัน)', 'การซื้อ'
+IMPR = 'Impressions (ครั้งที่แสดง)'
+
+
+def fresh_meta(M):
+    """แท็บรอบแรก (แคมเปญ · โฆษณาและครีเอทีฟ · แคมเปญรายเดือน · บัญชีโฆษณา) หยุดที่ 21 ต.ค. 2026
+    ส่วนแท็บของงาน meta-ads-export (โฆษณารายเดือน · ข้อความต้อนรับ · โฆษณารายวัน) อัปเดตทุกคืนถึงเมื่อวานตามวัน LA
+    → ยอดรวม/รายเดือนของบัญชี แคมเปญ และโฆษณา คิดใหม่จาก โฆษณารายเดือน (export ตรวจแล้วว่ารวมได้เท่าระดับบัญชี)
+    → โฆษณา/แคมเปญที่ไม่มีในแท็บรอบแรก (สร้างหลัง 21 ต.ค.) เติมจากแท็บข้อความต้อนรับ ให้จับคู่แชทได้
+    ค่าตั้ง (เป้าหมาย งบ ข้อความโฆษณา ฯลฯ) ยังมาจากแท็บรอบแรก · log พิมพ์แค่จำนวน"""
+    amon = [r for r in M['amon'] if re.match(r'^\d{4}-\d{2}-\d{2}$', str(r.get('เดือน (เริ่ม)') or '').strip())]
+    if not amon:
+        warn('แท็บ โฆษณารายเดือน ว่าง — ใช้ยอดจากแท็บรอบแรก (ถึง 21 ต.ค. 2026)')
+        return
+    keys = (SPEND, CHATS, 'ลีด', BUYS, IMPR)
+    by_ad, by_camp, by_cm, by_m = (defaultdict(lambda: dict.fromkeys(keys, 0.0)) for _ in range(4))
+    cname = {}
+    for r in amon:
+        m = str(r.get('เดือน (เริ่ม)')).strip()
+        aid, cid = str(r.get('Ad ID') or '').strip(), str(r.get('Campaign ID') or '').strip()
+        if cid and str(r.get('ชื่อแคมเปญ') or '').strip():
+            cname[cid] = str(r.get('ชื่อแคมเปญ')).strip()
+        for k in keys:
+            v = num(r.get(k))
+            if aid:
+                by_ad[aid][k] += v
+            if cid:
+                by_camp[cid][k] += v
+                by_cm[(m, cid)][k] += v
+            by_m[m][k] += v
+
+    def cpm(d):
+        return round(d[SPEND] * 1000 / d[IMPR], 2) if d[IMPR] else ''
+
+    def put_tot(row, d):
+        for k in (SPEND, CHATS, 'ลีด', BUYS):
+            row[k] = round(d[k], 2)
+    # โฆษณา: ยอดรวมใหม่ + โฆษณาที่ไม่มีในแท็บรอบแรก
+    known = {str(r.get('Ad ID') or '').strip() for r in M['ads']}
+    for r in M['ads']:
+        aid = str(r.get('Ad ID') or '').strip()
+        if aid in by_ad:
+            put_tot(r, by_ad[aid])
+    new_ads = 0
+    for w in M['welcome']:
+        aid = str(w.get('Ad ID') or '').strip()
+        if not aid or aid in known:
+            continue
+        row = {k: w.get(k, '') for k in ('Ad ID', 'ชื่อโฆษณา', 'Ad set ID', 'ชื่อชุดโฆษณา', 'Campaign ID', 'ชื่อแคมเปญ',
+                                       'สถานะจริง', 'สร้างเมื่อ (เวลาไทย)')}
+        put_tot(row, by_ad.get(aid) or dict.fromkeys(keys, 0.0))
+        M['ads'].append(row)
+        known.add(aid)
+        new_ads += 1
+        cid = str(row.get('Campaign ID') or '').strip()
+        if cid and str(row.get('ชื่อแคมเปญ') or '').strip():
+            cname.setdefault(cid, str(row['ชื่อแคมเปญ']).strip())
+    # แคมเปญ: ยอดรวมใหม่ + แคมเปญที่ไม่มีในแท็บรอบแรก
+    kc = {str(r.get('Campaign ID') or '').strip() for r in M['camps']}
+    for r in M['camps']:
+        cid = str(r.get('Campaign ID') or '').strip()
+        if cid in by_camp:
+            put_tot(r, by_camp[cid])
+            r[CPM] = cpm(by_camp[cid])
+    new_camps = 0
+    for cid, d in by_camp.items():
+        if cid in kc or not d[SPEND]:
+            continue
+        row = {'Campaign ID': cid, 'ชื่อแคมเปญ': cname.get(cid, cid), CPM: cpm(d)}
+        put_tot(row, d)
+        M['camps'].append(row)
+        new_camps += 1
+    # รายเดือน: แทนเดือนที่มีใน โฆษณารายเดือน · เดือนอื่นคงของเดิม
+    old = {(str(r.get('เดือน (เริ่ม)'))[:10], str(r.get('Campaign ID') or '').strip()): r for r in M['cmon']}
+    for (m, cid), d in by_cm.items():
+        row = old.setdefault((m, cid), {'เดือน (เริ่ม)': m, 'Campaign ID': cid})
+        put_tot(row, d)
+    M['cmon'] = list(old.values())
+    acct = {str(r.get('เดือน (เริ่ม)'))[:7]: r for r in M['acct']}
+    for m, d in by_m.items():
+        row = acct.setdefault(m[:7], {'เดือน (เริ่ม)': m})
+        put_tot(row, d)
+        row[CPM] = cpm(d)
+    M['acct'] = [acct[k] for k in sorted(acct)]
+    last_day = max((d for d, _ in M.get('daily') or {}), default='')
+    msg = 'Meta: ยอดรวม/รายเดือนคิดจากแท็บ โฆษณารายเดือน (%s ถึง %s) · ข้อมูลรายวันถึง %s (วัน LA) · เติมโฆษณาใหม่ %d · แคมเปญใหม่ %d' % (
+        min(by_m)[:7], max(by_m)[:7], last_day or '-', new_ads, new_camps)
+    STATUS['steps'].append(msg)
+    log(msg)
 CPM, PRIMARY = 'CPM (บาท/1,000 ครั้ง)', 'ข้อความหลัก (primary text)'
 W_TEXT = 'ข้อความต้อนรับ (ข้อความแรกที่ลูกค้าเห็นในแชท)'
 W_BTN = 'ปุ่มคำถาม / ตอบด่วน (→ คำตอบอัตโนมัติ)'
