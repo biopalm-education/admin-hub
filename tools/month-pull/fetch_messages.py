@@ -1,7 +1,7 @@
 import requests, json, os, time, threading
 from datetime import datetime, timezone
 from concurrent.futures import ThreadPoolExecutor
-TOK=open("/mnt/files/bp/fbtok.txt").read().strip(); V="v21.0"
+TOK=open("/mnt/files/bp/fbtok.txt").read().strip(); V="v26.0"
 BASE=f"https://graph.facebook.com/{V}"
 A0=datetime(2026,2,28,17,0,tzinfo=timezone.utc); A1=datetime(2026,3,31,17,0,tzinfo=timezone.utc)
 OUT="/tmp/mar_threads.jsonl"

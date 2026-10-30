@@ -1091,7 +1091,7 @@ def write_ads(camps, ads, wg, am, cm, last3, chat_tot):
                 '- ชื่อใน Meta: "%s"' % a['name']]
         if a['preview']:
             body.append('- [ดูตัวอย่างโฆษณา](%s)' % a['preview'])
-        body += ['', '| ช่วง | ใช้จ่าย | เริ่มแชท | ปิด (Meta) | บาท/การปิด |', '|---|---|---|---|---|',
+        body += ['', '| ช่วง | ใช้จ่าย | เริ่มแชท | ปิด (Meta) | ต้นทุนต่อการปิด (ป้าย Meta) |', '|---|---|---|---|---|',
                  '| ทั้งหมดในชีต | %s | %s | %s | %s |' % (fmt(a['spend']), fmt(a['chats']), fmt(a['buys']),
                                                        fmt(a['spend'] / a['buys']) if a['buys'] else '-'),
                  '| %s | %s | %s | %s | %s |' % (per or '3 เดือนล่าสุด', fmt(s3), fmt(c3), fmt(b3), fmt(s3 / b3) if b3 else '-')]
@@ -1127,14 +1127,14 @@ def write_ads(camps, ads, wg, am, cm, last3, chat_tot):
                   closed_matched=sum(t['closed'] for t in mt) or None, ads_count=len(c['ads']))
         body = ['# ' + c['title'], '',
                 'พื้นที่: [[%s]] · คอร์ส: [[%s]] · ช่องทาง: [[%s]]' % (c['area'], c['course'], c['platform']), '',
-                '| ช่วง | ใช้จ่าย | เริ่มแชท | ลีด | ปิด (Meta) | บาท/แชท | บาท/การปิด |', '|---|---|---|---|---|---|---|',
+                '| ช่วง | ใช้จ่าย | เริ่มแชท | ลีด | ปิด (Meta) | บาท/แชท | ต้นทุนต่อการปิด (ป้าย Meta) |', '|---|---|---|---|---|---|---|',
                 '| ทั้งหมดในชีต | %s | %s | %s | %s | %s | %s |' % (
                     fmt(c['spend']), fmt(c['chats']), fmt(c['leads']), fmt(c['buys']),
                     fmt(c['spend'] / c['chats']) if c['chats'] else '-', fmt(c['spend'] / c['buys']) if c['buys'] else '-'),
                 '| %s | %s | %s | - | %s | %s | %s |' % (per or '3 เดือนล่าสุด', fmt(s3), fmt(c3), fmt(b3),
                                                        fmt(s3 / c3) if c3 else '-', fmt(s3 / b3) if b3 else '-'),
                 '', '## โฆษณาในแคมเปญนี้', '```dataview',
-                'TABLE WITHOUT ID file.link AS "โฆษณา", spend AS "ใช้จ่าย", chats_meta AS "แชท", purchases_meta AS "ปิด", cost_per_purchase AS "บาท/การปิด", cost_per_purchase_3m AS "บาท/การปิด 3 เดือน", chats_matched AS "แชทที่จับคู่", sent_end_avg AS "อารมณ์ท้าย"',
+                'TABLE WITHOUT ID file.link AS "โฆษณา", spend AS "ใช้จ่าย", chats_meta AS "แชท", purchases_meta AS "ปิด", cost_per_purchase AS "ต้นทุนต่อการปิด (ป้าย Meta)", cost_per_purchase_3m AS "ต้นทุนต่อการปิด (ป้าย Meta) 3 เดือน", chats_matched AS "แชทที่จับคู่", sent_end_avg AS "อารมณ์ท้าย"',
                 'FROM "Ads/Ads"', 'WHERE campaign = this.file.link', 'SORT spend DESC', '```']
         put('Ads/Campaigns/%s.md' % c['title'], front(fm) + '\n' + '\n'.join(body))
 
@@ -1145,7 +1145,7 @@ def write_ads(camps, ads, wg, am, cm, last3, chat_tot):
         body = ['# ' + g['title'], ''] + ['> ' + t for t in g['texts']] + [
             '', 'ใช้ใน %d โฆษณา — ถ้าหลายโฆษณาใช้ข้อความเดียวกัน แชทจะจับคู่ได้แค่ระดับแคมเปญ/กลุ่มข้อความ (ดู [[03 วิธีเชื่อมข้อมูล]])' % len(gads),
             '', '```dataview',
-            'TABLE WITHOUT ID file.link AS "โฆษณา", campaign AS "แคมเปญ", chats_meta AS "แชท", purchases_meta AS "ปิด", cost_per_purchase AS "บาท/การปิด"',
+            'TABLE WITHOUT ID file.link AS "โฆษณา", campaign AS "แคมเปญ", chats_meta AS "แชท", purchases_meta AS "ปิด", cost_per_purchase AS "ต้นทุนต่อการปิด (ป้าย Meta)"',
             'FROM "Ads/Ads"', 'WHERE welcome = this.file.link', 'SORT chats_meta DESC', '```']
         put('Ads/Welcome/%s.md' % g['title'], front(fm) + '\n' + '\n'.join(body))
 
@@ -1154,7 +1154,7 @@ def write_ads(camps, ads, wg, am, cm, last3, chat_tot):
     for prop, name in sorted(hubs):
         put('Ads/กลุ่ม/%s.md' % safe(name), front(dict(type='hub', group=prop)) + '\n' + '\n'.join([
             '# ' + name, '', 'โน้ตศูนย์กลาง — แคมเปญที่ลิงก์มาหาโน้ตนี้จะเกาะกลุ่มกันใน Graph', '', '```dataview',
-            'TABLE WITHOUT ID file.link AS "แคมเปญ", spend AS "ใช้จ่าย", purchases_meta AS "ปิด", cost_per_purchase AS "บาท/การปิด", cost_per_purchase_3m AS "บาท/การปิด 3 เดือน"',
+            'TABLE WITHOUT ID file.link AS "แคมเปญ", spend AS "ใช้จ่าย", purchases_meta AS "ปิด", cost_per_purchase AS "ต้นทุนต่อการปิด (ป้าย Meta)", cost_per_purchase_3m AS "ต้นทุนต่อการปิด (ป้าย Meta) 3 เดือน"',
             'FROM "Ads/Campaigns"', 'WHERE %s = "%s"' % (prop, name), 'SORT spend DESC', '```']))
 
 
@@ -1259,7 +1259,7 @@ def write_months(M, fbov, line, ig, state, content=None):
         fm['youtube_ad_spend'] = ((csp.get('YouTube') or {}).get(m) or {}).get('spend')
         body = ['# เดือน %s %d' % (TH_ABBR[mo], y), '']
         if s:
-            body.append('**Meta Ads** ใช้จ่าย %s บาท · เริ่มแชท %s · บาท/แชท %s · ปิด (ป้าย Meta) %s · บาท/การปิด %s' % (
+            body.append('**Meta Ads** ใช้จ่าย %s บาท · เริ่มแชท %s · บาท/แชท %s · ปิด (ป้าย Meta) %s · ต้นทุนต่อการปิด (ป้าย Meta) %s' % (
                 fmt(s), fmt(c), fmt(s / c, 1) if c else '-', fmt(b), fmt(s / b) if b else '-'))
         if f:
             body += ['', '**FB chat log** แชท %s · ปิดได้ %s · ลีดจากโฆษณาปิด %s%% · ลีดอื่นปิด %s%%' % (
@@ -1351,7 +1351,7 @@ def seed_files():
             '## ปิดได้กี่ราย เมื่อลูกค้าถามเรื่องนี้ แยกตามที่มา', '```dataview',
             'TABLE WITHOUT ID key AS "ที่มา", length(rows) AS "แชท", length(filter(rows, (r) => r.closed)) AS "ปิดได้"',
             'FROM "Chats"', 'WHERE contains(topics, this.file.link)', 'GROUP BY source', '```'])
-    out['Templates/บันทึกการทดลอง.md'] = '---\ntype: experiment\ndate: "{{date}}"\nad:\nhypothesis:\nresult:\n---\n# ทดลอง: \n\n- สมมติฐาน: \n- เปลี่ยนอะไร: \n- วัดผลด้วย: บาท/การปิด 3 เดือน, ปิด% จาก log, อารมณ์ท้าย\n- ผล: \n'
+    out['Templates/บันทึกการทดลอง.md'] = '---\ntype: experiment\ndate: "{{date}}"\nad:\nhypothesis:\nresult:\n---\n# ทดลอง: \n\n- สมมติฐาน: \n- เปลี่ยนอะไร: \n- วัดผลด้วย: ต้นทุนต่อการปิด (ป้าย Meta) 3 เดือน, ปิด% จาก log, อารมณ์ท้าย\n- ผล: \n'
     out['Bases/จัดอันดับโฆษณา.base'] = '\n'.join([
         'filters:', '  and:', '    - file.inFolder("Ads/Ads")', 'formulas:', '  chats_per_close: chats_meta / purchases_meta',
         'properties:', '  formula.chats_per_close:', '    displayName: แชทต่อ 1 การปิด', 'views:', '  - type: table',

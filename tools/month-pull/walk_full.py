@@ -1,7 +1,7 @@
 import requests, json, os, time
 from datetime import datetime, timezone
 TOK = open("/mnt/files/bp/fbtok.txt").read().strip()
-PAGE="691470034208676"; V="v21.0"
+PAGE="691470034208676"; V="v26.0"
 BASE=f"https://graph.facebook.com/{V}"
 OUT="/mnt/files/bp/mar/raw"
 START=datetime(2026,2,28,17,0,0,tzinfo=timezone.utc)   # 1 Mar 2026 00:00 +07

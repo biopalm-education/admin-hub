@@ -506,6 +506,10 @@ def build_welcome(ads, ad_m):
                     thai_time(v.get('created_time')), (v.get('adset') or {}).get('destination_type', ''), text, btn,
                     fl[0], fl[1], num(chats.get(ad_id, 0)), pretty(raw)[:5000]])
     out.sort(key=lambda x: (-(x[13] or 0), x[0]))
+    try:
+        build_welcome_check(out)
+    except Exception as e:                      # แท็บตรวจพลาดต้องไม่ทำให้ทั้งรอบล้ม
+        log('ตรวจข้อความต้อนรับซ้ำไม่ผ่าน (ข้าม):', _safe(e))
     TABS['ข้อความต้อนรับแชทของโฆษณา'] = dict(
         title='ข้อความต้อนรับใน Messenger ของแต่ละโฆษณา (ตัวเชื่อมแชทกับโฆษณา)',
         note='ใน FB chat log แชทที่มาจากโฆษณาจะมีข้อความระบบ "…ตอบกลับโฆษณา" ตามด้วยข้อความต้อนรับในคอลัมน์ J · ถ้าหลายโฆษณาใช้ข้อความเดียวกัน ให้แปลงเวลาแชทเป็นวันที่ LA (ลบ 14 ชม. ช่วง 8 มี.ค.-1 พ.ย. / 15 ชม. นอกช่วงนั้น) แล้วดูคอลัมน์ L-M และแท็บ "โฆษณารายวัน" ว่าวันนั้นโฆษณาไหนได้แชท',
@@ -516,10 +520,53 @@ def build_welcome(ads, ad_m):
     return sum(1 for r in out if r[9])
 
 
+WELCOME_CHECK = 'ตรวจข้อความต้อนรับซ้ำ'
+NEW_DAYS = 14
+WELCOME_STAT = {}
+
+
+def build_welcome_check(rows):
+    """กติกา (30 ต.ค. 2026): ทุกโฆษณาใหม่ต้องใช้ข้อความต้อนรับไม่ซ้ำกับโฆษณาอื่น ไม่งั้นจับคู่แชทกับโฆษณาไม่ได้
+    โฆษณาใหม่ = เริ่มแสดงผล (วัน LA) หรือสร้าง (เวลาไทย) ภายใน NEW_DAYS วันถึง UNTIL · log พิมพ์แค่จำนวน (repo public)"""
+    norm = lambda t: re.sub(r'\s+', ' ', str(t or '')).strip()
+    users = {}
+    for r in rows:
+        k = norm(r[9])
+        if k:
+            users.setdefault(k, []).append(r[0])
+    cut = (dt.date.fromisoformat(UNTIL) - dt.timedelta(days=NEW_DAYS - 1)).isoformat()
+    out = []
+    for r in rows:
+        first, created = str(r[11] or '')[:10], str(r[7] or '')[:10]
+        if not ((first and first >= cut) or (created and created >= cut)):
+            continue
+        k = norm(r[9])
+        others = [x for x in users.get(k, []) if x != r[0]] if k else []
+        if not k:
+            res = 'ไม่มีข้อความต้อนรับ' if 'MESSENGER' in str(r[8]) or 'INSTAGRAM' in str(r[8]) else 'ไม่ใช่แอดแชท'
+        else:
+            res = 'ซ้ำ' if others else 'ไม่ซ้ำ'
+        out.append([r[0], r[1], r[5], r[6], r[8], r[7], r[11], res, len(others), ', '.join(others[:3]), k[:150]])
+    rank = {'ซ้ำ': 0, 'ไม่มีข้อความต้อนรับ': 1, 'ไม่ซ้ำ': 2, 'ไม่ใช่แอดแชท': 3}
+    out.sort(key=lambda x: (rank.get(x[7], 9), -(x[8] or 0), x[0]))
+    n_dup = sum(1 for x in out if x[7] == 'ซ้ำ')
+    n_none = sum(1 for x in out if x[7] == 'ไม่มีข้อความต้อนรับ')
+    TABS[WELCOME_CHECK] = dict(
+        title='ตรวจข้อความต้อนรับของโฆษณาใหม่ (เริ่มแสดงหรือสร้าง %s ถึง %s) · ซ้ำ %d · ไม่มีข้อความ %d · จาก %d โฆษณา' % (
+            cut, UNTIL, n_dup, n_none, len(out)),
+        note='กติกา: ทุกโฆษณาใหม่ต้องใช้ข้อความต้อนรับไม่ซ้ำกับโฆษณาอื่น (ใส่รหัสสั้นท้ายข้อความ) ไม่งั้นจับคู่แชทกับโฆษณาไม่ได้ · '
+             '"ซ้ำ" = ข้อความเดียวกับโฆษณาอื่นในชีต (ทั้งปี ตัดช่องว่างซ้ำ) · แท็บนี้เขียนใหม่ทุกรอบ meta-ads-export',
+        header=['Ad ID', 'ชื่อโฆษณา', 'ชื่อแคมเปญ', 'สถานะจริง', 'ปลายทาง', 'สร้างเมื่อ (เวลาไทย)', 'วันแรกที่แสดงผล (เวลาบัญชี LA)',
+                'ผลตรวจ', 'จำนวนโฆษณาอื่นที่ใช้ข้อความเดียวกัน', 'ตัวอย่าง Ad ID ที่ใช้ข้อความเดียวกัน', 'ข้อความต้อนรับ (ตัดสั้น)'],
+        rows=out)
+    log('ตรวจข้อความต้อนรับโฆษณาใหม่ %d ตัว · ซ้ำ %d · ไม่มีข้อความ %d' % (len(out), n_dup, n_none))
+    WELCOME_STAT.update(new=len(out), dup=n_dup, none=n_none, since=cut)
+
+
 # ---------------------------------------------------------------- เขียนชีต
 MAX_ROWS, MAX_BYTES = 800, 400000
 ORDER = ['อ่านก่อน', 'บัญชีโฆษณา', 'รายวัน', 'แคมเปญ', 'แคมเปญรายเดือน', 'ชุดโฆษณา', 'ชุดโฆษณารายเดือน',
-         'โฆษณาและครีเอทีฟ', 'โฆษณารายเดือน', 'โฆษณารายวัน', 'ข้อความต้อนรับแชทของโฆษณา',
+         'โฆษณาและครีเอทีฟ', 'โฆษณารายเดือน', 'โฆษณารายวัน', 'ข้อความต้อนรับแชทของโฆษณา', WELCOME_CHECK,
          'ผลลัพธ์ทุกประเภท', 'ผลลัพธ์ทุกประเภทรายเดือน', 'อายุและเพศ', 'อายุและเพศ แยกแคมเปญ', 'ประเทศและจังหวัด',
          'ประเทศและจังหวัด แยกแคมเปญ', 'แพลตฟอร์มและอุปกรณ์', 'แพลตฟอร์มและอุปกรณ์ แยกแคมเปญ', 'รายชั่วโมง',
          'รายชั่วโมง แยกแคมเปญ', 'กลุ่มเป้าหมายที่บันทึก', 'ประวัติการแก้ไข', 'รูปภาพในบัญชี', 'แหล่งข้อมูล']
@@ -834,10 +881,10 @@ def main():
     log('โฆษณาที่มีข้อความต้อนรับ %d จาก %d' % (n_wel, len(TABS['ข้อความต้อนรับแชทของโฆษณา']['rows'])))
 
     # ---- เขียน
-    for tab in ['ชุดโฆษณารายเดือน', 'โฆษณารายเดือน', 'โฆษณารายวัน', 'ข้อความต้อนรับแชทของโฆษณา',
+    for tab in ['ชุดโฆษณารายเดือน', 'โฆษณารายเดือน', 'โฆษณารายวัน', 'ข้อความต้อนรับแชทของโฆษณา', WELCOME_CHECK,
                 'ผลลัพธ์ทุกประเภทรายเดือน', 'อายุและเพศ แยกแคมเปญ', 'ประเทศและจังหวัด แยกแคมเปญ',
                 'แพลตฟอร์มและอุปกรณ์ แยกแคมเปญ', 'รายชั่วโมง แยกแคมเปญ']:
-        if not ONLY or tab in ONLY:
+        if (not ONLY or tab in ONLY) and tab in TABS:
             put_tab(tab)
             set_status('กำลังเขียนลงชีต · เสร็จแท็บ ' + tab)
     reorder()
@@ -861,12 +908,14 @@ def main():
         ['โฆษณารายเดือน!A4', 'Meta Marketing API v26.0', 'GET /act_…/insights', via, req, 'level=ad, time_increment=monthly, ' + tr, pulled, 'ผู้ใช้', L('โฆษณารายเดือน'), 'เหมือนด้านบน + สถิติวิดีโอ', chk('โฆษณารายเดือน')],
         ['โฆษณารายวัน!A4', 'Meta Marketing API v26.0', 'GET /act_…/insights', via, req, 'level=ad, time_increment=1, fields=impressions,reach,spend,clicks,inline_link_clicks,actions, ' + tr, pulled, 'ผู้ใช้', L('โฆษณารายวัน'), 'ชื่อโฆษณา/ชุด/แคมเปญเติมจากแท็บรายเดือนด้วย ID · ค่าเฉลี่ยคำนวณจากยอดในแถว', chk('โฆษณารายวัน')],
         ['ข้อความต้อนรับแชทของโฆษณา!A4', 'Meta Marketing API v26.0', 'GET /?ids=… fields=creative{page_welcome_message}', via, req, 'เฉพาะโฆษณาที่มีผลในช่วงนี้', pulled, 'ผู้ใช้', L('ข้อความต้อนรับแชทของโฆษณา'), 'แตกข้อความ ปุ่มคำถาม และคำตอบอัตโนมัติจาก JSON (เก็บ JSON ดิบไว้คอลัมน์สุดท้าย)', 'มีข้อความต้อนรับ %d โฆษณา' % n_wel],
+        [WELCOME_CHECK + '!A4', 'คำนวณจากแท็บข้อความต้อนรับแชทของโฆษณา', '-', via, 'กติกาข้อความต้อนรับไม่ซ้ำ (30 ต.ค. 2026)', 'โฆษณาที่เริ่มแสดงหรือสร้างใน %d วันถึง %s' % (NEW_DAYS, UNTIL), pulled, 'ผู้ใช้', L(WELCOME_CHECK) if WELCOME_CHECK in TABS else 0, 'เทียบข้อความต้อนรับกับทุกโฆษณาในชีต (ตัดช่องว่างซ้ำ)', 'ซ้ำ %s · ไม่มีข้อความ %s' % (WELCOME_STAT.get('dup', 0), WELCOME_STAT.get('none', 0))],
         ['ผลลัพธ์ทุกประเภทรายเดือน!A4', 'Meta Marketing API v26.0', 'GET /act_…/insights', via, req, 'level=campaign, time_increment=monthly, fields=actions,unique_actions,cost_per_action_type,cost_per_unique_action_type,action_values, ' + tr, pulled, 'ผู้ใช้', L('ผลลัพธ์ทุกประเภทรายเดือน'), 'แถวละ 1 ประเภทผลลัพธ์ คำอธิบายภาษาไทยใช้ชุดเดียวกับแท็บ ผลลัพธ์ทุกประเภท', chk('ผลลัพธ์ทุกประเภทรายเดือน')],
         ['อายุและเพศ แยกแคมเปญ!A4', 'Meta Marketing API v26.0', 'GET /act_…/insights', via, req, 'level=campaign, breakdowns=age,gender, time_increment=monthly, ' + tr, pulled, 'ผู้ใช้', L('อายุและเพศ แยกแคมเปญ'), 'แตกผลลัพธ์แชทออกจาก actions', chk('อายุและเพศ แยกแคมเปญ')],
         ['ประเทศและจังหวัด แยกแคมเปญ!A4', 'Meta Marketing API v26.0', 'GET /act_…/insights', via, req, 'level=campaign, breakdowns=country และ region (ตาราง 2), time_increment=monthly, ' + tr, pulled, 'ผู้ใช้', L('ประเทศและจังหวัด แยกแคมเปญ'), 'แตกผลลัพธ์แชทออกจาก actions', chk('ประเทศ แยกแคมเปญ', 'จังหวัด แยกแคมเปญ')],
         ['แพลตฟอร์มและอุปกรณ์ แยกแคมเปญ!A4', 'Meta Marketing API v26.0', 'GET /act_…/insights', via, req, 'level=campaign, breakdowns=publisher_platform,platform_position,impression_device และ device_platform (ตาราง 2), time_increment=monthly, ' + tr, pulled, 'ผู้ใช้', L('แพลตฟอร์มและอุปกรณ์ แยกแคมเปญ'), 'แตกผลลัพธ์แชทออกจาก actions', chk('แพลตฟอร์ม แยกแคมเปญ', 'อุปกรณ์ แยกแคมเปญ')],
         ['รายชั่วโมง แยกแคมเปญ!A4', 'Meta Marketing API v26.0', 'GET /act_…/insights', via, req, 'level=campaign, breakdowns=hourly_stats_aggregated_by_audience_time_zone, time_increment=monthly, ' + tr, pulled, 'ผู้ใช้', L('รายชั่วโมง แยกแคมเปญ'), 'แตกผลลัพธ์แชทออกจาก actions', chk('รายชั่วโมง แยกแคมเปญ')],
     ]
+    src = [r for r in src if WELCOME_CHECK in TABS or not str(r[0]).startswith(WELCOME_CHECK)]
     update_sources(pulled, src)
     update_readme(pulled)
     fails = {k: v[0] for k, v in S.FAILS.items()}

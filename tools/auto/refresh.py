@@ -21,7 +21,7 @@ from concurrent.futures import ThreadPoolExecutor
 import requests
 
 REPO='/tmp/ahb'; WORK='/tmp/bp'; SLUG='biopalm-education/admin-hub'
-PAGE='691470034208676'; IGPAGE='17841463207664263'; V='v21.0'
+PAGE='691470034208676'; IGPAGE='17841463207664263'; V='v26.0'
 BASE=f'https://graph.facebook.com/{V}'
 TH=dt.timezone(dt.timedelta(hours=7))
 MSHORT={1:'ม.ค.',2:'ก.พ.',3:'มี.ค.',4:'เม.ย.',5:'พ.ค.',6:'มิ.ย.',7:'ก.ค.',8:'ส.ค.',9:'ก.ย.',10:'ต.ค.',11:'พ.ย.',12:'ธ.ค.'}
