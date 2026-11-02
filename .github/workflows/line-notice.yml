@@ -64,7 +64,7 @@ jobs:
         env:
           ADMIN_SECRET: ${{ secrets.ADMIN_SECRET }}
           LINE_NOTICE_TOKEN: ${{ secrets.LINE_NOTICE_TOKEN }}
-          LINE_NOTICE_TO: ${{ secrets.LINE_NOTICE_TO }}
+          LINE_NOTICE_TO: ''
           LINE_NOTICE_TO_2: ${{ secrets.LINE_NOTICE_TO_2 }}
           KIND: ${{ inputs.kind || 'auto' }}
           GROUP: ${{ inputs.group || 'all' }}
