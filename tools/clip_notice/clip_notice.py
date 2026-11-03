@@ -43,11 +43,15 @@ TIME_RE = re.compile(r'(\d{1,2})[.:](\d{2})\s*[-–]\s*\d{1,2}[.:]\d{2}')
 STAGE_TXT = {'up': 'รออัป YouTube', 'yt': 'รอคำบรรยาย YouTube', 'tr': 'รอถอดคำหยาบ', 'cut': 'รอตัด'}
 
 RUN = None        # run_composio_tool — ตั้งจากภายนอกได้ (workbench) · ไม่ตั้ง = ใช้ mcp.py
+# อ่านอย่างเดียวเท่านั้น: เรียกได้แค่ 3 คำสั่งนี้ — คำสั่งอื่น (แก้/สร้าง/ลบ ชีต ไฟล์ โฟลเดอร์ ลิงก์) ถูกปฏิเสธในโค้ด
+READ_ONLY = frozenset(('GOOGLEDRIVE_FIND_FILE', 'GOOGLEDRIVE_DOWNLOAD_FILE', 'GOOGLESHEETS_BATCH_GET'))
 
 
 # ---------- Composio ----------
 def call(slug, args, account):
     global RUN
+    if slug not in READ_ONLY:
+        raise RuntimeError('ไม่อนุญาต: %s (งานนี้อ่านอย่างเดียว)' % slug)
     if RUN is None:
         sys.path.insert(0, os.path.dirname(os.path.abspath(__file__)))
         from mcp import run_composio_tool
