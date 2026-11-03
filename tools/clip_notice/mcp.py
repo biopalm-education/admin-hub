@@ -146,7 +146,9 @@ def _dig(obj, slug):
             if item.get('successful') is False:
                 return None, 'tool reported failure'
             if 'data' not in item:
-                return None, 'ไม่พบ data ในคำตอบ'
+                if 'data_preview' in item:
+                    return None, 'TOO_LARGE คำตอบใหญ่เกินที่ MCP ส่งกลับ'
+                return None, 'ไม่พบ data ในคำตอบ (keys=%s)' % ','.join(sorted(map(str, item.keys()))[:8])
             return {'data': item['data']}, ''
     if obj.get('error'):
         return None, str(obj['error'])[:200]
@@ -170,6 +172,8 @@ def run_composio_tool(tool_slug, arguments, *, account=None, tries=4):
             if out is not None:
                 return out, ''
             last = err or 'แกะคำตอบไม่ได้'
+            if last.startswith('TOO_LARGE'):
+                return {}, last                    # ลองซ้ำขนาดเดิมไม่ช่วย ให้ผู้เรียกลดขนาดเอง
         except Exception as e:
             last = '%s: %s' % (type(e).__name__, str(e)[:200])
             if c is not None:

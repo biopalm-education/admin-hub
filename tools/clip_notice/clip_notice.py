@@ -252,18 +252,22 @@ def scan():
 def sheet_courses():
     courses = []
     for title in TABS:
-        rows, r1 = [], 1
+        rows, r1, step = [], 1, 40
         while r1 < 1500:
-            d = call('GOOGLESHEETS_GET_SPREADSHEET_INFO', {
-                'spreadsheet_id': SHEET, 'fields': 'sheets(data(rowData(values(formattedValue))))',
-                'ranges': ["'%s'!A%d:CZ%d" % (title, r1, r1 + 59)]}, SHEETS)
-            sh = (d.get('sheets') or [{}])[0]
-            blk = [[(v.get('formattedValue') or '') for v in (x.get('values') or [])]
-                   for x in ((sh.get('data') or [{}])[0].get('rowData') or [])]
-            rows += blk + [[]] * (60 - len(blk))
+            try:     # ค่าในช่องอย่างเดียว (ก้อนเล็ก) · คำตอบใหญ่เกินที่ MCP ส่งได้ = ลดจำนวนแถวต่อครั้ง
+                d = call('GOOGLESHEETS_BATCH_GET', {
+                    'spreadsheet_id': SHEET, 'ranges': ["'%s'!A%d:CZ%d" % (title, r1, r1 + step - 1)],
+                    'valueRenderOption': 'FORMATTED_VALUE', 'dateTimeRenderOption': 'FORMATTED_STRING'}, SHEETS)
+            except RuntimeError:
+                if step > 10:
+                    step //= 2
+                    continue
+                raise
+            blk = [[str(v) for v in r] for r in (((d.get('valueRanges') or [{}])[0]).get('values') or [])]
+            rows += blk + [[]] * (step - len(blk))
             if not any(blk):
                 break
-            r1 += 60
+            r1 += step
         hi = next((i for i, r in enumerate(rows[:8]) if 'Folder Name' in [c.strip() for c in r]), None)
         if hi is None:
             raise RuntimeError('แท็บ %s: หาแถวหัวตารางไม่เจอ' % title)
