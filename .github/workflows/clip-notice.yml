@@ -1,0 +1,66 @@
+name: clip-notice
+
+# แจ้งเตือนรายวัน 08:37 · คลิปเทปบันทึกการสอนที่ตัดเสร็จแล้ว (ปิดเสียงคำหยาบ + ตัด dead air) → LINE กลุ่ม Admin dashboard
+# ตัดเสร็จวันนี้รายคลิป · รอบสัปดาห์ จ.–อา. (วันจันทร์ = ปิดรอบสัปดาห์ก่อน) · คิวรอตัด + เวลาคาดเสร็จ · QA ไม่ผ่าน (tools/clip_notice/clip_notice.py)
+#
+# อ่านอย่างเดียว: Drive «ต้นฉับบ» บัญชี mkt + New_Control Sheet ผ่าน Composio · ไม่เขียนป้าย/ไฟล์ · ไม่แตะ pipeline yt-uploader
+# งานแยกจาก line-notice.yml (Tracking) — คนละไฟล์ คนละ concurrency group ใช้ token/กลุ่มเดิมร่วมกัน
+# กันโควตา LINE: เหลือไม่พอสำหรับ Tracking (จันทร์/ศุกร์) ที่เหลือของเดือน = ไม่ส่ง (รันขึ้นสีแดง แล้วรอบถัดไปรวมคลิปให้)
+# repo นี้ public: log พิมพ์แค่จำนวน — เนื้อหาข้อความอยู่ในกลุ่ม LINE เท่านั้น
+#
+# secrets: COMPOSIO_API_KEY · LINE_NOTICE_TOKEN · LINE_NOTICE_TO_2 (ตัวเดิม) · CLIP_ORIG_ID · CLIP_SHEET_ID (id โฟลเดอร์ «ต้นฉับบ» / New_Control Sheet)
+# repo public ไม่กินโควตานาทีฟรี
+
+on:
+  schedule:
+    - cron: '37 1 * * *'        # 08:37 น. เวลาไทย ทุกวัน (GitHub อาจเลื่อนช้าไปบ้าง)
+  workflow_dispatch:
+    inputs:
+      send:
+        description: 'ส่งเข้า LINE กลุ่ม Admin dashboard จริง (ไม่ติ๊ก = สร้างข้อความอย่างเดียว ไม่ส่ง)'
+        type: boolean
+        default: false
+      since:
+        description: 'นับคลิปที่ตัดเสร็จตั้งแต่ (ISO เช่น 2026-11-03T08:37:00+07:00) เว้นว่าง = ต่อจากรอบที่ส่งสำเร็จครั้งก่อน'
+        required: false
+        default: ''
+
+run-name: ${{ github.event_name == 'schedule' && 'clip-notice · ส่งตามเวลา' || (inputs.send && 'clip-notice · ส่งจริง (กดเอง)' || 'clip-notice · ทดลอง ไม่ส่ง') }}
+
+concurrency:
+  group: clip-notice
+  cancel-in-progress: false
+
+permissions:
+  contents: read
+  actions: read          # อ่านประวัติรันของ workflow นี้ (หาเวลาที่ส่งสำเร็จครั้งก่อน)
+
+jobs:
+  notice:
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    steps:
+      - uses: actions/checkout@v5
+        with:
+          ref: main
+
+      - uses: actions/setup-python@v6
+        with:
+          python-version: '3.11'
+
+      - name: ติดตั้ง dependency
+        run: pip install --quiet --disable-pip-version-check requests
+
+      - name: แจ้งเตือนคลิปตัดเสร็จ
+        env:
+          COMPOSIO_API_KEY: ${{ secrets.COMPOSIO_API_KEY }}
+          COMPOSIO_MCP_URL: ${{ vars.COMPOSIO_MCP_URL }}
+          CLIP_ORIG_ID: ${{ secrets.CLIP_ORIG_ID }}
+          CLIP_SHEET_ID: ${{ secrets.CLIP_SHEET_ID }}
+          LINE_NOTICE_TOKEN: ${{ secrets.LINE_NOTICE_TOKEN }}
+          LINE_NOTICE_TO_2: ${{ secrets.LINE_NOTICE_TO_2 }}
+          GITHUB_TOKEN: ${{ github.token }}
+          SEND: ${{ (github.event_name == 'schedule' || inputs.send) && '1' || '' }}
+          AUTO: ${{ github.event_name == 'schedule' && '1' || '' }}
+          SINCE: ${{ inputs.since }}
+        run: python tools/clip_notice/clip_notice.py
