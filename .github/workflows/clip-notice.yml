@@ -1,6 +1,8 @@
 name: clip-notice
 
 # แจ้งเตือนรายวัน 08:37 · คลิปเทปบันทึกการสอนที่ตัดเสร็จแล้ว (ปิดเสียงคำหยาบ + ตัด dead air) → LINE กลุ่ม Admin dashboard
+# เวลา: Scheduled task ของ Claude (บนคลาวด์) กดรัน workflow นี้ทุกวัน 08:37 ด้วย send + auto
+#   ไม่ใช้ cron ของ GitHub เพราะ repo นี้โดนเลื่อนรอบตั้งเวลา 3–7 ชม. (และบางรอบข้ามไปเลย) — 4 พ.ย. 2026
 # ตัดเสร็จวันนี้รายคลิป · รอบสัปดาห์ จ.–อา. (วันจันทร์ = ปิดรอบสัปดาห์ก่อน) · คิวรอตัด + เวลาคาดเสร็จ · QA ไม่ผ่าน (tools/clip_notice/clip_notice.py)
 #
 # อ่านอย่างเดียว: Drive «ต้นฉับบ» บัญชี mkt + New_Control Sheet ผ่าน Composio · ไม่เขียนป้าย/ไฟล์ · ไม่แตะ pipeline yt-uploader
@@ -12,12 +14,14 @@ name: clip-notice
 # repo public ไม่กินโควตานาทีฟรี
 
 on:
-  schedule:
-    - cron: '37 1 * * *'        # 08:37 น. เวลาไทย ทุกวัน (GitHub อาจเลื่อนช้าไปบ้าง)
   workflow_dispatch:
     inputs:
       send:
         description: 'ส่งเข้า LINE กลุ่ม Admin dashboard จริง (ไม่ติ๊ก = สร้างข้อความอย่างเดียว ไม่ส่ง)'
+        type: boolean
+        default: false
+      auto:
+        description: 'รอบประจำวัน (Scheduled task 08:37 ติ๊กให้) = ส่งจริง + กันส่งซ้ำวันเดียวกัน · กดเองไม่ต้องติ๊ก'
         type: boolean
         default: false
       since:
@@ -25,7 +29,7 @@ on:
         required: false
         default: ''
 
-run-name: ${{ github.event_name == 'schedule' && 'clip-notice · ส่งตามเวลา' || (inputs.send && 'clip-notice · ส่งจริง (กดเอง)' || 'clip-notice · ทดลอง ไม่ส่ง') }}
+run-name: ${{ inputs.auto && 'clip-notice · ส่งตามเวลา' || (inputs.send && 'clip-notice · ส่งจริง (กดเอง)' || 'clip-notice · ทดลอง ไม่ส่ง') }}
 
 concurrency:
   group: clip-notice
@@ -60,7 +64,7 @@ jobs:
           LINE_NOTICE_TOKEN: ${{ secrets.LINE_NOTICE_TOKEN }}
           LINE_NOTICE_TO_2: ${{ secrets.LINE_NOTICE_TO_2 }}
           GITHUB_TOKEN: ${{ github.token }}
-          SEND: ${{ (github.event_name == 'schedule' || inputs.send) && '1' || '' }}
-          AUTO: ${{ github.event_name == 'schedule' && '1' || '' }}
+          SEND: ${{ (inputs.send || inputs.auto) && '1' || '' }}
+          AUTO: ${{ inputs.auto && '1' || '' }}
           SINCE: ${{ inputs.since }}
         run: python tools/clip_notice/clip_notice.py
