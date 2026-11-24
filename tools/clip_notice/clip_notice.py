@@ -8,7 +8,8 @@
     + ป้ายใน «ต้นฉับบ/_ล้างแล้ว (auto)» (คลิปที่งานเคลียร์วันจันทร์ย้ายไปแล้ว นับเป็นตัดเสร็จ)
   - New_Control Sheet แท็บ Course + Closed Course : จับคู่คอร์สจาก "วันที่ + เวลา" ในชื่อไฟล์ (ทีมยังไม่ได้วางคลิปตอนแจ้ง)
 ช่วงที่นับ "วันนี้" = หลังรอบที่ส่งสำเร็จครั้งก่อน (ประวัติรันของ workflow นี้) → ส่งพลาดวันไหน วันถัดไปรวมให้ ไม่ตกหล่น
-เวลาคาดว่าจะเสร็จ = รอบถอดคำหยาบถัดไป (09:13 / 15:13 / 20:13 + ตัด ~15 นาที) หลังคำบรรยาย YouTube น่าจะพร้อม (ค่ากลางจริงย้อนหลัง)
+เวลาคาดว่าจะเสร็จ = รอบถอดคำหยาบถัดไป (06:13 / 10:13 / 14:13 / 18:13 / 22:13 · แต่ละรอบเช็กคำบรรยาย+ทำ pack ก่อน แล้วตัดเสร็จ ~30 นาที)
+  หลังคำบรรยาย YouTube น่าจะพร้อม (ใช้ค่าช้าของ 75% จริงย้อนหลัง 7 วัน — กันบอกเร็วเกินจริง) · v3 24 พ.ย. 2026 เป้าเสร็จใน 24 ชม.
 กันโควตา LINE: ถ้าส่งแล้วเหลือไม่พอสำหรับ Tracking (จันทร์/ศุกร์) ที่เหลือของเดือน = ไม่ส่ง (รันขึ้นสีแดง)
 repo นี้ public: log พิมพ์แค่จำนวน — ไม่พิมพ์ชื่อคลิป หัวข้อ ลิงก์ หรือ id
 
@@ -27,11 +28,13 @@ SHEETS = os.environ.get('CLIP_SHEETS_ACCOUNT') or 'googlesheets_thrast-arrope'  
 TABS = ('Course', 'Closed Course')
 TOMB = '_ล้างแล้ว (auto)'
 PIPE_START = dt.date(2026, 10, 16)       # ก่อนวันนี้อัป/ตัดด้วยมือ → ไม่นับเป็นคิว
-STALE_DAYS = 2                           # คิวรอเกินนี้หลังเรียนจบ = ⚠️
+TARGET_H = 24                            # เป้า: ตัดเสร็จภายใน 24 ชม. หลังเรียนจบ · คิวรอเกินนี้ = ⚠️
 MAX_CLUSTERS = 6
 MAX_QUEUE_LINES = 10
-PACK_H_DEFAULT = 13.0                    # ชม. จากคลิปเข้า Drive → พร้อมถอดคำหยาบ (อัป YouTube + คำบรรยาย + pack) ค่ากลาง 28 ต.ค.–3 พ.ย.
-ROUNDS = ((9, 30), (15, 30), (20, 30))   # รอบถอดคำหยาบ 09:13 / 15:13 / 20:13 + ตัดเสร็จ ~15 นาที
+PACK_H_DEFAULT = 14.0                    # ชม. จากคลิปเข้า Drive → พร้อมถอดคำหยาบ (อัป YouTube + คำบรรยาย + pack) ใช้เมื่อข้อมูลย้อนหลังไม่พอ
+PACK_WINDOW_D = 7                        # วันย้อนหลังที่ใช้คำนวณ
+# รอบถอดคำหยาบ 06:13 / 10:13 / 14:13 / 18:13 / 22:13 (เช็กคำบรรยาย + ทำ pack → ตัดสิน → ตัด) เสร็จราว 30 นาทีหลังเริ่มรอบ
+ROUNDS = ((6, 45), (10, 45), (14, 45), (18, 45), (22, 45))
 CUT_ROUNDS = ((3, 30),) + ROUNDS         # + รอบสำรองของงานตัด 03:17
 WF_FILE = 'clip-notice.yml'
 BAR = '━━━━━━━━━━━━'
@@ -190,6 +193,8 @@ def stage(p):
         return 'qa'
     if cs == 'gave_up' or ts == 'gave_up':
         return 'stuck'
+    if p.get('bp_yt_captions') == 'none' and not p.get('bp_pack'):
+        return 'stuck'                                  # YouTube ไม่ทำคำบรรยายให้ (เกิน 7 วัน) → ไม่มีวันเสร็จเอง ต้องมีคนดู
     if ts == 'skipped':
         return 'skip'
     if p.get('bp_cutlist'):
@@ -363,11 +368,12 @@ def detail(c):
 
 
 def pack_hours(clips, now):
-    """ค่ากลางจริง: คลิปเข้า Drive → พร้อมถอดคำหยาบ (bp_pack_at) ของคลิป 14 วันล่าสุด"""
+    """เวลาจริง: คลิปเข้า Drive → พร้อมถอดคำหยาบ (bp_pack_at) ของคลิป 7 วันล่าสุด · ใช้ค่าที่ 75% ของคลิปทำได้
+    (ค่ากลางทำให้บอกเร็วเกินจริงครึ่งหนึ่ง — ทีมแจ้ง 24 พ.ย. 2026 ว่าเวลาใน LINE ไม่ตรง)"""
     v = [(parse_iso(c['p'].get('bp_pack_at')) - c['created']).total_seconds() / 3600 for c in clips
-         if c['created'] and parse_iso(c['p'].get('bp_pack_at')) and (now.date() - c['day']).days <= 14]
-    v = [x for x in v if 0 <= x <= 96]
-    return statistics.median(v) if len(v) >= 3 else PACK_H_DEFAULT
+         if c['created'] and parse_iso(c['p'].get('bp_pack_at')) and (now.date() - c['day']).days <= PACK_WINDOW_D]
+    v = sorted(x for x in v if 0 <= x <= 96)
+    return statistics.quantiles(v, n=4)[2] if len(v) >= 3 else PACK_H_DEFAULT
 
 
 def eta(c, now, pack_h):
@@ -431,6 +437,8 @@ def week_lines(W):
             span(statistics.median(W['lag'])), span(min(W['lag'])), span(max(W['lag']))))
     elif W['lag']:
         L.append('⌛ ตัดเสร็จหลังเรียนจบ %s' % span(W['lag'][0]))
+    if W['lag']:
+        L.append('🎯 เสร็จภายใน %d ชม. = %d/%d คลิป' % (TARGET_H, sum(1 for x in W['lag'] if x <= TARGET_H * 3600), len(W['lag'])))
     return L
 
 
@@ -459,7 +467,7 @@ def build(D, today):
     if q:
         for c in q[:MAX_QUEUE_LINES]:
             waited = (now - c['end']).total_seconds() if c.get('end') else None
-            late = waited is not None and waited > STALE_DAYS * 86400
+            late = waited is not None and waited > TARGET_H * 3600
             tail.append('%s %s · %s%s' % ('⚠️' if late else '•', clip_label(c['name']), STAGE_TXT[c['stage']],
                                           (' · รอมาแล้ว ' + span(waited)) if waited is not None and waited > 0 else ''))
             tail.append('   → คาดเสร็จ %s (อีก ~%s)' % (thtime(c['eta']), span((c['eta'] - now).total_seconds())))
@@ -483,9 +491,12 @@ def build(D, today):
     if D['stuck']:
         tail.append('🛑 ระบบหยุดลองแล้ว ต้องมีคนดู = %d' % len(D['stuck']))
         for c in D['stuck']:
-            tail.append('• %s · เรียน %s' % (clip_label(c['name']), thday(c['day'])))
+            why = ''
+            if c['p'].get('bp_yt_captions') == 'none':
+                why = ' · YouTube ไม่ทำคำบรรยายให้' + ((' (ยาว %s อาจอัดผิด)' % span(c['dur'])) if c.get('dur') and c['dur'] < 300 else '')
+            tail.append('• %s · เรียน %s%s' % (clip_label(c['name']), thday(c['day']), why))
     foot = ['ℹ️ ไฟล์ตัดอยู่ใน «edit แล้ว» · ลิงก์ใช้ได้จนถึงรอบเคลียร์วันจันทร์ (หลังวางคลิปในคอร์สแล้ว)',
-            '⌛ เวลาคาดเสร็จประมาณจากรอบถอดคำหยาบ 09:13 / 15:13 / 20:13 และเวลาจริงย้อนหลัง']
+            '⌛ เวลาคาดเสร็จคิดจากรอบถอดคำหยาบ 06:13 / 10:13 / 14:13 / 18:13 / 22:13 และเวลาจริงย้อนหลัง · คลิปที่ "รอคำบรรยาย YouTube" อาจคลาดได้ (ขึ้นกับ YouTube)']
     return pack(head, blocks, tail, foot)
 
 
