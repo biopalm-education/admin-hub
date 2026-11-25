@@ -1,5 +1,6 @@
 # -*- coding: utf-8 -*-
 """รอบอัปเดตอัตโนมัติ (GitHub Actions): อัปเดตรายการ "ติดแท็ก / ใส่โน้ต ให้ครบ" จากไฟล์ดิบ LINE บน Drive
++ ตาราง "แชทที่ติดแท็ก / ติดโน้ต" รายเดือน (tn_month.py) จากไฟล์ชุดเดียวกัน
 
 refresh.py ดาวน์โหลดไฟล์ line_*_raw.json.gz ล่าสุดจาก Drive มาไว้ในโฟลเดอร์หนึ่ง แล้วเรียกไฟล์นี้
 ใช้เฉพาะไฟล์ที่ดึงหลังรอบที่อยู่ในแดชบอร์ด (เทียบเวลา walkAt/pulled กับ agg.tnfu) เรียงเก่า → ใหม่
@@ -11,6 +12,7 @@ import json, sys, gzip, os
 
 sys.path.insert(0, os.path.dirname(os.path.abspath(__file__)))
 import tn_update as U   # noqa: E402
+import tn_month as M    # noqa: E402  ตาราง "แชทที่ติดแท็ก / ติดโน้ต" รายเดือน (agg.tagnote) — 25 พ.ย. 2026
 
 
 def pulled_at(p):
@@ -36,6 +38,10 @@ def main(src, files):
         print('tnfu: ไม่มีไฟล์ LINE ใหม่กว่ารอบเดิม (%s) — คงรายการเดิม' % U.thai(st).strftime('%Y-%m-%d %H:%M'))
         return
     rep = U.main(src, [p for _, p in pick], verbose=False)
+    try:                    # พลาดแล้วไม่หยุดรอบ — ตารางรายเดือนคงของเดิม · บรรทัด tnfu ต้องพิมพ์เป็นบรรทัดสุดท้าย (refresh.py อ่าน tail -1)
+        M.main(src, [p for _, p in pick])
+    except (Exception, SystemExit) as e:
+        print('tagnote: ไม่สำเร็จ', type(e).__name__)
     g = rep['groups']
     print('tnfu: อัปเดตจาก %d ไฟล์ · ณ %s · ห้องปีนี้ %d · ค้าง %s → %s (ไม่มีทั้งคู่ %d · มีแท็กไม่มีโน้ต %d · มีโน้ตไม่มีแท็ก %d)'
           ' · แท็กสด %d/%d · เช็กโน้ต %d · ห้องใหม่ยังไม่เช็ก %d · ห้องรอบเดิม %s/%s'
