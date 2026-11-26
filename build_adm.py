@@ -70,6 +70,10 @@ if ig:
     del ig
 for p in sorted(glob.glob('src/line_*.json')):
     f = load(p); o = blank()
+    # fa (26 พ.ย. 2026): ตอบคนแรกรายแอดมิน {ชื่อ: [ห้องที่คนนี้ตอบเป็นคนแรก, ในนั้นตอบภายใน 15 นาที]}
+    # ห้องชุดเดียวกับ ans (ลูกค้าทัก ไม่ใช่ Giveaway · มีคนตอบ) · คนแรก = แอดมิน (ไม่ใช่ C/B) คนแรกที่พิมพ์หลังข้อความแรกของลูกค้า
+    # ภายใน 15 นาที = fr < 15 ตรงกับช่อง "น้อยกว่า 15 นาที" ของตารางความเร็ว · คำตอบที่ไปตกเดือนถัดไปไม่มีชื่อในเดือนนี้ จึงไม่นับรายคน
+    fa = {}
     for r in f['rooms']:
         t = next((m[0] for m in r['tr'] if m[1] == 'C'), None)
         mod = None
@@ -78,7 +82,14 @@ for p in sorted(glob.glob('src/line_*.json')):
                 hh, mm = t.split(' ')[1].split(':'); mod = int(hh) * 60 + int(mm)
             except Exception:
                 mod = None
-        add(o, r.get('sg'), r.get('fr'), mod)
+        st, fr = r.get('sg'), r.get('fr')
+        add(o, st, fr, mod)
+        if st not in SKIP and st is not None and fr is not None and fr >= 0:
+            tr = r['tr']; i0 = next((i for i, m in enumerate(tr) if m[1] == 'C'), None)
+            who = None if i0 is None else next((m[1] for m in tr[i0 + 1:] if len(m) > 1 and m[1] not in ('C', 'B')), None)
+            if who:
+                x = fa.setdefault(who, [0, 0]); x[0] += 1; x[1] += 1 if fr < 15 else 0
+    o['fa'] = fa
     out['line'][p[-12:-5]] = o
     del f
 
@@ -89,4 +100,5 @@ os.replace(tmp, 'src/agg.json')
 for ch in out:
     for mo in sorted(out[ch])[-2:]:
         o = out[ch][mo]
-        print('adm', ch, mo, 'n', o['n'], 'ans', o['ans'], 'W', o['W'], 'b', [x[0] for x in o['sp']['b']])
+        print('adm', ch, mo, 'n', o['n'], 'ans', o['ans'], 'W', o['W'], 'b', [x[0] for x in o['sp']['b']],
+              ('fa %d/%d' % (sum(v[1] for v in o['fa'].values()), sum(v[0] for v in o['fa'].values()))) if 'fa' in o else '')

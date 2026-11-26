@@ -9,7 +9,7 @@ convert.py AND run this once, so months already in src/ follow the new name too.
 
 Touches only fields that hold an ADMIN name (never customer names or message text):
   src/line_*.json   rooms[*].tr[*][1] (sender) · rooms[*].ad[*] · rooms[*].ow
-  src/agg.json      line.*.admins / adminScore · v4|v4w30.line.*.adm · adm.line.*.sby / sbypaid keys
+  src/agg.json      line.*.admins / adminScore · v4|v4w30.line.*.adm · adm.line.*.sby / sbypaid / fa keys
                     notes.months.* fields owner / by / adm · tnfu.rooms[*][2]
 followup.json / ba.json are rebuilt from these by build_fu.py / build_week.py — run the usual chain afterwards:
   build_v4.py -> build_v5.py -> post_v5_speed.py -> build_fu.py -> build_adm.py -> build_stage.py -> build_week.py -> build.py
@@ -45,11 +45,16 @@ for top in ('v4', 'v4w30'):
     for o in ((A.get(top) or {}).get('line') or {}).values():
         for x in (o or {}).get('adm') or []: x[0] = rn(x[0], top + '.adm')
 for o in ((A.get('adm') or {}).get('line') or {}).values():
-    for k in ('sby', 'sbypaid'):
+    for k in ('sby', 'sbypaid', 'fa'):          # fa = {ชื่อ: [ตอบคนแรก, ภายใน 15 นาที]} (build_adm.py · 26 พ.ย. 2026)
         d = o.get(k)
         if isinstance(d, dict):
             new = {}
-            for n, v in d.items(): n2 = rn(n, 'adm.' + k); new[n2] = new.get(n2, 0) + v
+            for n, v in d.items():
+                n2 = rn(n, 'adm.' + k)
+                if isinstance(v, list):
+                    old = new.get(n2) or [0] * len(v); new[n2] = [a + b for a, b in zip(old, v)]
+                else:
+                    new[n2] = new.get(n2, 0) + v
             o[k] = new
 
 def walk_notes(o):
