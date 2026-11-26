@@ -7,8 +7,14 @@ TZ = datetime.timezone(datetime.timedelta(hours=7))
 OWN = {"eb20c13e-704a-4ebb-8a4f-120827eff324": "Admin", "9465f64a-5032-4c87-9991-e21a9ca8e0c6": "K_kosol",
        "da775e00-3f7a-11ee-805d-d62662ffd727": "PPALM", "a0cbc6b7-12a1-4a6d-b179-dd53a87b8a35": "ARM",
        "c277a0b0-8b5d-11e9-b5ee-fa163e3af8d6": "BGs", "2082a0bb-78b8-4e3f-be2b-4460ad2c584f": "Gambumm",
-       "1f94e460-3e87-11ea-bd9a-fa163eaabe5f": "🚲", "099fd731-aab3-4a09-9892-334b6b9b3096": "PAT",
-       "aa9d8310-a1a4-11eb-8e96-163d0215afca": "🌙"}
+       "1f94e460-3e87-11ea-bd9a-fa163eaabe5f": "NR", "099fd731-aab3-4a09-9892-334b6b9b3096": "PAT",
+       "aa9d8310-a1a4-11eb-8e96-163d0215afca": "Miew",
+       # แอดมินใหม่ ต.ค. 2026 — เป็น I Yu กับ Samleee (ยังไม่ยืนยันว่าใครเป็นใคร) · ยืนยันแล้วแก้ชื่อที่นี่
+       # แล้วรัน tools/line/rename_admin.py src 'แอดมินใหม่ (เย็น)=<ชื่อจริง>' ... ให้เดือนที่อยู่ในแดชบอร์ดแล้วตามไปด้วย
+       "eb9a60b3-8a84-41a2-ac87-78ba1b609ee2": "แอดมินใหม่ (เย็น)",       # เริ่ม 5 ต.ค. 2026 · กะ 17–21 น.
+       "88b10bb9-c2a2-466a-9185-51def4f41536": "แอดมินใหม่ (กลางวัน)"}    # เริ่ม 22 ต.ค. 2026 · กะ 10–14 น.
+# 26 พ.ย. 2026: ชื่อจริงของรหัสที่เคยแสดงเป็นอีโมจิ 🚲 = NR · 🌙 = Miew (เจ้าของยืนยัน)
+# PPALM (พี่ปาล์ม) และ BGs (พี่บอล) ยังนับเป็น "คน" ในระดับห้อง (ห้องนั้นมีคนตอบแล้ว) แต่หน้าเว็บไม่นับในผลงานรายแอดมิน (ADM_EXCL ใน app.html)
 TAG = {"agh6cwvpsg4pwtlq75zlptukai": "Q-ยังไม่สมัคร", "agko5ii7gu5qj63kxff76no5ai": "คอร์ส สอวน.",
        "agko5ijoxjpchguvvo22uvzzai": "คอร์ส IJSO", "agko5io6w5ghmdhz5m4hg22uai": "คอร์สสอบเข้า ม.4",
        "aglwd5uhmy7serziqodvuy5wai": "Q-ถามกับระบบ", "aglwoifbzyfklszijzxo62c3ai": "คอร์สเนื้อหา ม.ต้น",

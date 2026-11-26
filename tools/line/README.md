@@ -25,6 +25,7 @@
 | `tn_update.py` | อัปเดต `agg.tnfu` **ต่อจากของเดิม** ใช้ทุกรอบ · `--todo src out.json` = รหัสห้องที่ต้องเช็กโน้ต (ส่งให้ `notesFor`) |
 | `tn_auto.py` | รอบเช้า (GitHub Actions) เรียกเอง: ใช้ไฟล์ดิบ LINE บน Drive ที่ใหม่กว่ารอบเดิม → `tn_update.py` |
 | `tn_apply.py` | ขึ้น `agg.tnfu` ใหม่โดยเข้ารหัสเฉพาะ `data/agg.json` ด้วย salt เดิม (รอบที่ดึงแท็ก/โน้ตอย่างเดียว) |
+| `rename_admin.py` | (26 พ.ย. 2026) เปลี่ยนชื่อแอดมินในข้อมูลที่อยู่ในแดชบอร์ดแล้ว (เช่น ยืนยันชื่อจริงของรหัสใหม่) — แก้ `OWN` ใน `convert.py` ก่อน แล้ว `python3 tools/line/rename_admin.py src 'ชื่อเดิม=ชื่อใหม่'` ตามด้วย build_v4 → v5 → post_v5_speed → build_fu → build_adm → build_stage → build_week → build · PPALM / BGs ไม่ขึ้นในผลงานรายแอดมิน (`ADM_EXCL` ใน app.html) |
 
 ## ขั้นตอนหนึ่งรอบ (สำหรับ Claude)
 1. **เช็กเครื่อง** — เปิด `https://chat.line.biz/U38b62d24ef14a84a048cd6633fc15d21` ใน browser pane ถ้า URL เป็น account.line.biz/login = session หลุด → แจ้งเจ้าของให้ล็อกอิน แล้วหยุด (ห้ามกรอกรหัสผ่านเอง) · ถ้ามีตัวดึงรันอยู่ (`window.LINEPULL?.running`) ห้ามเริ่มซ้อน

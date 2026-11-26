@@ -2434,7 +2434,7 @@ function renderLnRev(){
   <td class="n"><b>${baht(v.rev)}</b><div class="spsm">เฉลี่ย ${per(v.rev,v.W)} / ห้องที่ปิดได้</div>
    <div class="rvbar"><span style="width:${Math.max(2,Math.round(v.rev*100/mx))}%"></span></div></td>
   <td class="n">${pctS(v.rev,T.rev)}</td></tr>`;
- const missRow=S.miss.rev>0||S.miss.W>0?`<tr class="rvmiss"><td class="name">ไม่ระบุแอดมิน<div class="spsm">สลิปเข้าโดยไม่มีแอดมิน (คน) คุยก่อนหน้า</div></td>
+ const missRow=S.miss.rev>0||S.miss.W>0?`<tr class="rvmiss"><td class="name">อื่น ๆ / ไม่ระบุแอดมิน<div class="spsm">พี่ปาล์ม/พี่บอลปิดเอง หรือสลิปเข้าโดยไม่มีแอดมินคุยก่อนหน้า</div></td>
   <td class="n">—</td><td class="n">—</td><td class="n">${nf(S.miss.W)}</td><td class="n">${baht(S.miss.rev)}</td><td class="n">—</td></tr>`:'';
  const tot=`<tr class="sptot"><td class="name"><b>รวมทุกคน</b></td><td class="n">${nf(T.rooms)}</td><td class="n">${nf(T.Q)}</td>
   <td class="n"><b>${nf(T.W+S.miss.W)}</b></td><td class="n"><b>${baht(T.rev+S.miss.rev)}</b><div class="spsm">เฉลี่ย ${per(T.rev+S.miss.rev,T.W+S.miss.W)} / ห้อง</div></td><td class="n">100%</td></tr>`;
@@ -2745,7 +2745,8 @@ function ovAsk(title,sub,min,def,multi){return new Promise(res=>{
  bg.querySelector('.ovcx').addEventListener('click',()=>done(''));
  bg.addEventListener('click',e=>{if(e.target===bg)done('');});
  upd();setTimeout(()=>i.focus(),30);});}
-const OV_ADMINS=[['pat',''],['Gambumm',''],['ARM',''],['🚲',''],['🌙',''],['PPALM','owner'],['khing','operator'],['Pball','operator']];
+/* 26 พ.ย. 2026: รายชื่อแอดมินชุดปัจจุบัน (🚲 = NR · 🌙 = Miew · เพิ่ม I Yu, Samleee) · ไม่มี PPALM (พี่ปาล์ม) และ Pball (พี่บอล) แล้ว */
+const OV_ADMINS=[['pat',''],['Gambumm',''],['ARM',''],['NR',''],['Miew',''],['I Yu',''],['Samleee',''],['khing','operator']];
 function ovMove(o,st,why,opt){return new Promise(res=>{
  opt=opt||{};
  const other=st==='skip'&&why==='อื่น ๆ';
@@ -4092,7 +4093,7 @@ function renderAdmQuality(){
     <td class="n">${S.qpok&&a.Q?big(pctS(a.QP,a.Q))+sm(nf(a.QP)+' จาก '+nf(a.Q)+' ห้อง'):big('—')}</td><td class="n">${big(nf(a.msgs))}</td></tr>`;};
    t3=`<h3 class="qh3">3 · LINE OA รายแอดมิน: ห้องที่จ่ายเงินแล้วเป็นของใคร</h3><p class="note" style="margin-bottom:8px">LINE บอกชื่อแอดมินที่ตอบได้ จึงแยกรายคนได้ (Facebook / Instagram แยกรายคนไม่ได้ เพราะ Meta ไม่บอกว่าแอดมินคนไหนตอบ) · ${esc(rangeLabel(lnKs))}${lnKs.length>1?' · หลายเดือนรวมกัน ห้องที่คุยหลายเดือนนับแยกเดือน':''}</p>
    <div class="tw"><table><thead><tr><th>แอดมิน</th><th class="n">ห้องที่เข้าไปตอบ</th><th class="n">ส่งสรุปจ่ายเอง<div class="spsm" style="font-weight:400">คนที่ส่งใบสรุปยอดของห้อง</div></th><th class="n">จ่ายเงินแล้ว<div class="spsm" style="font-weight:400">เครดิตคนสุดท้ายที่พิมพ์ก่อนสลิปเข้า</div></th><th class="n">คุณภาพการตอบ<div class="spsm" style="font-weight:400">จ่ายเงิน ÷ ห้องที่ตอบ</div></th><th class="n">ใบสรุปของคนนี้ → จ่ายเงิน<div class="spsm" style="font-weight:400">ห้องที่คนนี้ส่งใบสรุป แล้วลูกค้าจ่ายตามมา</div></th><th class="n">ข้อความที่พิมพ์</th></tr></thead>
-   <tbody>${L.map(ar).join('')}${S.miss?`<tr class="qlow"><td class="name">ไม่ระบุแอดมิน${sm('สลิปเข้าโดยไม่มีแอดมินคุยก่อน')}</td><td class="n">—</td><td class="n">—</td><td class="n">${big(nf(S.miss))}</td><td class="n">—</td><td class="n">—</td><td class="n">—</td></tr>`:''}
+   <tbody>${L.map(ar).join('')}${S.miss?`<tr class="qlow"><td class="name">อื่น ๆ / ไม่ระบุแอดมิน${sm('พี่ปาล์ม/พี่บอลปิดเอง หรือสลิปเข้าโดยไม่มีแอดมินคุยก่อน')}</td><td class="n">—</td><td class="n">—</td><td class="n">${big(nf(S.miss))}</td><td class="n">—</td><td class="n">—</td><td class="n">—</td></tr>`:''}
    ${lnQ?`<tr class="sptot"><td><b>รวม LINE OA</b>${sm('นับห้องไม่ซ้ำ')}</td><td class="n">${big(nf(lnQ.ans))}</td><td class="n">—</td><td class="n">${big(nf(lnQ.W))}</td><td class="n">${big('<b style="color:var(--leaf)">'+pctS(lnQ.W,lnQ.ans)+'</b>')}</td><td class="n">—</td><td class="n">—</td></tr>`:''}</tbody></table></div>
    <details class="fhelp" style="margin-top:8px"><summary>ข้อควรระวังในการอ่านตารางรายแอดมิน</summary><div class="warnbox" style="margin-top:8px;line-height:1.8">
    <b>จ่ายเงินแล้ว</b> = ห้องที่มีสลิป “ตรวจสอบสลิปสำเร็จ” ผู้รับ บจก. ไบโอปาล์มฯ ให้เครดิตแอดมิน (คน) <b>คนสุดท้ายที่พิมพ์ก่อนสลิปเข้า</b> ไม่นับบอท · เลขอ้างอิงเดียวกันนับครั้งเดียว<br>
@@ -4216,6 +4217,18 @@ const isRealLead=r=>r[34]==='L4'||r[34]==='L5';
 const B64=s=>Uint8Array.from(atob(s),c=>c.charCodeAt(0));
 const G=i=>document.getElementById(i);
 let KEY=null,MAN=null,AGG=null,IGFULL=null;const FBFULL={},CACHE={};
+/* ไม่นับในผลงานรายแอดมิน (26 พ.ย. 2026): PPALM = พี่ปาล์ม · BGs = พี่บอล
+   ห้องที่สองคนนี้ตอบยังนับว่า "มีคนตอบแล้ว" ตามเดิม (ตัวเลขระดับห้อง/ช่องทางไม่เปลี่ยน) แต่ไม่ขึ้นในตาราง/กราฟ/รายชื่อรายแอดมิน
+   ยอดปิดที่เคยเครดิตให้สองคนนี้ไปรวมในแถว "อื่น ๆ" · แก้รายชื่อที่นี่ที่เดียว */
+const ADM_EXCL=['PPALM','BGs'];
+function admExclude(A){
+ const ex=n=>ADM_EXCL.includes(n), fl=a=>Array.isArray(a)?a.filter(x=>!ex(Array.isArray(x)?x[0]:x)):a;
+ for(const o of Object.values(A.line||{})){if(!o)continue;o.admins=fl(o.admins);if(o.adminScore)o.adminScore=fl(o.adminScore);}
+ for(const t of [A.v4,A.v4w30])for(const o of Object.values((t||{}).line||{}))if(o&&o.adm)o.adm=fl(o.adm);
+ for(const o of Object.values((A.adm||{}).line||{}))for(const f of ['sby','sbypaid'])if(o&&o[f])for(const n of ADM_EXCL)delete o[f][n];
+ for(const m of Object.values((A.notes||{}).months||{})){if(!m)continue;
+  if(Array.isArray(m.tagd))m.tagd=m.tagd.filter(x=>!ex(x.adm));if(Array.isArray(m.noted))m.noted=m.noted.filter(x=>!ex(x.adm));}
+ return A;}
 
 async function gunzip(buf){
  if(typeof DecompressionStream==='undefined')throw new Error('nogzip');
@@ -4257,7 +4270,7 @@ G('gform').addEventListener('submit',async ev=>{
   KEY=await crypto.subtle.deriveKey({name:'PBKDF2',salt:B64(MAN.kdf.s),iterations:MAN.kdf.n,hash:'SHA-256'},
        base,{name:'AES-GCM',length:256},false,['decrypt']);
   await openBlob(MAN.check);
-  AGG=await getFile('agg');
+  AGG=admExclude(await getFile('agg'));
   G('gate').remove();
   G('app').hidden=false;
   bootApp();
