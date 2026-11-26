@@ -4037,14 +4037,17 @@ function renderAdmPend(){
 function qPrice(c,ks){let q=0,m=0;for(const k of ks){const a=AGG.adm&&(AGG.adm[c]||{})[k];if(!a||a.sum==null)continue;q+=a.sum;m++;}return m===ks.length&&m?q:null;}  /* แชทที่เดือนนั้นมีใบสรุปยอด (build_stage.py) */
 /* ในแชทที่ได้ใบสรุปยอดเดือนนั้น มีกี่แชทที่ส่งสลิปผ่านหลังใบสรุป (เดือนไหนก็ได้ จนถึงวันที่ข้อมูลล่าสุด) — ตัวตั้งเป็นส่วนหนึ่งของตัวหารจริง จึงไม่เกิน 100% */
 function qPaid(c,ks){let q=0,m=0;for(const k of ks){const a=AGG.adm&&(AGG.adm[c]||{})[k];if(!a||a.sumpaid==null)continue;q+=a.sumpaid;m++;}return m===ks.length&&m?q:null;}
-function lnAdmSum(ks){const A={};let wAll=0,m=0,nq=0,np=0;
- const nw=n=>A[n]||(A[n]={rooms:0,Q:0,QP:0,W:0,msgs:0});
+function lnAdmSum(ks){const A={};let wAll=0,m=0,nq=0,np=0,nfa=0,t15=0,tsp=0;
+ const nw=n=>A[n]||(A[n]={rooms:0,Q:0,QP:0,W:0,msgs:0,F:0,F15:0});
  for(const k of ks){const o=(V4.line||{})[k];if(!o)continue;m++;wAll+=o.W||0;
   for(const x of (o.adm||[])){const a=nw(x[0]);a.rooms+=x[1]||0;a.W+=x[3]||0;a.msgs+=x[5]||0;}
   /* สรุปจ่าย = ใบสรุปยอด (build_stage.py · sby) — ไม่ใช้ตัวนับ “พิมพ์ราคา” แบบเดิมแล้ว */
-  const sby=(((AGG&&AGG.adm)||{}).line||{})[k];if(sby&&sby.sby){nq++;for(const n in sby.sby)nw(n).Q+=sby.sby[n];if(sby.sbypaid){np++;for(const n in sby.sbypaid)nw(n).QP+=sby.sbypaid[n];}}}
+  const sby=(((AGG&&AGG.adm)||{}).line||{})[k];if(sby&&sby.sby){nq++;for(const n in sby.sby)nw(n).Q+=sby.sby[n];if(sby.sbypaid){np++;for(const n in sby.sbypaid)nw(n).QP+=sby.sbypaid[n];}}
+  /* ตอบคนแรกใน 15 นาที รายแอดมิน (26 พ.ย. 2026 · build_adm.py fa = {ชื่อ: [ห้องที่ตอบเป็นคนแรก, ในนั้นภายใน 15 นาที]}) */
+  if(sby&&sby.fa){nfa++;for(const n in sby.fa){const a=nw(n),v=sby.fa[n]||[];a.F+=v[0]||0;a.F15+=v[1]||0;}}
+  const sp=admSpOf('line',k);if(sp&&sp.b){tsp++;t15+=(sp.b[0]||[0])[0]||0;}}
  const L=Object.keys(A).map(n=>[n,A[n]]).filter(x=>x[1].rooms||x[1].Q||x[1].W);const cred=L.reduce((t,x)=>t+x[1].W,0);
- return m?{L,wAll,miss:Math.max(0,wAll-cred),qok:nq===m,qpok:np===m}:null;}
+ return m?{L,wAll,miss:Math.max(0,wAll-cred),qok:nq===m,qpok:np===m,faok:nfa===m,t15:tsp===m?t15:null}:null;}
 function renderAdmQuality(){
  const el=$('#v4q'),chs=admChs().filter(c=>ksNow(c).length);
  $('#v4qscope').textContent=CHN[CH]+' · '+moLabel();
@@ -4088,16 +4091,17 @@ function renderAdmQuality(){
   if(S&&S.L.length){const lnQ=admQ(['line'],()=>lnKs);
    const L=S.L.slice().sort((a,b)=>(b[1].W-a[1].W)||(b[1].rooms-a[1].rooms));const mx=Math.max(1,...L.map(x=>x[1].rooms?x[1].W*100/x[1].rooms:0));
    const ar=([n,a])=>{const v=a.rooms?a.W*100/a.rooms:null,low=a.rooms<30;return `<tr${low?' class="qlow"':''}><td class="name"><b>${esc(n)}</b>${low?sm('ห้องน้อย ตัวเลขยังไม่นิ่ง'):''}</td>
-    <td class="n">${big(nf(a.rooms))}</td><td class="n">${S.qok?big(nf(a.Q)):big('—')}</td><td class="n">${big(nf(a.W))}</td>
+    <td class="n">${big(nf(a.rooms))}</td><td class="n">${S.faok&&a.F?big(pctS(a.F15,a.F))+sm(nf(a.F15)+' จาก '+nf(a.F)+' ห้อง'):big('—')}</td><td class="n">${S.qok?big(nf(a.Q)):big('—')}</td><td class="n">${big(nf(a.W))}</td>
     <td class="n"><div class="spbig"><b style="color:var(--leaf)">${v==null?'—':pctS(a.W,a.rooms)}</b></div><span class="qbar"><i style="width:${v==null?0:Math.max(2,v*100/mx)}%"></i></span></td>
     <td class="n">${S.qpok&&a.Q?big(pctS(a.QP,a.Q))+sm(nf(a.QP)+' จาก '+nf(a.Q)+' ห้อง'):big('—')}</td><td class="n">${big(nf(a.msgs))}</td></tr>`;};
    t3=`<h3 class="qh3">3 · LINE OA รายแอดมิน: ห้องที่จ่ายเงินแล้วเป็นของใคร</h3><p class="note" style="margin-bottom:8px">LINE บอกชื่อแอดมินที่ตอบได้ จึงแยกรายคนได้ (Facebook / Instagram แยกรายคนไม่ได้ เพราะ Meta ไม่บอกว่าแอดมินคนไหนตอบ) · ${esc(rangeLabel(lnKs))}${lnKs.length>1?' · หลายเดือนรวมกัน ห้องที่คุยหลายเดือนนับแยกเดือน':''}</p>
-   <div class="tw"><table><thead><tr><th>แอดมิน</th><th class="n">ห้องที่เข้าไปตอบ</th><th class="n">ส่งสรุปจ่ายเอง<div class="spsm" style="font-weight:400">คนที่ส่งใบสรุปยอดของห้อง</div></th><th class="n">จ่ายเงินแล้ว<div class="spsm" style="font-weight:400">เครดิตคนสุดท้ายที่พิมพ์ก่อนสลิปเข้า</div></th><th class="n">คุณภาพการตอบ<div class="spsm" style="font-weight:400">จ่ายเงิน ÷ ห้องที่ตอบ</div></th><th class="n">ใบสรุปของคนนี้ → จ่ายเงิน<div class="spsm" style="font-weight:400">ห้องที่คนนี้ส่งใบสรุป แล้วลูกค้าจ่ายตามมา</div></th><th class="n">ข้อความที่พิมพ์</th></tr></thead>
-   <tbody>${L.map(ar).join('')}${S.miss?`<tr class="qlow"><td class="name">อื่น ๆ / ไม่ระบุแอดมิน${sm('พี่ปาล์ม/พี่บอลปิดเอง หรือสลิปเข้าโดยไม่มีแอดมินคุยก่อน')}</td><td class="n">—</td><td class="n">—</td><td class="n">${big(nf(S.miss))}</td><td class="n">—</td><td class="n">—</td><td class="n">—</td></tr>`:''}
-   ${lnQ?`<tr class="sptot"><td><b>รวม LINE OA</b>${sm('นับห้องไม่ซ้ำ')}</td><td class="n">${big(nf(lnQ.ans))}</td><td class="n">—</td><td class="n">${big(nf(lnQ.W))}</td><td class="n">${big('<b style="color:var(--leaf)">'+pctS(lnQ.W,lnQ.ans)+'</b>')}</td><td class="n">—</td><td class="n">—</td></tr>`:''}</tbody></table></div>
+   <div class="tw"><table><thead><tr><th>แอดมิน</th><th class="n">ห้องที่เข้าไปตอบ</th><th class="n">ตอบคนแรกใน 15 นาที<div class="spsm" style="font-weight:400">ห้องที่คนนี้ตอบเป็นคนแรก</div></th><th class="n">ส่งสรุปจ่ายเอง<div class="spsm" style="font-weight:400">คนที่ส่งใบสรุปยอดของห้อง</div></th><th class="n">จ่ายเงินแล้ว<div class="spsm" style="font-weight:400">เครดิตคนสุดท้ายที่พิมพ์ก่อนสลิปเข้า</div></th><th class="n">คุณภาพการตอบ<div class="spsm" style="font-weight:400">จ่ายเงิน ÷ ห้องที่ตอบ</div></th><th class="n">ใบสรุปของคนนี้ → จ่ายเงิน<div class="spsm" style="font-weight:400">ห้องที่คนนี้ส่งใบสรุป แล้วลูกค้าจ่ายตามมา</div></th><th class="n">ข้อความที่พิมพ์</th></tr></thead>
+   <tbody>${L.map(ar).join('')}${S.miss?`<tr class="qlow"><td class="name">อื่น ๆ / ไม่ระบุแอดมิน${sm('พี่ปาล์ม/พี่บอลปิดเอง หรือสลิปเข้าโดยไม่มีแอดมินคุยก่อน')}</td><td class="n">—</td><td class="n">—</td><td class="n">—</td><td class="n">${big(nf(S.miss))}</td><td class="n">—</td><td class="n">—</td><td class="n">—</td></tr>`:''}
+   ${lnQ?`<tr class="sptot"><td><b>รวม LINE OA</b>${sm('นับห้องไม่ซ้ำ')}</td><td class="n">${big(nf(lnQ.ans))}</td><td class="n">${S.t15!=null&&lnQ.ans?big(pctS(S.t15,lnQ.ans))+sm(nf(S.t15)+' จาก '+nf(lnQ.ans)+' ห้อง'):big('—')}</td><td class="n">—</td><td class="n">${big(nf(lnQ.W))}</td><td class="n">${big('<b style="color:var(--leaf)">'+pctS(lnQ.W,lnQ.ans)+'</b>')}</td><td class="n">—</td><td class="n">—</td></tr>`:''}</tbody></table></div>
    <details class="fhelp" style="margin-top:8px"><summary>ข้อควรระวังในการอ่านตารางรายแอดมิน</summary><div class="warnbox" style="margin-top:8px;line-height:1.8">
    <b>จ่ายเงินแล้ว</b> = ห้องที่มีสลิป “ตรวจสอบสลิปสำเร็จ” ผู้รับ บจก. ไบโอปาล์มฯ ให้เครดิตแอดมิน (คน) <b>คนสุดท้ายที่พิมพ์ก่อนสลิปเข้า</b> ไม่นับบอท · เลขอ้างอิงเดียวกันนับครั้งเดียว<br>
    <b>ห้องที่เข้าไปตอบ</b> — ห้องเดียวมีแอดมินหลายคนได้ ผลรวมรายคนจึงมากกว่าแถว “รวม LINE OA”<br>
+   <b>ตอบคนแรกใน 15 นาที</b> = ในห้องที่แอดมินคนนี้เป็นคนแรกที่ตอบหลังลูกค้าทัก มีกี่ % ที่ตอบภายใน 15 นาที (นับเวลาจากข้อความแรกของลูกค้า · ห้องละ 1 คน · ไม่นับบอท/ข้อความอัตโนมัติ · เกณฑ์เดียวกับช่อง “น้อยกว่า 15 นาที” ในตารางความเร็วตอบ) · แถวรวมใช้ทุกห้องที่มีคนตอบ${S.faok?'':' · <b>ตัวเลขรายคนจะขึ้นหลังรอบอัปเดตอัตโนมัติรอบถัดไป</b>'}<br>
    <b>ส่งสรุปจ่ายเอง</b> = ห้องที่แอดมินคนนี้เป็นคนส่งใบสรุปยอด (รหัสคอร์ส + ยอด + เลขบัญชี) ใบแรกของเดือน · นับห้องละ 1 คน${S.qok?'':' · <b>ข้อมูลสรุปจ่ายรายคนจะขึ้นหลังรอบอัปเดตอัตโนมัติรอบถัดไป</b>'}<br>
    <b>คนสุดท้ายก่อนสลิป ≠ คนที่ขายเสมอไป</b> — ส่งต่อกันในทีมบ่อย บางห้องคนได้เครดิตจ่ายเงินเป็นคนละคนกับคนส่งสรุปยอด ให้ดูคู่กับคอลัมน์ <b>ส่งสรุปจ่ายเอง</b> และ <b>ใบสรุปของคนนี้ → จ่ายเงิน</b> (นับห้องที่ลูกค้าส่งสลิปผ่านหลังใบสรุปของคนนี้ เดือนไหนก็ได้จนถึงวันที่ข้อมูลล่าสุด — ไม่ขึ้นกับว่าใครได้เครดิตคนสุดท้าย)<br>
    แถวสีจาง = ห้องน้อยกว่า 30 ห้อง % ยังแกว่งง่าย · ไม่แสดงยอดเงิน</div></details>`;}}
@@ -4225,7 +4229,7 @@ function admExclude(A){
  const ex=n=>ADM_EXCL.includes(n), fl=a=>Array.isArray(a)?a.filter(x=>!ex(Array.isArray(x)?x[0]:x)):a;
  for(const o of Object.values(A.line||{})){if(!o)continue;o.admins=fl(o.admins);if(o.adminScore)o.adminScore=fl(o.adminScore);}
  for(const t of [A.v4,A.v4w30])for(const o of Object.values((t||{}).line||{}))if(o&&o.adm)o.adm=fl(o.adm);
- for(const o of Object.values((A.adm||{}).line||{}))for(const f of ['sby','sbypaid'])if(o&&o[f])for(const n of ADM_EXCL)delete o[f][n];
+ for(const o of Object.values((A.adm||{}).line||{}))for(const f of ['sby','sbypaid','fa'])if(o&&o[f])for(const n of ADM_EXCL)delete o[f][n];
  for(const m of Object.values((A.notes||{}).months||{})){if(!m)continue;
   if(Array.isArray(m.tagd))m.tagd=m.tagd.filter(x=>!ex(x.adm));if(Array.isArray(m.noted))m.noted=m.noted.filter(x=>!ex(x.adm));}
  return A;}
